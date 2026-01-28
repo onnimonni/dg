@@ -223,17 +223,18 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block content %}
 <input type="text" class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-piper-card text-slate-300 mb-6 focus:outline-none focus:border-piper-accent" placeholder="Search records..." id="search">
 
-<div class="flex gap-2 mb-6 flex-wrap">
+<div class="flex gap-2 mb-6 flex-wrap items-center">
     <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors active" data-type="all">All</button>
     {% for rt in record_types %}
     <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" data-type="{{ rt.code }}">{{ rt.display }}</button>
     {% endfor %}
+    <div id="tagFilter" class="hidden"></div>
     <button id="sort" class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors ml-auto" title="Core First">★</button>
 </div>
 
 <div id="records" class="space-y-3">
 {% for record in records %}
-<a href="/records/{{ record.id }}" class="card block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-yellow-500{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}">
+<a href="/records/{{ record.id }}" class="card block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-yellow-500{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
     <div class="flex justify-between items-start mb-2">
         <div class="flex items-center gap-2">
             <span class="font-mono text-sm font-medium text-piper-light">{{ record.id }}</span>
@@ -248,7 +249,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
         <span>{{ record.created }}</span>
         {% if record.tags %}
         <span class="text-slate-600">·</span>
-        {% for tag in record.tags %}<span class="px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400 font-mono">#{{ tag }}</span>{% endfor %}
+        {% for tag in record.tags %}<span class="tag-link px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400 font-mono hover:bg-piper-accent hover:text-white transition-colors" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}
         {% endif %}
     </div>
 </a>
@@ -262,8 +263,10 @@ const search = document.getElementById('search');
 const recordsContainer = document.getElementById('records');
 const filters = document.querySelectorAll('.filter-btn');
 const sortBtn = document.getElementById('sort');
+const tagFilterEl = document.getElementById('tagFilter');
 let activeType = 'all';
 let activeStatus = 'all';
+let activeTag = '';
 let sortMode = 'default'; // default -> newest -> oldest -> default
 
 const sortModes = {
@@ -272,12 +275,33 @@ const sortModes = {
     oldest: { next: 'default', icon: '↑', title: 'Oldest First' }
 };
 
+// Tag filter UI
+function updateTagFilterUI() {
+    if (activeTag) {
+        tagFilterEl.innerHTML = `<span class="px-3 py-1.5 bg-piper-accent text-white rounded-lg text-sm flex items-center gap-2">
+            #${activeTag}
+            <button onclick="clearTag()" class="hover:text-red-300">&times;</button>
+        </span>`;
+        tagFilterEl.classList.remove('hidden');
+    } else {
+        tagFilterEl.classList.add('hidden');
+    }
+}
+
+function clearTag() {
+    activeTag = '';
+    updateTagFilterUI();
+    filterRecords();
+    updateUrl();
+}
+
 // URL state management
 function updateUrl() {
     const params = new URLSearchParams();
     if (search.value) params.set('q', search.value);
     if (activeType !== 'all') params.set('type', activeType);
     if (activeStatus !== 'all') params.set('status', activeStatus);
+    if (activeTag) params.set('tag', activeTag);
     if (sortMode !== 'default') params.set('sort', sortMode);
     const url = params.toString() ? '?' + params.toString() : '/';
     history.replaceState(null, '', url);
@@ -296,6 +320,10 @@ function loadFromUrl() {
     }
     if (params.get('status')) {
         activeStatus = params.get('status');
+    }
+    if (params.get('tag')) {
+        activeTag = params.get('tag');
+        updateTagFilterUI();
     }
     if (params.get('sort') && sortModes[params.get('sort')]) {
         sortMode = params.get('sort');
@@ -332,7 +360,9 @@ function filterRecords() {
         const matchesType = activeType === 'all' || r.dataset.type === activeType;
         const matchesStatus = activeStatus === 'all' || r.dataset.status === activeStatus;
         const matchesQuery = !query || r.textContent.toLowerCase().includes(query);
-        r.style.display = matchesType && matchesStatus && matchesQuery ? 'block' : 'none';
+        const tags = r.dataset.tags ? r.dataset.tags.split(',') : [];
+        const matchesTag = !activeTag || tags.includes(activeTag);
+        r.style.display = matchesType && matchesStatus && matchesQuery && matchesTag ? 'block' : 'none';
     });
 }
 
@@ -352,6 +382,18 @@ function sortRecords() {
     });
     cards.forEach(card => recordsContainer.appendChild(card));
 }
+
+// Handle tag clicks
+document.querySelectorAll('.tag-link').forEach(tag => {
+    tag.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        activeTag = tag.dataset.tag;
+        updateTagFilterUI();
+        filterRecords();
+        updateUrl();
+    });
+});
 
 // Initialize from URL on page load
 loadFromUrl();
@@ -435,7 +477,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             {% if record.tags %}
             <div class="flex gap-2 ml-auto">
                 {% for tag in record.tags %}
-                <span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 font-mono hover:bg-slate-700 cursor-pointer">#{{ tag }}</span>
+                <a href="/?tag={{ tag }}" class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 font-mono hover:bg-piper-accent hover:text-white transition-colors no-underline">#{{ tag }}</a>
                 {% endfor %}
             </div>
             {% endif %}
