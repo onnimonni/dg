@@ -25,8 +25,8 @@
     command = "npx";
     args = [ "-y" "consult-llm-mcp" ];
     env = {
-      CONSULT_LLM_DEFAULT_MODEL = "gemini-2.5-pro";
-      CONSULT_LLM_ALLOWED_MODELS = "gemini-2.5-pro,gemini-2.0-flash";
+      CONSULT_LLM_DEFAULT_MODEL = "gemini-3-pro-preview";
+      CONSULT_LLM_ALLOWED_MODELS = "gemini-3-pro-preview,gemini-2.5-pro";
     };
   };
 
