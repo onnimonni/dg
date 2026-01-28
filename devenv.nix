@@ -90,15 +90,15 @@
   # Hooks
   claude.code.hooks = {
     dg-session-start = {
-      hookType = "SessionStart";
+      enable = true;
+      hookType = "Notification";
       command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py";
-      timeout = 10000;
     };
 
     dg-session-stop = {
+      enable = true;
       hookType = "Stop";
       command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-stop.py";
-      timeout = 5000;
     };
   };
 
