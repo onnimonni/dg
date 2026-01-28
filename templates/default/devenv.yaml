@@ -1,0 +1,9 @@
+# Devenv configuration
+# See: https://devenv.sh/getting-started/
+
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  dg:
+    url: github:onnimonni/dg
+    flake: false

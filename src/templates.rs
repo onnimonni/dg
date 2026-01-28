@@ -251,11 +251,6 @@ created: {{DATE}}
 updated: {{DATE}}
 authors: []
 tags: []
-client_info:
-  industry: null
-  size: null
-  region: null
-  tier: null
 links:
   supersedes: []
   superseded_by: []
@@ -269,61 +264,54 @@ links:
 
 # {{TITLE}}
 
+<!--
+Customer Architecture Impact Record
+NOTE: Only use this record type when a customer has requirements that
+significantly impact our architecture, require custom features, or need
+special handling. Do NOT store sensitive contact info here - use your CRM.
+-->
+
 ## Overview
-<!-- Brief description of the client and relationship -->
+<!-- Brief description: Why does this customer need special architectural consideration? -->
 
-## Business Context
-<!-- Their industry, challenges, goals -->
+## Architecture Impact
 
-### Industry Position
+### Required Customizations
+<!-- What architectural changes or customizations does this customer require? -->
 
-### Key Challenges
+| Customization | Architectural Impact | ADR Reference |
+|--------------|---------------------|---------------|
+| | | |
 
-### Strategic Goals
+### Technical Constraints
+<!-- Technical requirements that affect our system design -->
 
-## Our Engagement
-
-### Products/Services Used
 -
 
-### Customizations Required
-<!-- What special adaptations have we made for this client? -->
+### Compliance Requirements
+<!-- Regulatory/compliance needs that impact architecture (GDPR, SOC2, etc.) -->
 
-| Customization | Reason | Impact |
-|--------------|--------|--------|
+-
+
+## Integration Requirements
+
+### APIs & Data Flows
+<!-- Special integration needs -->
+
+-
+
+### Performance Requirements
+<!-- SLAs, latency requirements, data volume -->
+
+-
+
+## Decisions Made
+
+<!-- Link to relevant decisions made because of this customer's requirements -->
+
+| Decision | Status | Link |
+|----------|--------|------|
 | | | |
-
-## Key Contacts
-
-| Name | Role | Notes |
-|------|------|-------|
-| | | |
-
-## Requirements & Constraints
-
-### Regulatory
-<!-- Compliance requirements specific to this client -->
-
-### Technical
-<!-- Technical constraints or requirements -->
-
-### Business
-<!-- Business rules or constraints -->
-
-## History
-
-### Wins
-<!-- Successful deliveries, positive feedback -->
-
-### Issues
-<!-- Problems encountered, lessons learned -->
-
-### Requests
-<!-- Pending or rejected feature requests -->
-
-| Request | Status | Priority | Decision |
-|---------|--------|----------|----------|
-| | | | |
 "#;
 
 pub const OPPORTUNITY_TEMPLATE: &str = r#"---
@@ -531,7 +519,6 @@ hiring_meta:
   level: null
   location: null
   reports_to: null
-  headcount: 1
 links:
   supersedes: []
   superseded_by: []
@@ -545,94 +532,296 @@ links:
 
 # {{TITLE}}
 
-<!-- Scorecard Format (Who method - Geoff Smart & Randy Street) -->
+<!--
+Role Definition Document
+NOTE: Do NOT store candidate information here. Use your HRIS for candidate tracking.
+This document defines the role requirements and evaluation criteria only.
+-->
 
 ## Mission
 <!-- One sentence: Why does this role exist? -->
 
 ## Outcomes
-<!-- 3-8 specific, measurable goals for year 1 -->
+<!-- 3-5 specific, measurable goals for year 1 -->
 
 1. **Outcome**:
    **Measure**:
-   **Timeline**:
 
 2. **Outcome**:
    **Measure**:
-   **Timeline**:
 
 3. **Outcome**:
    **Measure**:
-   **Timeline**:
 
-## Competencies
-<!-- Behaviors required to achieve outcomes -->
-
-### Required Competencies
-
-| Competency | Description | How We'll Assess |
-|------------|-------------|------------------|
-| | | |
-
-### Nice-to-Have
+## Required Competencies
 
 | Competency | Description |
 |------------|-------------|
 | | |
 
 ## Technical Requirements
-<!-- Hard skills, tools, certifications -->
 
 ### Must Have
 -
 
-### Preferred
+### Nice to Have
 -
 
-## Cultural Fit
-<!-- Values alignment, working style -->
+## Interview Focus Areas
 
--
+| Stage | Focus |
+|-------|-------|
+| Screen | Culture fit, basics |
+| Technical | Technical competencies |
+| Hiring Manager | Outcomes, motivation |
+| Team | Collaboration |
 
-## Interview Process
+## Evaluation Criteria
 
-| Stage | Interviewer(s) | Focus | Duration |
-|-------|---------------|-------|----------|
-| Phone Screen | | Culture fit, basics | 30 min |
-| Technical | | Technical competencies | 60 min |
-| Hiring Manager | | Outcomes, motivation | 60 min |
-| Team | | Collaboration | 45 min |
+| Criteria | What "Good" Looks Like |
+|----------|------------------------|
+| | |
+"#;
 
-## Scorecard Template
+pub const INCIDENT_TEMPLATE: &str = r#"---
+type: incident
+id: INC-{{NUMBER}}
+title: "{{TITLE}}"
+status: open
+created: {{DATE}}
+updated: {{DATE}}
+authors: []
+tags: []
+incident_meta:
+  severity: sev1|sev2|sev3|sev4
+  started: null
+  detected: null
+  resolved: null
+  duration_minutes: null
+links:
+  supersedes: []
+  superseded_by: []
+  depends_on: []
+  enables: []
+  relates_to: []
+  conflicts_with: []
+  refines: []
+  implements: []
+---
 
-<!-- For interviewers to use -->
+# {{TITLE}}
 
-| Criteria | 1 (Poor) | 2 | 3 (Meets) | 4 | 5 (Exceeds) | Score |
-|----------|----------|---|-----------|---|-------------|-------|
-| Outcome 1 | | | | | | |
-| Outcome 2 | | | | | | |
-| Competency 1 | | | | | | |
-| Cultural Fit | | | | | | |
+<!-- Post-Mortem / Incident Report (Blameless format) -->
 
-**Recommendation**: Strong No | No | Hire | Strong Hire
-
-**Notes**:
-
-## Compensation Range
-<!-- If appropriate to document -->
-
-- **Base**:
-- **Bonus**:
-- **Equity**:
+## Summary
+<!-- 2-3 sentence summary of what happened -->
 
 ## Timeline
 
-| Milestone | Target Date |
-|-----------|-------------|
-| Job Posted | |
-| Interviews Complete | |
-| Offer Extended | |
-| Start Date | |
+| Time | Event |
+|------|-------|
+| | Incident started |
+| | Incident detected |
+| | Response began |
+| | Mitigated |
+| | Resolved |
+
+## Impact
+
+- **Users affected**:
+- **Duration**:
+- **Revenue impact**:
+- **Data loss**:
+
+## Root Cause
+
+<!-- What was the underlying cause? Use 5 Whys if helpful -->
+
+## Contributing Factors
+
+-
+
+## What Went Well
+
+-
+
+## What Went Poorly
+
+-
+
+## Action Items
+
+| Action | Owner | Due Date | Status |
+|--------|-------|----------|--------|
+| | | | |
+
+## Lessons Learned
+
+-
+
+## Detection
+
+<!-- How was this detected? How can we detect it faster? -->
+
+## Prevention
+
+<!-- What changes will prevent this from happening again? -->
+"#;
+
+pub const RUNBOOK_TEMPLATE: &str = r#"---
+type: runbook
+id: RUN-{{NUMBER}}
+title: "{{TITLE}}"
+status: accepted
+created: {{DATE}}
+updated: {{DATE}}
+authors: []
+tags: []
+runbook_meta:
+  last_verified: null
+  estimated_duration: null
+links:
+  supersedes: []
+  superseded_by: []
+  depends_on: []
+  enables: []
+  relates_to: []
+  conflicts_with: []
+  refines: []
+  implements: []
+---
+
+# {{TITLE}}
+
+<!-- Step-by-step operational guide -->
+
+## Purpose
+<!-- When and why would you use this runbook? -->
+
+## Prerequisites
+
+- [ ]
+
+## Steps
+
+### 1. {{STEP_NAME}}
+
+```bash
+# Commands or actions
+```
+
+**Expected outcome:**
+
+### 2. {{STEP_NAME}}
+
+```bash
+# Commands or actions
+```
+
+**Expected outcome:**
+
+### 3. {{STEP_NAME}}
+
+```bash
+# Commands or actions
+```
+
+**Expected outcome:**
+
+## Verification
+
+<!-- How do you know it worked? -->
+
+- [ ]
+
+## Rollback
+
+<!-- If something goes wrong, how do you undo it? -->
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| | |
+
+## Related
+
+<!-- Links to related runbooks, docs, or decisions -->
+
+-
+"#;
+
+pub const MEETING_TEMPLATE: &str = r#"---
+type: meeting
+id: MTG-{{NUMBER}}
+title: "{{TITLE}}"
+status: draft
+created: {{DATE}}
+updated: {{DATE}}
+authors: []
+tags: []
+meeting_meta:
+  date: {{DATE}}
+  attendees: []
+  duration_minutes: null
+links:
+  supersedes: []
+  superseded_by: []
+  depends_on: []
+  enables: []
+  relates_to: []
+  conflicts_with: []
+  refines: []
+  implements: []
+---
+
+# {{TITLE}}
+
+## Attendees
+
+-
+
+## Agenda
+
+1.
+2.
+3.
+
+## Discussion
+
+### Topic 1
+
+**Summary:**
+
+**Key points:**
+-
+
+### Topic 2
+
+**Summary:**
+
+**Key points:**
+-
+
+## Decisions Made
+
+| Decision | Owner |
+|----------|-------|
+| | |
+
+## Action Items
+
+| Action | Owner | Due |
+|--------|-------|-----|
+| | | |
+
+## Next Steps
+
+-
+
+## Follow-up Meeting
+
+<!-- Date/time if scheduled -->
 "#;
 
 pub const ADR_TEMPLATE: &str = r#"---
@@ -735,5 +924,8 @@ pub fn get_templates() -> Vec<(&'static str, &'static str)> {
         ("process.md", PROCESS_TEMPLATE),
         ("hiring.md", HIRING_TEMPLATE),
         ("adr.md", ADR_TEMPLATE),
+        ("incident.md", INCIDENT_TEMPLATE),
+        ("runbook.md", RUNBOOK_TEMPLATE),
+        ("meeting.md", MEETING_TEMPLATE),
     ]
 }

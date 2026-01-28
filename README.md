@@ -1,154 +1,176 @@
 # Decision Graph (dg)
 
-A text-based knowledge graph for company-level decision making. Captures and interconnects decisions, strategies, policies, customers, opportunities, processes, hiring records, and architecture decision records (ADRs).
+A text-based knowledge graph for company-level decision making. Captures and interconnects decisions, strategies, policies, architecture decisions, incidents, runbooks, and more.
 
 ## Why?
 
-Companies make thousands of decisions but rarely document them. When asked "Why did we expand to France instead of Germany?" or "What's our policy on data retention?", the answer is often "I think someone mentioned it in a meeting..."
+Companies make thousands of decisions but rarely document them. When asked "Why did we expand to France?" or "What's our caching strategy?", the answer is often lost in Slack threads or forgotten meetings.
 
 Decision Graph solves this by:
-- **Structured formats** based on proven frameworks (SPADE, Six-Pager, OST, DACI, Scorecards)
-- **Interconnectivity** - decisions link to strategies, customers, policies
-- **Text-based** - version controlled, searchable, Claude-friendly
-- **CLI-first** - fast to create, query, and maintain
+- **Structured formats** - proven frameworks (SPADE, Six-Pager, ADR, DACI)
+- **Interconnectivity** - decisions link to strategies, incidents, runbooks
+- **Text-based** - version controlled, searchable, AI-friendly
+- **Claude integration** - automatic decision capture during conversations
+
+## Installation
+
+### With Nix/Devenv (Recommended)
+
+Initialize a new project with Decision Graph:
+
+```bash
+nix flake init -t github:onnimonni/dg
+devenv shell
+```
+
+Or add to existing devenv project:
+
+```yaml
+# devenv.yaml
+inputs:
+  dg:
+    url: github:onnimonni/dg
+    flake: false
+```
+
+```nix
+# devenv.nix
+{ inputs, ... }:
+{
+  imports = [ "${inputs.dg}/devenv-module.nix" ];
+}
+```
+
+### With Cargo
+
+```bash
+cargo install --git https://github.com/onnimonni/dg
+```
+
+### From Releases
+
+Download pre-built binaries from [Releases](https://github.com/onnimonni/dg/releases):
+- `dg-linux-x86_64` - Linux x86_64
+- `dg-linux-aarch64` - Linux ARM64
+- `dg-macos-x86_64` - macOS Intel
+- `dg-macos-aarch64` - macOS Apple Silicon
+- `dg-windows-x86_64.exe` - Windows
 
 ## Quick Start
 
 ```bash
-# Install
-cargo install --path .
-
 # Initialize in your project
 dg init
 
-# Create your first decision
+# Create records
 dg new decision "Use PostgreSQL for primary database"
+dg new adr "Adopt event sourcing for order service"
+dg new incident "API outage 2024-01-15"
 
-# List all records
+# Link records
+dg link ADR-001 implements DEC-001
+
+# Query
 dg list
-
-# Search
 dg search "database"
+dg show DEC-001
 
-# Show record with links
-dg show DEC-001 -l
-
-# View relationship graph
+# Visualize
 dg graph
 ```
 
 ## Record Types
 
-| Type | Prefix | Framework | Use Case |
-|------|--------|-----------|----------|
-| Decision | DEC | SPADE | Business decisions with alternatives and rationale |
-| Strategy | STR | Six-Pager | Strategic direction, market planning |
-| Policy | POL | - | Internal policies, compliance requirements |
-| Customer | CUS | - | Customer-specific info, customizations |
-| Opportunity | OPP | OST | Market opportunities, customer needs |
-| Process | PRC | DACI | Internal processes, workflows |
-| Hiring | HIR | Scorecard | Role definitions, hiring criteria |
-| ADR | ADR | ADR | Architecture decision records for technical decisions |
+| Type | Prefix | Use Case |
+|------|--------|----------|
+| Decision | DEC | Business decisions (SPADE framework) |
+| Strategy | STR | Strategic direction (Six-Pager) |
+| Policy | POL | Internal policies, compliance |
+| Customer | CUS | Architecture-impacting customer needs |
+| Opportunity | OPP | Market opportunities (OST) |
+| Process | PRC | Workflows, governance (DACI) |
+| Hiring | HIR | Role definitions |
+| ADR | ADR | Architecture decisions |
+| Incident | INC | Post-mortems, outages |
+| Runbook | RUN | Operational how-tos |
+| Meeting | MTG | Meeting notes |
 
 ## Commands
 
-### Creating Records
-
 ```bash
-dg new decision "Title"
-dg new strategy "Title"
-dg new policy "Title"
-dg new customer "Customer Name"
-dg new opportunity "Title"
-dg new process "Title"
-dg new hiring "Role Title"
-dg new adr "Title"
+# Create
+dg new <type> "Title"
+
+# Query
+dg list [--type TYPE] [--status STATUS] [--tag TAG]
+dg search "query" [-c]  # -c includes content
+dg show ID [-l]         # -l shows linked records
+
+# Link
+dg link ID1 <link_type> ID2
+dg unlink ID1 <link_type> ID2
+
+# Status
+dg status ID <status>
+
+# Visualize
+dg graph [ID] [-d DEPTH] [-f dot|json|text]
+
+# Validate
+dg lint [--strict] [--warn-orphans]
+dg fmt [--check]
+
+# Maintain
+dg stats
+dg validate
+dg reindex
+dg export [-f json|csv]
 ```
 
-### Querying
+### Link Types
 
-```bash
-# List all records
-dg list
-dg list -t decision          # Filter by type
-dg list -s accepted          # Filter by status
-dg list --tag europe         # Filter by tag
-dg list -f json              # JSON output
+| Link | Meaning |
+|------|---------|
+| `supersedes` | Replaces another (auto-creates inverse) |
+| `depends_on` | Requires another record |
+| `enables` | Makes another possible |
+| `implements` | Concrete implementation of |
+| `refines` | More specific version of |
+| `relates_to` | General relationship |
+| `conflicts_with` | Mutually exclusive |
 
-# Search
-dg search "query"            # Search titles/tags
-dg search -c "query"         # Include content
+### Statuses
 
-# Show details
-dg show DEC-001              # Show record
-dg show DEC-001 -l           # With linked records
-dg show DEC-001 --json       # JSON output
-```
+`draft` → `proposed` → `accepted` → `deprecated` / `superseded`
 
-### Linking
+Additional: `active`, `open`, `closed`, `resolved`, `cancelled`
 
-```bash
-# Create links
-dg link DEC-001 depends_on STR-001
-dg link DEC-002 supersedes DEC-001
-dg link DEC-001 relates_to CUS-001
+## Claude Code Integration
 
-# Remove links
-dg unlink DEC-001 relates_to CUS-001
-```
+When using with devenv, Claude automatically:
+- Searches for related records before making changes
+- Captures decisions during conversations
+- Links new records to existing context
+- Asks for clarification when conflicts found
 
-**Link types:** `supersedes`, `depends_on`, `enables`, `relates_to`, `conflicts_with`, `refines`, `implements`
+### Skills
 
-### Status Management
+Use slash commands to create records:
+- `/decision` - business decision
+- `/adr` - architecture decision
+- `/incident` - post-mortem
+- `/runbook` - operational guide
+- `/meeting` - meeting notes
+- `/context` - search before acting
 
-```bash
-dg status DEC-001 accepted
-dg status DEC-001 deprecated
-```
+### Hooks
 
-**Statuses:** `draft`, `proposed`, `accepted`, `deprecated`, `superseded`
-
-### Visualization
-
-```bash
-# Text view
-dg graph                     # All records
-dg graph DEC-001 -d 2        # From specific record, depth 2
-
-# Graphviz DOT
-dg graph -f dot > graph.dot
-dot -Tpng graph.dot -o graph.png
-
-# JSON
-dg graph -f json
-```
-
-### Maintenance
-
-```bash
-dg stats                     # Show statistics
-dg validate                  # Check for issues
-dg export -f json            # Export all records
-dg export -f csv -o out.csv  # Export to CSV
-dg reindex                   # Rebuild index
-```
-
-### Formatting & Linting
-
-```bash
-dg fmt                       # Format all markdown files
-dg fmt --check               # Check formatting (CI mode, exit 1 if unformatted)
-dg fmt file1.md file2.md     # Format specific files
-
-dg lint                      # Lint all records (check broken links)
-dg lint --strict             # Strict mode (require tags, content)
-dg lint --warn-orphans       # Warn about unlinked records
-dg lint file1.md file2.md    # Lint specific files
-```
+- **Session start**: Reminds about decision graph context
+- **Session stop**: Prompts to capture uncaptured decisions
 
 ## File Format
 
-Records are markdown files with YAML frontmatter:
+Records are markdown with YAML frontmatter:
 
 ```markdown
 ---
@@ -158,14 +180,11 @@ title: "Use PostgreSQL for primary database"
 status: accepted
 created: 2024-01-15
 updated: 2024-01-20
-authors: [alice, bob]
-tags: [infrastructure, database, q1-2024]
+authors: [alice]
+tags: [database, infrastructure]
 links:
-  supersedes: []
-  depends_on: [STR-001]
-  enables: [OPP-003]
-  relates_to: [CUS-001]
-  conflicts_with: []
+  implements: [STR-001]
+  enables: [ADR-002]
 ---
 
 # Use PostgreSQL for primary database
@@ -178,55 +197,33 @@ links:
 
 ```
 docs/
-├── .decisions/              # All record files
-│   ├── DEC-001-use-postgresql.md
-│   ├── STR-001-data-strategy.md
-│   └── ...
-├── .templates/              # Record templates
-│   ├── decision.md
-│   ├── strategy.md
-│   └── ...
-└── .index.json             # Auto-generated index
+├── .decisions/     # Record files
+├── .templates/     # Record templates
+└── .index.json     # Auto-generated index
+.claude/
+├── hooks/          # Session hooks
+└── skills/         # Slash commands
 ```
-
-## Documentation
-
-- [SUPPORTED-DOCS.md](SUPPORTED-DOCS.md) - Detailed documentation of all 8 record types, frameworks, and templates
-- [EXAMPLE-CLAUDE.md](EXAMPLE-CLAUDE.md) - Guidance on using Decision Graph with Claude
-- [docs/FORMAT.md](docs/FORMAT.md) - File format specification
-
-### Skills
-
-The `.claude/skills/decision-graph.md` provides Claude with:
-- When to create records
-- How to search and link
-- Best practices for maintaining the knowledge graph
-
-### Post-chat Hook
-
-The `.claude/hooks/post-chat.md` reminds Claude to capture decisions made during conversations.
 
 ## Development
 
 ```bash
-# Build
-cargo build
-
-# Test
-cargo test
-
-# Release build
-cargo build --release
-
-# Install locally
-cargo install --path .
+cargo build           # Build
+cargo test            # Test
+cargo build --release # Release build
+cargo install --path . # Install locally
 ```
 
-## Frameworks Referenced
+## Frameworks
 
 - **SPADE** (Square): Setting, People, Alternatives, Decide, Explain
 - **Six-Pager** (Amazon): Narrative memos for strategy
-- **OST** (Teresa Torres): Opportunity Solution Trees
+- **ADR** (Michael Nygard): Architecture Decision Records
 - **DACI** (Atlassian): Driver, Approver, Contributors, Informed
+- **OST** (Teresa Torres): Opportunity Solution Trees
 - **Scorecard** (Who method): Structured hiring
-- **ADR** (Michael Nygard): Architecture Decision Records for technical decisions
+- **5 Whys**: Root cause analysis for incidents
+
+## License
+
+MIT

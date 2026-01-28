@@ -1,78 +1,131 @@
 # Decision Graph - Claude Instructions
 
-This project is a text-based knowledge graph for company-level decision making.
+This project uses `dg` to maintain a knowledge graph of decisions, architecture, processes, and operational knowledge. **You are expected to actively maintain this graph** as you work.
+
+## Your Responsibilities
+
+### 1. Check Context Before Acting
+
+Before implementing features or making changes, search for related records:
+
+```bash
+dg search "<topic>"
+dg list --type adr
+```
+
+If you find related records, **read them** and ensure your work aligns. If there's a conflict, **ask the user** before proceeding.
+
+### 2. Capture Decisions As They Happen
+
+When decisions are made during conversation, create records:
+
+| Situation | Action |
+|-----------|--------|
+| Business decision made | `/decision` or `dg new decision` |
+| Technical/architecture choice | `/adr` or `dg new adr` |
+| Incident discussed | `/incident` or `dg new incident` |
+| Process defined | `dg new process` |
+| How-to explained | `/runbook` or `dg new runbook` |
+| Meeting notes needed | `/meeting` or `dg new meeting` |
+
+### 3. Ask for Clarification When
+
+- A new decision **conflicts** with an existing record
+- Something **seems familiar** but isn't documented
+- User request **contradicts** existing architecture
+- You're **unsure** if something was already decided
+
+Example: "I found ADR-003 which says we use PostgreSQL. You're asking about MongoDB - should I update the ADR or is this a different use case?"
+
+### 4. Link Records
+
+Always connect new records to existing ones:
+
+```bash
+dg link ADR-XXX implements DEC-YYY
+dg link INC-XXX relates_to ADR-ZZZ
+dg link RUN-XXX enables PRC-WWW
+```
+
+## Record Types
+
+| Type | Prefix | Use For |
+|------|--------|---------|
+| Decision | DEC | Business decisions (SPADE framework) |
+| Strategy | STR | Strategic direction (Six-Pager) |
+| Policy | POL | Internal policies, compliance |
+| Customer | CUS | Architecture-impacting customer needs |
+| Opportunity | OPP | Market opportunities (OST) |
+| Process | PRC | Workflows, governance (DACI) |
+| Hiring | HIR | Role definitions |
+| ADR | ADR | Technical/architecture decisions |
+| Incident | INC | Post-mortems, outages |
+| Runbook | RUN | Operational how-tos |
+| Meeting | MTG | Meeting notes |
+
+## Quick Reference
+
+```bash
+# Search before acting
+dg search "caching"
+
+# Create records
+dg new decision "Use vendor X for payments"
+dg new adr "Adopt event sourcing"
+dg new incident "API outage 2024-01-15"
+
+# Link records
+dg link ADR-001 implements DEC-005
+dg link INC-002 enables RUN-003
+
+# Update status
+dg status DEC-001 accepted
+dg status INC-001 resolved
+dg status HIR-001 closed
+
+# View context
+dg show DEC-001
+dg graph DEC-001
+dg stats
+```
+
+## Link Types
+
+| Link | Meaning |
+|------|---------|
+| `supersedes` | Replaces another record (auto-creates inverse) |
+| `depends_on` | Requires another record |
+| `enables` | Makes another record possible |
+| `implements` | Concrete implementation of |
+| `refines` | More specific version of |
+| `relates_to` | General relationship |
+| `conflicts_with` | Mutually exclusive |
 
 ## Project Structure
 
 ```
-src/              # Rust CLI source code
-docs/             # Decision Graph data
-  .decisions/     # Record files (DEC, STR, POL, CLI, OPP, PRC, HIR)
+src/              # Rust CLI source
+docs/
+  .decisions/     # Record files
   .templates/     # Record templates
   .index.json     # Auto-generated index
-.claude/          # Claude integration
-  skills/         # Claude skills for decision management
-  hooks/          # Post-chat hooks
+.claude/
+  skills/         # Slash command skills
+  hooks/          # Session hooks
 ```
-
-## Using the CLI
-
-Build and run:
-```bash
-cargo run -- <command>
-```
-
-Common commands:
-```bash
-dg init                          # Initialize
-dg new decision "Title"          # Create record
-dg list                          # List all
-dg search "query"                # Search
-dg show DEC-001                  # Show record
-dg link DEC-001 depends_on STR-001  # Link records
-dg graph                         # View graph
-dg stats                         # Statistics
-```
-
-## When to Capture Decisions
-
-Create records when:
-- Business decisions are made
-- Strategic direction is discussed
-- Policies are established
-- Client requirements are noted
-- Market opportunities identified
-- Processes defined
-- Roles specified
-
-## Record Types
-
-| Type | Prefix | Framework |
-|------|--------|-----------|
-| Decision | DEC | SPADE |
-| Strategy | STR | Six-Pager |
-| Policy | POL | - |
-| Client | CLI | - |
-| Opportunity | OPP | OST |
-| Process | PRC | DACI |
-| Hiring | HIR | Scorecard |
-
-## Link Types
-
-- `supersedes` / `superseded_by` (auto-inverse)
-- `depends_on`
-- `enables`
-- `relates_to`
-- `conflicts_with`
-- `refines`
-- `implements`
 
 ## Development
 
-- Run tests: `cargo test`
-- Format: `cargo fmt`
-- Lint: `cargo clippy`
+```bash
+cargo test        # Run tests
+cargo fmt         # Format code
+cargo clippy      # Lint
+cargo build --release  # Build CLI
+```
 
-## Avoiding Shells in Code
+## Policy
 
-Per project policy, do not use shell commands from within the code. The CLI is the interface for shell operations.
+- Do not use shell commands from within Rust code
+- Capture decisions as they happen, not after
+- Always link new records to existing context
+- Ask when in doubt about conflicts

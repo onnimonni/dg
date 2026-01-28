@@ -297,6 +297,9 @@ impl Graph {
             ("PRC", "#00BCD4"),
             ("HIR", "#795548"),
             ("ADR", "#607D8B"),
+            ("INC", "#F44336"),
+            ("RUN", "#8BC34A"),
+            ("MTG", "#03A9F4"),
         ];
 
         for record in self.records.values() {

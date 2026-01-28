@@ -17,6 +17,9 @@ pub enum RecordType {
     Process,
     Hiring,
     Adr,
+    Incident,
+    Runbook,
+    Meeting,
 }
 
 impl RecordType {
@@ -30,6 +33,9 @@ impl RecordType {
             RecordType::Process => "PRC",
             RecordType::Hiring => "HIR",
             RecordType::Adr => "ADR",
+            RecordType::Incident => "INC",
+            RecordType::Runbook => "RUN",
+            RecordType::Meeting => "MTG",
         }
     }
 
@@ -43,6 +49,9 @@ impl RecordType {
             "PRC" => Some(RecordType::Process),
             "HIR" => Some(RecordType::Hiring),
             "ADR" => Some(RecordType::Adr),
+            "INC" => Some(RecordType::Incident),
+            "RUN" => Some(RecordType::Runbook),
+            "MTG" => Some(RecordType::Meeting),
             _ => None,
         }
     }
@@ -57,6 +66,9 @@ impl RecordType {
             "process" => Some(RecordType::Process),
             "hiring" => Some(RecordType::Hiring),
             "adr" => Some(RecordType::Adr),
+            "incident" => Some(RecordType::Incident),
+            "runbook" => Some(RecordType::Runbook),
+            "meeting" => Some(RecordType::Meeting),
             _ => RecordType::from_prefix(s),
         }
     }
@@ -71,6 +83,9 @@ impl RecordType {
             RecordType::Process => "process",
             RecordType::Hiring => "hiring",
             RecordType::Adr => "adr",
+            RecordType::Incident => "incident",
+            RecordType::Runbook => "runbook",
+            RecordType::Meeting => "meeting",
         }
     }
 }
@@ -93,8 +108,10 @@ pub enum Status {
     Active,
     #[serde(rename = "open")]
     Open,
-    #[serde(rename = "filled")]
-    Filled,
+    #[serde(rename = "closed")]
+    Closed,
+    #[serde(rename = "resolved")]
+    Resolved,
     #[serde(rename = "cancelled")]
     Cancelled,
 }
@@ -109,7 +126,8 @@ impl Status {
             "superseded" => Some(Status::Superseded),
             "active" => Some(Status::Active),
             "open" => Some(Status::Open),
-            "filled" => Some(Status::Filled),
+            "closed" => Some(Status::Closed),
+            "resolved" => Some(Status::Resolved),
             "cancelled" => Some(Status::Cancelled),
             _ => None,
         }
@@ -126,7 +144,8 @@ impl std::fmt::Display for Status {
             Status::Superseded => "superseded",
             Status::Active => "active",
             Status::Open => "open",
-            Status::Filled => "filled",
+            Status::Closed => "closed",
+            Status::Resolved => "resolved",
             Status::Cancelled => "cancelled",
         };
         write!(f, "{}", s)

@@ -8,10 +8,10 @@ All records use YAML frontmatter + Markdown body:
 
 ```markdown
 ---
-type: decision|strategy|policy|customer|opportunity|process|hiring|adr
+type: decision|strategy|policy|customer|opportunity|process|hiring|adr|incident|runbook|meeting
 id: DEC-001
 title: Short descriptive title
-status: draft|proposed|accepted|deprecated|superseded
+status: draft|proposed|accepted|deprecated|superseded|active|open|closed|resolved|cancelled
 created: 2024-01-15
 updated: 2024-01-20
 authors: [person1, person2]
@@ -64,6 +64,15 @@ Role definitions, scorecards, competencies.
 
 ### ADR (ADR)
 Architecture Decision Records for technical decisions (Context, Decision, Consequences).
+
+### Incident (INC)
+Post-mortems and incident reports (blameless format, 5 Whys, timeline, action items).
+
+### Runbook (RUN)
+Step-by-step operational guides and how-tos (prerequisites, steps, verification, rollback).
+
+### Meeting (MTG)
+Meeting notes and minutes (agenda, discussion, decisions, action items).
 
 ## Link Types
 

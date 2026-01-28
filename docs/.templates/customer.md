@@ -7,13 +7,6 @@ created: {{DATE}}
 updated: {{DATE}}
 authors: []
 tags: []
-customer_info:
-  industry:
-  size:
-  region:
-  tier:
-  contract_start:
-  contract_end:
 links:
   supersedes: []
   superseded_by: []
@@ -25,69 +18,53 @@ links:
   implements: []
 ---
 
-# {{CLIENT_NAME}}
+# {{TITLE}}
+
+<!--
+Customer Architecture Impact Record
+NOTE: Only use this record type when a customer has requirements that
+significantly impact our architecture, require custom features, or need
+special handling. Do NOT store sensitive contact info here - use your CRM.
+-->
 
 ## Overview
-<!-- Brief description of the client and relationship -->
+<!-- Brief description: Why does this customer need special architectural consideration? -->
 
-## Business Context
-<!-- Their industry, challenges, goals -->
+## Architecture Impact
 
-### Industry Position
+### Required Customizations
+<!-- What architectural changes or customizations does this customer require? -->
 
+| Customization | Architectural Impact | ADR Reference |
+|--------------|---------------------|---------------|
+| | | |
 
-### Key Challenges
+### Technical Constraints
+<!-- Technical requirements that affect our system design -->
 
-
-### Strategic Goals
-
-
-## Our Engagement
-
-### Products/Services Used
 -
 
-### Customizations Required
-<!-- What special adaptations have we made for this client? -->
+### Compliance Requirements
+<!-- Regulatory/compliance needs that impact architecture (GDPR, SOC2, etc.) -->
 
-| Customization | Reason | Impact |
-|--------------|--------|--------|
+-
+
+## Integration Requirements
+
+### APIs & Data Flows
+<!-- Special integration needs -->
+
+-
+
+### Performance Requirements
+<!-- SLAs, latency requirements, data volume -->
+
+-
+
+## Decisions Made
+
+<!-- Link to relevant decisions made because of this customer's requirements -->
+
+| Decision | Status | Link |
+|----------|--------|------|
 | | | |
-
-### Integration Points
-<!-- How do we connect with their systems? -->
-
-## Key Contacts
-
-| Name | Role | Notes |
-|------|------|-------|
-| | | |
-
-## Requirements & Constraints
-
-### Regulatory
-<!-- Compliance requirements specific to this client -->
-
-### Technical
-<!-- Technical constraints or requirements -->
-
-### Business
-<!-- Business rules or constraints -->
-
-## History
-
-### Wins
-<!-- Successful deliveries, positive feedback -->
-
-### Issues
-<!-- Problems encountered, lessons learned -->
-
-### Requests
-<!-- Pending or rejected feature requests -->
-
-| Request | Status | Priority | Decision |
-|---------|--------|----------|----------|
-| | | | |
-
-## Notes
-<!-- Anything else important about this relationship -->
