@@ -52,11 +52,16 @@ pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Re
     let app = Router::new()
         .route("/", get(index_handler))
         .route("/records/{id}", get(record_handler))
+        .route("/records/{id}/edit", get(edit_handler))
         .route("/timeline", get(timeline_handler))
         .route("/graph", get(graph_page_handler))
         .route("/stats", get(stats_handler))
         .route("/api/records", get(api_records))
-        .route("/api/records/{id}", get(api_record))
+        .route(
+            "/api/records/{id}",
+            get(api_record).put(save_record_handler),
+        )
+        .route("/api/records/{id}/raw", get(api_record_raw))
         .route("/api/graph", get(api_graph))
         .route("/diagrams/{id}", get(diagram_handler))
         .route("/reload", get(reload_handler))
@@ -516,6 +521,188 @@ async fn reload_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse
             Json(serde_json::json!({"status": "reloaded"}))
         }
         Err(e) => Json(serde_json::json!({"error": e.to_string()})),
+    }
+}
+
+// Edit page handler
+async fn edit_handler(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let graph = state.graph.read().await;
+
+    let record = match graph.get(&id) {
+        Some(r) => r,
+        None => {
+            return (StatusCode::NOT_FOUND, format!("Record not found: {}", id)).into_response()
+        }
+    };
+
+    let env = create_environment();
+
+    // Read raw file content
+    let raw_content = match std::fs::read_to_string(&record.path) {
+        Ok(content) => content,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to read file: {}", e),
+            )
+                .into_response()
+        }
+    };
+
+    match env.get_template("edit.html") {
+        Ok(tmpl) => match tmpl.render(context! {
+            site => &state.site_config,
+            current_page => "records",
+            record_id => &id,
+            record_title => record.title(),
+            raw_content => raw_content,
+        }) {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Render error: {}", e),
+            )
+                .into_response(),
+        },
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
+// Get raw markdown content for a record
+async fn api_record_raw(State(state): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
+    let graph = state.graph.read().await;
+
+    match graph.get(&id) {
+        Some(record) => match std::fs::read_to_string(&record.path) {
+            Ok(content) => Json(serde_json::json!({
+                "id": id,
+                "content": content,
+                "path": record.path.to_string_lossy(),
+            }))
+            .into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("Failed to read file: {}", e)})),
+            )
+                .into_response(),
+        },
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Record not found"})),
+        )
+            .into_response(),
+    }
+}
+
+// Save record handler
+async fn save_record_handler(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(payload): Json<serde_json::Value>,
+) -> Response {
+    let content = match payload.get("content").and_then(|c| c.as_str()) {
+        Some(c) => c,
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Missing 'content' field"})),
+            )
+                .into_response()
+        }
+    };
+
+    // Get current record path
+    let record_path = {
+        let graph = state.graph.read().await;
+        match graph.get(&id) {
+            Some(record) => record.path.clone(),
+            None => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(serde_json::json!({"error": "Record not found"})),
+                )
+                    .into_response()
+            }
+        }
+    };
+
+    // Validate the new content by trying to parse it
+    use crate::models::Record;
+    let temp_path = record_path.with_extension("md.tmp");
+    if let Err(e) = std::fs::write(&temp_path, content) {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("Failed to write temp file: {}", e)})),
+        )
+            .into_response();
+    }
+
+    match Record::parse(&temp_path) {
+        Ok(parsed) => {
+            // Verify the ID matches
+            if parsed.id() != id {
+                let _ = std::fs::remove_file(&temp_path);
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": format!("Record ID mismatch: expected '{}', got '{}'", id, parsed.id())
+                    })),
+                )
+                    .into_response();
+            }
+
+            // Content is valid, move temp file to actual file
+            if let Err(e) = std::fs::rename(&temp_path, &record_path) {
+                let _ = std::fs::remove_file(&temp_path);
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": format!("Failed to save file: {}", e)})),
+                )
+                    .into_response();
+            }
+
+            // Reload graph
+            match state.reload_graph() {
+                Ok(new_graph) => {
+                    let mut graph = state.graph.write().await;
+                    *graph = new_graph;
+                }
+                Err(e) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(
+                            serde_json::json!({"error": format!("Failed to reload graph: {}", e)}),
+                        ),
+                    )
+                        .into_response();
+                }
+            }
+
+            Json(serde_json::json!({
+                "status": "saved",
+                "id": id,
+                "title": parsed.title(),
+            }))
+            .into_response()
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&temp_path);
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": format!("Invalid record format: {}", e),
+                    "details": "Please check your frontmatter YAML syntax"
+                })),
+            )
+                .into_response()
+        }
     }
 }
 

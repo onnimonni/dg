@@ -324,6 +324,9 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                 </span>
             </div>
             <div class="flex gap-2">
+                <a href="/records/{{ record.id }}/edit" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Edit">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </a>
                 <a href="/graph?focus={{ record.id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="View Graph">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                 </a>
@@ -868,6 +871,304 @@ const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% endblock %}
 "##;
 
+const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}Edit {{ record_id }} - {{ site.title }}{% endblock %}
+
+{% block head %}
+<style>
+    .editor-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        height: calc(100vh - 200px);
+        min-height: 500px;
+    }
+    .editor-pane {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .editor-pane textarea {
+        flex: 1;
+        resize: none;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        tab-size: 2;
+    }
+    .preview-pane {
+        overflow-y: auto;
+    }
+    .preview-content {
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+    @media (max-width: 768px) {
+        .editor-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+    }
+    /* Syntax highlighting for frontmatter */
+    .frontmatter-indicator {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, #007c43 0%, #007c43 var(--fm-height, 0%), transparent var(--fm-height, 0%));
+        height: 100%;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-full">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-4">
+            <a href="/records/{{ record_id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Back to record">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-white">Edit {{ record_id }}</h1>
+                <p class="text-slate-400 text-sm">{{ record_title }}</p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button id="saveBtn" class="px-4 py-2 bg-piper-accent hover:bg-piper-light text-white font-medium rounded-lg transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Save
+            </button>
+            <a href="/records/{{ record_id }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors">
+                Cancel
+            </a>
+        </div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="statusBar" class="mb-4 px-4 py-2 rounded-lg text-sm hidden"></div>
+
+    <!-- Editor -->
+    <div class="editor-container">
+        <!-- Markdown Editor -->
+        <div class="editor-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Markdown</span>
+                <span id="cursorPos" class="text-xs text-slate-500 font-mono">Ln 1, Col 1</span>
+            </div>
+            <div class="relative flex-1 flex">
+                <textarea
+                    id="editor"
+                    class="w-full p-4 bg-transparent text-slate-200 border-none outline-none"
+                    spellcheck="false"
+                    placeholder="Enter markdown content..."
+                >{{ raw_content }}</textarea>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="editor-pane preview-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Preview</span>
+            </div>
+            <div id="preview" class="preview-content p-4 text-slate-300 content"></div>
+        </div>
+    </div>
+
+    <!-- Keyboard shortcuts help -->
+    <div class="mt-4 text-xs text-slate-500 flex gap-6">
+        <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">S</kbd> Save</span>
+        <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Esc</kbd> Cancel</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const saveBtn = document.getElementById('saveBtn');
+const statusBar = document.getElementById('statusBar');
+const cursorPos = document.getElementById('cursorPos');
+const recordId = '{{ record_id }}';
+
+let originalContent = editor.value;
+let isDirty = false;
+
+// Simple markdown to HTML converter (basic)
+function renderMarkdown(md) {
+    // Remove frontmatter for preview
+    let content = md;
+    if (content.startsWith('---')) {
+        const endIndex = content.indexOf('---', 3);
+        if (endIndex !== -1) {
+            content = content.substring(endIndex + 3).trim();
+        }
+    }
+
+    // Basic markdown rendering
+    let html = content
+        // Code blocks
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-slate-800 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-1.5 py-0.5 rounded text-piper-light">$1</code>')
+        // Headers
+        .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-white mt-6 mb-2">$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-8 mb-3 pb-2 border-b border-slate-700">$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-white mt-6 mb-4">$1</h1>')
+        // Bold and italic
+        .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-piper-light hover:underline">$1</a>')
+        // Lists
+        .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
+        .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4">$2</li>')
+        // Task lists
+        .replace(/^- \[x\] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" checked disabled class="rounded"> <span class="line-through text-slate-500">$1</span></li>')
+        .replace(/^- \[ \] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" disabled class="rounded"> $1</li>')
+        // Tables (basic)
+        .replace(/^\|(.+)\|$/gm, (match, content) => {
+            const cells = content.split('|').map(c => c.trim());
+            if (cells.every(c => c.match(/^[-:]+$/))) {
+                return ''; // Skip separator row
+            }
+            const cellHtml = cells.map(c => `<td class="border border-slate-700 px-3 py-2">${c}</td>`).join('');
+            return `<tr>${cellHtml}</tr>`;
+        })
+        // Blockquotes
+        .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-piper-accent pl-4 my-4 text-slate-400 italic">$1</blockquote>')
+        // Horizontal rules
+        .replace(/^---$/gm, '<hr class="border-slate-700 my-6">')
+        // Paragraphs
+        .replace(/\n\n/g, '</p><p class="my-4">')
+        .replace(/\n/g, '<br>');
+
+    // Wrap in paragraph
+    html = '<p class="my-4">' + html + '</p>';
+
+    // Wrap tables
+    html = html.replace(/(<tr>[\s\S]*?<\/tr>)+/g, '<table class="w-full border-collapse my-4">$&</table>');
+
+    // Wrap lists
+    html = html.replace(/(<li[\s\S]*?<\/li>)+/g, '<ul class="my-4">$&</ul>');
+
+    return html;
+}
+
+function updatePreview() {
+    preview.innerHTML = renderMarkdown(editor.value);
+    isDirty = editor.value !== originalContent;
+    updateTitle();
+}
+
+function updateTitle() {
+    document.title = (isDirty ? '• ' : '') + 'Edit {{ record_id }} - {{ site.title }}';
+}
+
+function updateCursorPosition() {
+    const text = editor.value.substring(0, editor.selectionStart);
+    const lines = text.split('\n');
+    const line = lines.length;
+    const col = lines[lines.length - 1].length + 1;
+    cursorPos.textContent = `Ln ${line}, Col ${col}`;
+}
+
+function showStatus(message, type = 'info') {
+    statusBar.className = 'mb-4 px-4 py-2 rounded-lg text-sm ' + {
+        'success': 'bg-green-900/50 border border-green-700 text-green-300',
+        'error': 'bg-red-900/50 border border-red-700 text-red-300',
+        'info': 'bg-blue-900/50 border border-blue-700 text-blue-300',
+        'warning': 'bg-yellow-900/50 border border-yellow-700 text-yellow-300'
+    }[type];
+    statusBar.textContent = message;
+    statusBar.classList.remove('hidden');
+
+    if (type === 'success') {
+        setTimeout(() => statusBar.classList.add('hidden'), 3000);
+    }
+}
+
+async function save() {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+
+    try {
+        const response = await fetch(`/api/records/${recordId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: editor.value })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showStatus('Saved successfully!', 'success');
+            originalContent = editor.value;
+            isDirty = false;
+            updateTitle();
+        } else {
+            showStatus(data.error || 'Failed to save', 'error');
+        }
+    } catch (err) {
+        showStatus('Network error: ' + err.message, 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Save';
+    }
+}
+
+// Event listeners
+editor.addEventListener('input', updatePreview);
+editor.addEventListener('keyup', updateCursorPosition);
+editor.addEventListener('click', updateCursorPosition);
+saveBtn.addEventListener('click', save);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        save();
+    }
+    if (e.key === 'Escape') {
+        if (isDirty) {
+            if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                window.location.href = '/records/' + recordId;
+            }
+        } else {
+            window.location.href = '/records/' + recordId;
+        }
+    }
+});
+
+// Tab key support
+editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+        updatePreview();
+    }
+});
+
+// Warn before leaving with unsaved changes
+window.addEventListener('beforeunload', (e) => {
+    if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+// Initial render
+updatePreview();
+updateCursorPosition();
+</script>
+{% endblock %}
+"##;
+
 pub fn create_environment() -> Environment<'static> {
     let mut env = Environment::new();
     env.add_template("base.html", BASE_TEMPLATE).unwrap();
@@ -877,5 +1178,6 @@ pub fn create_environment() -> Environment<'static> {
     env.add_template("stats.html", STATS_TEMPLATE).unwrap();
     env.add_template("timeline.html", TIMELINE_TEMPLATE)
         .unwrap();
+    env.add_template("edit.html", EDIT_TEMPLATE).unwrap();
     env
 }
