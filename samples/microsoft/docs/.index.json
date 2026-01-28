@@ -1,0 +1,344 @@
+{
+  "generated": "2026-01-28T19:46:41.039429+02:00",
+  "records": [
+    {
+      "id": "STR-003",
+      "title": "Cloud-First Mobile-First",
+      "type": "STR",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/STR-003-cloud-first-mobile-first.md"
+    },
+    {
+      "id": "POL-001",
+      "title": "Non-Exclusive OS Licensing",
+      "type": "POL",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/POL-001-non-exclusive-os-licensing.md"
+    },
+    {
+      "id": "STR-001",
+      "title": "Success Reinforces Success",
+      "type": "STR",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/STR-001-success-reinforces-success.md"
+    },
+    {
+      "id": "DEC-015",
+      "title": "Appoint Satya Nadella as CEO",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-015-appoint-satya-nadella-as-ceo.md"
+    },
+    {
+      "id": "DEC-014",
+      "title": "Bill Gates Steps Down as CEO",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-014-bill-gates-steps-down-as-ceo.md"
+    },
+    {
+      "id": "DEC-012",
+      "title": "Bundle IE Free with Windows",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-012-bundle-ie-free-with-windows.md"
+    },
+    {
+      "id": "DEC-005",
+      "title": "Partner with IBM on the 'Chess' Project",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "partnership",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-004"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-006"
+        }
+      ],
+      "path": ".decisions/DEC-005-partner-with-ibm.md"
+    },
+    {
+      "id": "ADR-001",
+      "title": "Windows NT Microkernel Architecture",
+      "type": "ADR",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/ADR-001-windows-nt-microkernel-architecture.md"
+    },
+    {
+      "id": "DEC-002",
+      "title": "Develop BASIC for the Altair 8800",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "product",
+        "technical"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-001"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-003"
+        }
+      ],
+      "path": ".decisions/DEC-002-develop-basic-for-altair.md"
+    },
+    {
+      "id": "DEC-011",
+      "title": "Recruit Dave Cutler from DEC",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-011-recruit-dave-cutler-from-dec.md"
+    },
+    {
+      "id": "DEC-009",
+      "title": "The Internet Tidal Wave Memo",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "pivot",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-007"
+        },
+        {
+          "type": "depends_on",
+          "target": "DEC-008"
+        }
+      ],
+      "path": ".decisions/DEC-009-internet-tidal-wave.md"
+    },
+    {
+      "id": "CUS-001",
+      "title": "IBM Personal Computer Division",
+      "type": "CUS",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/CUS-001-ibm-personal-computer-division.md"
+    },
+    {
+      "id": "INC-002",
+      "title": "Bill Gates Deposition Video",
+      "type": "INC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/INC-002-bill-gates-deposition-video.md"
+    },
+    {
+      "id": "INC-001",
+      "title": "DOJ Antitrust Case",
+      "type": "INC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/INC-001-doj-antitrust-case.md"
+    },
+    {
+      "id": "STR-002",
+      "title": "Enterprise Systems Flywheel",
+      "type": "STR",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/STR-002-enterprise-systems-flywheel.md"
+    },
+    {
+      "id": "ADR-002",
+      "title": "Azure Platform-as-a-Service",
+      "type": "ADR",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/ADR-002-azure-platform-as-a-service.md"
+    },
+    {
+      "id": "DEC-016",
+      "title": "Win MITS Arbitration",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-016-win-mits-arbitration.md"
+    },
+    {
+      "id": "DEC-008",
+      "title": "Bundle Applications into 'Microsoft Office'",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "pricing",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-007"
+        }
+      ],
+      "path": ".decisions/DEC-008-bundle-office.md"
+    },
+    {
+      "id": "DEC-017",
+      "title": "License BASIC to 1977 Trinity",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-017-license-basic-to-1977-trinity.md"
+    },
+    {
+      "id": "DEC-004",
+      "title": "Relocate from Albuquerque to Seattle",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "operations",
+        "recruiting"
+      ],
+      "links": [],
+      "path": ".decisions/DEC-004-relocate-to-seattle.md"
+    },
+    {
+      "id": "DEC-001",
+      "title": "Drop Out of Harvard to Start MicroSoft",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "founding",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "DEC-002"
+        }
+      ],
+      "path": ".decisions/DEC-001-drop-out-and-found-microsoft.md"
+    },
+    {
+      "id": "PRC-001",
+      "title": "OEM Licensing Program",
+      "type": "PRC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/PRC-001-oem-licensing-program.md"
+    },
+    {
+      "id": "PRC-002",
+      "title": "Enterprise Agreement Model",
+      "type": "PRC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/PRC-002-enterprise-agreement-model.md"
+    },
+    {
+      "id": "DEC-006",
+      "title": "Buy QDOS (Tim Paterson's 86-DOS) instead of building from scratch",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "acquisition",
+        "technical"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-005"
+        }
+      ],
+      "path": ".decisions/DEC-006-buy-qdos.md"
+    },
+    {
+      "id": "DEC-003",
+      "title": "Publish 'Open Letter to Hobbyists'",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "business-model",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        }
+      ],
+      "path": ".decisions/DEC-003-open-letter-to-hobbyists.md"
+    },
+    {
+      "id": "DEC-010",
+      "title": "Hire Steve Ballmer",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-010-hire-steve-ballmer.md"
+    },
+    {
+      "id": "DEC-007",
+      "title": "Commit to GUI (Windows) Development",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "product",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-006"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-008"
+        }
+      ],
+      "path": ".decisions/DEC-007-commit-to-windows.md"
+    },
+    {
+      "id": "DEC-013",
+      "title": "Settle Antitrust Case",
+      "type": "DEC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-013-settle-antitrust-case.md"
+    }
+  ],
+  "stats": {
+    "total": 28,
+    "edges": 12
+  }
+}

@@ -1,21 +1,17 @@
 ---
 type: adr
 id: ADR-002
-title: "Enterprise Platform Architecture"
+title: Enterprise Platform Architecture
 status: proposed
 created: 2015-03-01
-updated: 2015-06-15
+updated: 2026-01-28
 authors: []
-tags: [architecture]
+tags:
+- architecture
 links:
-  supersedes: []
-  superseded_by: []
-  depends_on: []
-  enables: []
-  relates_to: []
-  conflicts_with: []
-  refines: []
-  implements: []
+  implements:
+  - STR-001
+foundational: false
 ---
 
 # Enterprise Platform Architecture

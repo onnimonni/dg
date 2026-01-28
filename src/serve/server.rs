@@ -10,6 +10,7 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use rust_embed::Embed;
 use tower_http::services::ServeDir;
 
@@ -21,6 +22,7 @@ use minijinja::context;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::RwLock;
 
 pub struct AppState {
@@ -36,7 +38,12 @@ impl AppState {
     }
 }
 
-pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Result<()> {
+pub async fn run_server(
+    docs_dir: &std::path::Path,
+    port: u16,
+    open: bool,
+    watch: bool,
+) -> Result<()> {
     let graph = Graph::load(docs_dir)?;
     let dg_config = DgConfig::load(docs_dir)?;
     let state = Arc::new(AppState {
@@ -68,18 +75,77 @@ pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Re
         // Embedded static assets (KaTeX) for offline support
         .route("/static/{*path}", get(static_handler))
         .nest_service("/assets", ServeDir::new(assets_path))
-        .with_state(state);
+        .with_state(state.clone());
 
     let addr = format!("127.0.0.1:{}", port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
     println!("Server running at http://{}", addr);
+    if watch {
+        println!("Watching for file changes...");
+    }
 
     if open {
         let _ = open_browser(&format!("http://{}", addr));
     }
 
+    // Start file watcher if enabled
+    if watch {
+        let watch_state = state.clone();
+        let watch_dir = docs_dir.to_path_buf();
+        tokio::spawn(async move {
+            if let Err(e) = run_file_watcher(watch_dir, watch_state).await {
+                eprintln!("File watcher error: {}", e);
+            }
+        });
+    }
+
     axum::serve(listener, app).await?;
+    Ok(())
+}
+
+async fn run_file_watcher(docs_dir: PathBuf, state: Arc<AppState>) -> Result<()> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+
+    let mut watcher = RecommendedWatcher::new(
+        move |res: Result<notify::Event, notify::Error>| {
+            if let Ok(event) = res {
+                // Only trigger on modify/create/delete events for .md files
+                let dominated_paths: Vec<_> = event
+                    .paths
+                    .iter()
+                    .filter(|p| p.extension().map(|e| e == "md").unwrap_or(false))
+                    .collect();
+                if !dominated_paths.is_empty() {
+                    let _ = tx.blocking_send(());
+                }
+            }
+        },
+        Config::default().with_poll_interval(Duration::from_secs(1)),
+    )?;
+
+    // Watch the .decisions directory
+    let decisions_dir = docs_dir.join(".decisions");
+    if decisions_dir.exists() {
+        watcher.watch(&decisions_dir, RecursiveMode::Recursive)?;
+    }
+
+    // Debounce: wait a bit after changes to batch multiple saves
+    let mut last_reload = std::time::Instant::now();
+    let debounce_duration = Duration::from_millis(500);
+
+    while rx.recv().await.is_some() {
+        let now = std::time::Instant::now();
+        if now.duration_since(last_reload) > debounce_duration {
+            last_reload = now;
+            if let Ok(new_graph) = state.reload_graph() {
+                let mut graph = state.graph.write().await;
+                *graph = new_graph;
+                println!("  ↻ Reloaded graph");
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -188,20 +254,37 @@ async fn record_handler(
         serde_json::Value::String(markdown_to_html(&record.content)),
     );
 
-    // Add links
+    // Add links (outgoing)
     let links: Vec<_> = record
         .frontmatter
         .links
         .all_links()
         .iter()
         .map(|(lt, target)| {
+            let title = graph.get(target).map(|r| r.title().to_string());
             serde_json::json!({
                 "type": lt,
                 "target": target,
+                "title": title,
             })
         })
         .collect();
     ctx.insert("links".to_string(), serde_json::Value::Array(links));
+
+    // Add backlinks (incoming) - "Referenced by" section
+    let backlinks: Vec<_> = graph
+        .incoming_edges(&id)
+        .iter()
+        .map(|edge| {
+            let title = graph.get(&edge.from).map(|r| r.title().to_string());
+            serde_json::json!({
+                "type": &edge.link_type,
+                "source": &edge.from,
+                "title": title,
+            })
+        })
+        .collect();
+    ctx.insert("backlinks".to_string(), serde_json::Value::Array(backlinks));
 
     // Resolve author info
     let resolved_authors: Vec<_> = record
@@ -772,13 +855,36 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
         "status".to_string(),
         serde_json::Value::String(record.status().to_string()),
     );
+    let created_str = record.frontmatter.created.to_string();
+    let updated_str = record.frontmatter.updated.to_string();
     map.insert(
         "created".to_string(),
-        serde_json::Value::String(record.frontmatter.created.to_string()),
+        serde_json::Value::String(created_str.clone()),
     );
     map.insert(
         "updated".to_string(),
-        serde_json::Value::String(record.frontmatter.updated.to_string()),
+        serde_json::Value::String(updated_str.clone()),
+    );
+    // Extract years for period display (e.g., "1980 → 1990" for deprecated records)
+    map.insert(
+        "created_year".to_string(),
+        serde_json::Value::String(
+            created_str
+                .split('-')
+                .next()
+                .unwrap_or(&created_str)
+                .to_string(),
+        ),
+    );
+    map.insert(
+        "updated_year".to_string(),
+        serde_json::Value::String(
+            updated_str
+                .split('-')
+                .next()
+                .unwrap_or(&updated_str)
+                .to_string(),
+        ),
     );
     map.insert(
         "foundational".to_string(),

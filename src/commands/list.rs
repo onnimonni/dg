@@ -13,6 +13,9 @@ pub fn run(
     let docs_path = Path::new(docs_dir);
     let graph = Graph::load(docs_path)?;
 
+    // Check for open incidents and warn
+    warn_open_incidents(&graph);
+
     let type_filter = type_filter.and_then(|t| RecordType::from_str(&t));
     let status_filter = status_filter.and_then(|s| Status::from_str(&s));
 
@@ -63,13 +66,14 @@ pub fn run(
             }
 
             println!(
-                "{:<12} {:<10} {:<12} {}",
+                "{:<12} {:<12} {:<10} {:<12} {}",
                 "ID".bold(),
+                "CREATED".bold(),
                 "TYPE".bold(),
                 "STATUS".bold(),
                 "TITLE".bold()
             );
-            println!("{}", "-".repeat(70));
+            println!("{}", "-".repeat(85));
 
             for record in &records {
                 let status_colored = match record.status() {
@@ -88,11 +92,12 @@ pub fn run(
                     String::new()
                 };
                 print!(
-                    "{:<12} {:<10} {:<12} {}",
+                    "{:<12} {:<12} {:<10} {:<12} {}",
                     record.id().cyan(),
+                    record.frontmatter.created.to_string().dimmed(),
                     record.record_type().to_string(),
                     status_colored,
-                    truncate(record.title(), 40)
+                    truncate(record.title(), 35)
                 );
                 println!("{}", core_marker);
             }
@@ -109,5 +114,24 @@ fn truncate(s: &str, max_len: usize) -> String {
         s.to_string()
     } else {
         format!("{}...", &s[..max_len - 3])
+    }
+}
+
+/// Print warning about open incidents to stderr
+pub fn warn_open_incidents(graph: &Graph) {
+    let open_incidents: Vec<_> = graph
+        .all_records()
+        .filter(|r| r.record_type() == &RecordType::Incident && r.status() == &Status::Open)
+        .collect();
+
+    if !open_incidents.is_empty() {
+        let ids: Vec<_> = open_incidents.iter().map(|r| r.id()).collect();
+        eprintln!(
+            "\n{} {} open incident{}: {}",
+            "⚠".yellow(),
+            open_incidents.len(),
+            if open_incidents.len() == 1 { "" } else { "s" },
+            ids.join(", ").red()
+        );
     }
 }

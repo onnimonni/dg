@@ -1,5 +1,7 @@
 pub mod build;
 pub mod context;
+pub mod diff;
+pub mod edit;
 pub mod export;
 pub mod fmt;
 pub mod graph;
@@ -12,6 +14,7 @@ pub mod new;
 pub mod orphans;
 pub mod principles;
 pub mod reindex;
+pub mod resolve;
 pub mod search;
 pub mod serve;
 pub mod show;

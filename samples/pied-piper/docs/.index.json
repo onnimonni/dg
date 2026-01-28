@@ -1,17 +1,35 @@
 {
-  "generated": "2026-01-28T10:17:28.609923+02:00",
+  "generated": "2026-01-28T18:43:23.013778+02:00",
   "records": [
     {
-      "id": "DEC-003",
-      "title": "Accept Peter Gregory Seed Funding",
+      "id": "PRC-001",
+      "title": "Board Governance and Voting",
+      "type": "PRC",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/PRC-001-board-governance-and-voting.md"
+    },
+    {
+      "id": "DEC-004",
+      "title": "Accept Russ Hanneman Bridge Funding",
       "type": "DEC",
       "status": "proposed",
       "tags": [],
       "links": [],
-      "path": ".decisions/DEC-003-accept-peter-gregory-seed-funding.md"
+      "path": ".decisions/DEC-004-accept-russ-hanneman-bridge-funding.md"
     },
     {
-      "id": "DEC-001",
+      "id": "STR-001",
+      "title": "Pivot from B2C Music App to B2B Infrastructure",
+      "type": "STR",
+      "status": "proposed",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/STR-001-pivot-from-b2c-music-app-to-b2b-infrastructure.md"
+    },
+    {
+      "id": "DEC-002",
       "title": "Anti-Hooli Corporate Principle",
       "type": "DEC",
       "status": "accepted",
@@ -23,34 +41,73 @@
       "links": [
         {
           "type": "enables",
-          "target": "DEC-002"
+          "target": "DEC-003"
         },
         {
           "type": "enables",
           "target": "POL-001"
         }
       ],
-      "path": ".decisions/DEC-001-anti-hooli-corporate-principle.md"
+      "path": ".decisions/DEC-002-anti-hooli-corporate-principle.md"
     },
     {
-      "id": "INC-003",
-      "title": "51 Percent Attack on PiperNet",
-      "type": "INC",
-      "status": "open",
+      "id": "DEC-005",
+      "title": "Sabotage PiperNet Launch to Save the World",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "ethics",
+        "final-decision",
+        "security",
+        "tethics"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        },
+        {
+          "type": "depends_on",
+          "target": "POL-001"
+        },
+        {
+          "type": "depends_on",
+          "target": "INC-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-004"
+        },
+        {
+          "type": "implements",
+          "target": "DEC-002"
+        },
+        {
+          "type": "implements",
+          "target": "POL-001"
+        }
+      ],
+      "path": ".decisions/DEC-005-sabotage-pipernet-launch-to-save-the-world.md"
+    },
+    {
+      "id": "RUN-001",
+      "title": "Deploying Middle-Out Compression",
+      "type": "RUN",
+      "status": "accepted",
       "tags": [],
       "links": [],
-      "path": ".decisions/INC-003-51-percent-attack-on-pipernet.md"
+      "path": ".decisions/RUN-001-deploying-middle-out-compression.md"
     },
     {
-      "id": "ADR-002",
-      "title": "Enterprise Platform Architecture",
+      "id": "ADR-005",
+      "title": "PiedPiperCoin Tokenomics",
       "type": "ADR",
       "status": "proposed",
       "tags": [
         "architecture"
       ],
       "links": [],
-      "path": ".decisions/ADR-002-enterprise-platform-architecture.md"
+      "path": ".decisions/ADR-005-piedpipercoin-tokenomics.md"
     },
     {
       "id": "ADR-004",
@@ -78,7 +135,7 @@
         },
         {
           "type": "depends_on",
-          "target": "DEC-001"
+          "target": "DEC-002"
         },
         {
           "type": "enables",
@@ -98,41 +155,10 @@
         },
         {
           "type": "implements",
-          "target": "DEC-001"
+          "target": "DEC-002"
         }
       ],
       "path": ".decisions/ADR-004-pipernet-decentralized-architecture.md"
-    },
-    {
-      "id": "ADR-005",
-      "title": "PiedPiperCoin Tokenomics",
-      "type": "ADR",
-      "status": "proposed",
-      "tags": [
-        "architecture"
-      ],
-      "links": [],
-      "path": ".decisions/ADR-005-piedpipercoin-tokenomics.md"
-    },
-    {
-      "id": "ADR-003",
-      "title": "The Box Hardware Appliance",
-      "type": "ADR",
-      "status": "proposed",
-      "tags": [
-        "architecture"
-      ],
-      "links": [],
-      "path": ".decisions/ADR-003-the-box-hardware-appliance.md"
-    },
-    {
-      "id": "DEC-004",
-      "title": "Accept Russ Hanneman Bridge Funding",
-      "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-004-accept-russ-hanneman-bridge-funding.md"
     },
     {
       "id": "INC-002",
@@ -144,13 +170,87 @@
       "path": ".decisions/INC-002-coppa-violation-piperchat.md"
     },
     {
-      "id": "DEC-002",
-      "title": "Data Privacy First - No Ad Mining",
-      "type": "DEC",
-      "status": "proposed",
+      "id": "INC-003",
+      "title": "51 Percent Attack on PiperNet",
+      "type": "INC",
+      "status": "open",
       "tags": [],
       "links": [],
-      "path": ".decisions/DEC-002-data-privacy-first---no-ad-mining.md"
+      "path": ".decisions/INC-003-51-percent-attack-on-pipernet.md"
+    },
+    {
+      "id": "POL-001",
+      "title": "Tethics Framework",
+      "type": "POL",
+      "status": "accepted",
+      "tags": [
+        "culture",
+        "ethics",
+        "foundational",
+        "policy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "refines",
+          "target": "DEC-002"
+        }
+      ],
+      "path": ".decisions/POL-001-tethics-framework.md"
+    },
+    {
+      "id": "RUN-002",
+      "title": "PiperNet Node Operation",
+      "type": "RUN",
+      "status": "accepted",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/RUN-002-pipernet-node-operation.md"
+    },
+    {
+      "id": "RUN-003",
+      "title": "New Employee Onboarding Guide",
+      "type": "RUN",
+      "status": "accepted",
+      "tags": [
+        "culture",
+        "documentation",
+        "onboarding"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        },
+        {
+          "type": "depends_on",
+          "target": "POL-001"
+        }
+      ],
+      "path": ".decisions/RUN-003-new-employee-onboarding-guide.md"
+    },
+    {
+      "id": "ADR-002",
+      "title": "Enterprise Platform Architecture",
+      "type": "ADR",
+      "status": "proposed",
+      "tags": [
+        "architecture"
+      ],
+      "links": [
+        {
+          "type": "implements",
+          "target": "STR-001"
+        }
+      ],
+      "path": ".decisions/ADR-002-enterprise-platform-architecture.md"
     },
     {
       "id": "INC-001",
@@ -174,19 +274,48 @@
         },
         {
           "type": "relates_to",
-          "target": "DEC-003"
+          "target": "DEC-001"
         }
       ],
       "path": ".decisions/INC-001-hooli-intellectual-property-lawsuit.md"
     },
     {
-      "id": "PRC-001",
-      "title": "Board Governance and Voting",
-      "type": "PRC",
+      "id": "DEC-001",
+      "title": "Accept Peter Gregory Seed Funding",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/DEC-001-accept-peter-gregory-seed-funding.md"
+    },
+    {
+      "id": "DEC-003",
+      "title": "Data Privacy First - No Ad Mining",
+      "type": "DEC",
       "status": "proposed",
       "tags": [],
       "links": [],
-      "path": ".decisions/PRC-001-board-governance-and-voting.md"
+      "path": ".decisions/DEC-003-data-privacy-first---no-ad-mining.md"
+    },
+    {
+      "id": "ADR-003",
+      "title": "The Box Hardware Appliance",
+      "type": "ADR",
+      "status": "proposed",
+      "tags": [
+        "architecture"
+      ],
+      "links": [],
+      "path": ".decisions/ADR-003-the-box-hardware-appliance.md"
+    },
+    {
+      "id": "INC-004",
+      "title": "AI Encryption Paradox Discovery",
+      "type": "INC",
+      "status": "open",
+      "tags": [],
+      "links": [],
+      "path": ".decisions/INC-004-ai-encryption-paradox-discovery.md"
     },
     {
       "id": "ADR-001",
@@ -202,7 +331,7 @@
       "links": [
         {
           "type": "depends_on",
-          "target": "DEC-001"
+          "target": "DEC-002"
         },
         {
           "type": "enables",
@@ -222,130 +351,6 @@
         }
       ],
       "path": ".decisions/ADR-001-middle-out-compression-algorithm.md"
-    },
-    {
-      "id": "RUN-001",
-      "title": "Deploying Middle-Out Compression",
-      "type": "RUN",
-      "status": "accepted",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/RUN-001-deploying-middle-out-compression.md"
-    },
-    {
-      "id": "DEC-005",
-      "title": "Sabotage PiperNet Launch to Save the World",
-      "type": "DEC",
-      "status": "accepted",
-      "tags": [
-        "ethics",
-        "final-decision",
-        "security",
-        "tethics"
-      ],
-      "links": [
-        {
-          "type": "depends_on",
-          "target": "DEC-001"
-        },
-        {
-          "type": "depends_on",
-          "target": "POL-001"
-        },
-        {
-          "type": "depends_on",
-          "target": "INC-004"
-        },
-        {
-          "type": "relates_to",
-          "target": "ADR-004"
-        },
-        {
-          "type": "implements",
-          "target": "DEC-001"
-        },
-        {
-          "type": "implements",
-          "target": "POL-001"
-        }
-      ],
-      "path": ".decisions/DEC-005-sabotage-pipernet-launch-to-save-the-world.md"
-    },
-    {
-      "id": "RUN-002",
-      "title": "PiperNet Node Operation",
-      "type": "RUN",
-      "status": "accepted",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/RUN-002-pipernet-node-operation.md"
-    },
-    {
-      "id": "STR-001",
-      "title": "Pivot from B2C Music App to B2B Infrastructure",
-      "type": "STR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/STR-001-pivot-from-b2c-music-app-to-b2b-infrastructure.md"
-    },
-    {
-      "id": "INC-004",
-      "title": "AI Encryption Paradox Discovery",
-      "type": "INC",
-      "status": "open",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/INC-004-ai-encryption-paradox-discovery.md"
-    },
-    {
-      "id": "RUN-003",
-      "title": "New Employee Onboarding Guide",
-      "type": "RUN",
-      "status": "accepted",
-      "tags": [
-        "culture",
-        "documentation",
-        "onboarding"
-      ],
-      "links": [
-        {
-          "type": "depends_on",
-          "target": "DEC-001"
-        },
-        {
-          "type": "depends_on",
-          "target": "POL-001"
-        }
-      ],
-      "path": ".decisions/RUN-003-new-employee-onboarding-guide.md"
-    },
-    {
-      "id": "POL-001",
-      "title": "Tethics Framework",
-      "type": "POL",
-      "status": "accepted",
-      "tags": [
-        "culture",
-        "ethics",
-        "foundational",
-        "policy"
-      ],
-      "links": [
-        {
-          "type": "depends_on",
-          "target": "DEC-001"
-        },
-        {
-          "type": "enables",
-          "target": "DEC-005"
-        },
-        {
-          "type": "refines",
-          "target": "DEC-001"
-        }
-      ],
-      "path": ".decisions/POL-001-tethics-framework.md"
     }
   ],
   "stats": {

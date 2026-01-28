@@ -252,7 +252,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
     <div class="text-sm text-slate-500 flex items-center gap-2">
         <span>{{ record.type_display }}</span>
         <span class="text-slate-600">·</span>
-        <span>{{ record.created }}</span>
+        {% if record.status == 'deprecated' %}<span class="text-amber-400/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-red-400/70">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-blue-400/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
         {% if record.tags %}
         <span class="text-slate-600">·</span>
         {% for tag in record.tags %}<span class="tag-link px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400 font-mono hover:bg-piper-accent hover:text-white transition-colors" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}
@@ -453,7 +453,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         <div class="flex flex-wrap items-center gap-6 text-sm text-slate-400 border-b border-slate-700/50 pb-6">
             <div class="flex items-center gap-2">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                <span>{{ record.created }}</span>
+                {% if record.status == 'deprecated' %}<span class="text-amber-400/70 font-medium">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-red-400 font-medium">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-blue-400/70 font-medium">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
             </div>
             <div class="flex items-center gap-2">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">{{ record.type_display }}</span>
@@ -481,7 +481,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             </div>
             {% endif %}
             {% if record.tags %}
-            <div class="flex gap-2 ml-auto">
+            <div class="flex flex-wrap gap-2">
                 {% for tag in record.tags %}
                 <a href="/?tag={{ tag }}" class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 font-mono hover:bg-piper-accent hover:text-white transition-colors no-underline">#{{ tag }}</a>
                 {% endfor %}
@@ -495,12 +495,12 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         </div>
     </div>
 
-    {% if record.links %}
+    {% if record.links or record.backlinks %}
     <!-- Connections section -->
     <div class="bg-slate-800/30 border-t border-slate-700 p-8">
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 font-mono">Decision Graph Connections</h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% if record.links %}
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 font-mono">Links To</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {% for link in record.links %}
             <a href="/records/{{ link.target }}" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-piper-light/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
                 <div class="flex justify-between items-start mb-1">
@@ -513,6 +513,24 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             </a>
             {% endfor %}
         </div>
+        {% endif %}
+
+        {% if record.backlinks %}
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 font-mono">Referenced By</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for link in record.backlinks %}
+            <a href="/records/{{ link.source }}" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-amber-500/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-mono text-xs text-amber-400 font-medium">{{ link.source }}</span>
+                    <span class="text-[10px] uppercase font-bold text-slate-500 border border-slate-600 px-1 rounded">{{ link.type }}</span>
+                </div>
+                {% if link.title %}
+                <div class="font-semibold text-slate-200 group-hover:text-white">{{ link.title }}</div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 

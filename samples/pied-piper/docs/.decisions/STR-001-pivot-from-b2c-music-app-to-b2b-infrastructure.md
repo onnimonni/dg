@@ -1,21 +1,14 @@
 ---
 type: strategy
 id: STR-001
-title: "Pivot from B2C Music App to B2B Infrastructure"
+title: Pivot from B2C Music App to B2B Infrastructure
 status: proposed
 created: 2014-05-20
-updated: 2014-06-01
+updated: 2026-01-28
 authors: []
 tags: []
-links:
-  supersedes: []
-  superseded_by: []
-  depends_on: []
-  enables: []
-  relates_to: []
-  conflicts_with: []
-  refines: []
-  implements: []
+links: {}
+foundational: false
 ---
 
 # Pivot from B2C Music App to B2B Infrastructure

@@ -1,3 +1,4 @@
+use crate::commands::list::warn_open_incidents;
 use crate::models::Graph;
 use anyhow::Result;
 use colored::Colorize;
@@ -63,6 +64,9 @@ pub fn run(docs_dir: &str) -> Result<()> {
             }
         }
     }
+
+    // Warn about open incidents
+    warn_open_incidents(&graph);
 
     Ok(())
 }

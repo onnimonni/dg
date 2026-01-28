@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pied Piper - Decision Graph Node</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        piper: {
+                            dark: '#101524',      // Deep Navy Background
+                            card: '#1a202c',      // Card Surface
+                            accent: '#007c43',    // Pied Piper Green
+                            light: '#00a55a',     // Hover Green
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for the "hacker" feel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #101524; }
+        ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+        
+        .glass-panel {
+            background: rgba(26, 32, 44, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-piper-dark text-slate-300 min-h-screen flex items-center justify-center p-6 font-sans">
+
+    <div class="w-full max-w-4xl bg-piper-card border border-slate-700 rounded-2xl shadow-2xl overflow-hidden relative">
+        
+        <div class="h-1.5 w-full bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+
+        <div class="p-8 pb-4">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="font-mono text-sm font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                        DEC-005
+                    </span>
+                    <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-piper-accent/10 border border-piper-accent/30 text-piper-light text-xs font-semibold uppercase tracking-wide">
+                        <span class="w-2 h-2 rounded-full bg-piper-light animate-pulse"></span>
+                        Accepted
+                    </span>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="View Graph Visualization">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </button>
+                    <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Edit Decision">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <h1 class="text-3xl font-bold text-white mb-4 leading-tight">Sabotage PiperNet Launch to Save the World</h1>
+
+            <div class="flex flex-wrap items-center gap-6 text-sm text-slate-400 border-b border-slate-700/50 pb-6">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>Dec 22, 2019</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-mono uppercase tracking-wider text-slate-500">DRI / Authors:</span>
+                    <div class="flex -space-x-2 overflow-hidden">
+                        <div class="relative w-8 h-8 rounded-full border-2 border-piper-card bg-blue-600 flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:z-10 hover:scale-110 transition-transform" title="Richard Hendricks">RH</div>
+                        <div class="relative w-8 h-8 rounded-full border-2 border-piper-card bg-yellow-600 flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:z-10 hover:scale-110 transition-transform" title="Bertram Gilfoyle">BG</div>
+                        <div class="relative w-8 h-8 rounded-full border-2 border-piper-card bg-purple-600 flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:z-10 hover:scale-110 transition-transform" title="Dinesh Chugtai">DC</div>
+                        <div class="relative w-8 h-8 rounded-full border-2 border-piper-card bg-slate-600 flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:z-10 hover:scale-110 transition-transform" title="Jared Dunn">JD</div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 ml-auto">
+                    <span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 font-mono hover:bg-slate-700 cursor-pointer">#ethics</span>
+                    <span class="px-2 py-1 bg-yellow-900/30 text-yellow-500 rounded text-xs font-mono hover:bg-yellow-900/50 cursor-pointer border border-yellow-800/30">#tethics</span>
+                    <span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 font-mono hover:bg-slate-700 cursor-pointer">#security</span>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-slate-300 leading-relaxed max-w-3xl">
+                <p>
+                    Due to the potential for the AI optimization algorithm to self-improve into a potentially dangerous super-intelligence, we have decided to intentionally sabotage the launch version of PiperNet. This decision overrides <span class="text-piper-light cursor-pointer hover:underline">POL-001 (Growth Strategy)</span> in favor of global security.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-slate-800/30 border-t border-slate-700 p-8">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 font-mono">Decision Graph Connections</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+                
+                <div class="hidden md:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
+                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </div>
+
+                <div class="space-y-4 z-10">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
+                            Upstream Dependencies
+                        </span>
+                    </div>
+
+                    <a href="#" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-piper-light/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-mono text-xs text-piper-light font-medium">DEC-002</span>
+                            <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Status: Resolved"></span>
+                        </div>
+                        <div class="font-semibold text-slate-200 group-hover:text-white mb-1">Hooli Litigation Settlement</div>
+                        <div class="text-xs text-slate-500 truncate">Settlement reached regarding IP ownership...</div>
+                    </a>
+
+                    <a href="#" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-piper-light/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-mono text-xs text-blue-400 font-medium">POL-001</span>
+                            <span class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Active Policy"></span>
+                        </div>
+                        <div class="font-semibold text-slate-200 group-hover:text-white mb-1">No-Spying User Data Policy</div>
+                        <div class="text-xs text-slate-500 truncate">Strict adherence to user privacy...</div>
+                    </a>
+
+                    <a href="#" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-red-500/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-mono text-xs text-red-400 font-medium">INC-004</span>
+                            <span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="Status: Critical Incident"></span>
+                        </div>
+                        <div class="font-semibold text-slate-200 group-hover:text-white mb-1">RussFest Hologram Fail</div>
+                        <div class="text-xs text-slate-500 truncate">Major infrastructure instability detected...</div>
+                    </a>
+                </div>
+
+                <div class="space-y-4 z-10">
+                    <div class="flex items-center justify-end mb-2">
+                        <span class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                            Downstream Impacts
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                        </span>
+                    </div>
+
+                    <a href="#" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-purple-400/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-mono text-xs text-purple-400 font-medium">ADR-004</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500 border border-slate-600 px-1 rounded">Relates To</span>
+                        </div>
+                        <div class="font-semibold text-slate-200 group-hover:text-white mb-1">Middle-Out Compression Algo</div>
+                        <div class="text-xs text-slate-500 truncate">Algorithm efficiency parameters update...</div>
+                    </a>
+
+                    <a href="#" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-piper-light/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-mono text-xs text-piper-light font-medium">DEC-006</span>
+                            <span class="text-[10px] uppercase font-bold text-slate-500 border border-slate-600 px-1 rounded">Enables</span>
+                        </div>
+                        <div class="font-semibold text-slate-200 group-hover:text-white mb-1">Rat-Infested Garage Relocation</div>
+                        <div class="text-xs text-slate-500 truncate">Moving infrastructure to new location...</div>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+        
+        <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500 font-mono">
+            <span>UUID: 8a9f-4b2c-9d1e-...</span>
+            <span>Last updated by: Bertram Gilfoyle</span>
+        </div>
+
+    </div>
+
+</body>
+</html>

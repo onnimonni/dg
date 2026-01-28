@@ -74,6 +74,12 @@ enum Commands {
         json: bool,
     },
 
+    /// Edit a record in $EDITOR
+    Edit {
+        /// Record ID (e.g., DEC-001)
+        id: String,
+    },
+
     /// Add a link between records
     Link {
         /// Source record ID
@@ -147,6 +153,16 @@ enum Commands {
         status: String,
     },
 
+    /// Resolve an incident
+    Resolve {
+        /// Incident ID (e.g., INC-001)
+        id: String,
+
+        /// Resolution note (optional)
+        #[arg(short, long)]
+        note: Option<String>,
+    },
+
     /// Rebuild the index
     Reindex,
 
@@ -166,6 +182,13 @@ enum Commands {
 
     /// Show statistics
     Stats,
+
+    /// Show changes since last commit
+    Diff {
+        /// Base reference to compare against (default: HEAD)
+        #[arg(short, long)]
+        base: Option<String>,
+    },
 
     /// Format markdown files
     Fmt {
@@ -254,6 +277,10 @@ enum Commands {
         /// Open browser automatically
         #[arg(long)]
         open: bool,
+
+        /// Watch for file changes and auto-reload
+        #[arg(short, long)]
+        watch: bool,
     },
 
     /// Suggest missing decisions from git commits
@@ -312,6 +339,7 @@ fn main() -> Result<()> {
             format,
         } => commands::list::run(&cli.docs_dir, r#type, status, tag, &format),
         Commands::Show { id, links, json } => commands::show::run(&cli.docs_dir, &id, links, json),
+        Commands::Edit { id } => commands::edit::run(&cli.docs_dir, &id),
         Commands::Link {
             from,
             link_type,
@@ -343,12 +371,16 @@ fn main() -> Result<()> {
             output.as_deref(),
         ),
         Commands::Status { id, status } => commands::status::run(&cli.docs_dir, &id, &status),
+        Commands::Resolve { id, note } => {
+            commands::resolve::run(&cli.docs_dir, &id, note.as_deref())
+        }
         Commands::Reindex => commands::reindex::run(&cli.docs_dir),
         Commands::Export { format, output } => {
             commands::export::run(&cli.docs_dir, &format, output.as_deref())
         }
         Commands::Validate => commands::validate::run(&cli.docs_dir, cli.quiet),
         Commands::Stats => commands::stats::run(&cli.docs_dir),
+        Commands::Diff { base } => commands::diff::run(&cli.docs_dir, base.as_deref()),
         Commands::Fmt { check, files } => {
             commands::fmt::run(&cli.docs_dir, check, files, cli.quiet)
         }
@@ -374,7 +406,9 @@ fn main() -> Result<()> {
             format,
         } => commands::context::run(&cli.docs_dir, &topic, depth, &format),
         Commands::Build { output } => commands::build::run(&cli.docs_dir, output.as_deref()),
-        Commands::Serve { port, open } => commands::serve::run(&cli.docs_dir, port, open),
+        Commands::Serve { port, open, watch } => {
+            commands::serve::run(&cli.docs_dir, port, open, watch)
+        }
         Commands::Suggest { since, format } => {
             commands::suggest::run(&cli.docs_dir, Some(&since), &format)
         }
