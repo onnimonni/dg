@@ -1,4 +1,4 @@
-use crate::models::{graph_to_d2, D2Renderer, Graph};
+use crate::models::{graph_to_d2, AuthorsConfig, D2Renderer, Graph};
 use crate::serve::config::SiteConfig;
 use crate::serve::generator::markdown_to_html;
 use crate::serve::templates::create_environment;
@@ -27,6 +27,7 @@ pub struct AppState {
     docs_dir: PathBuf,
     graph: RwLock<Graph>,
     site_config: SiteConfig,
+    authors_config: AuthorsConfig,
 }
 
 impl AppState {
@@ -38,10 +39,12 @@ impl AppState {
 pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Result<()> {
     let graph = Graph::load(docs_dir)?;
     let site_config = SiteConfig::load(docs_dir)?;
+    let authors_config = AuthorsConfig::load(docs_dir).unwrap_or_default();
     let state = Arc::new(AppState {
         docs_dir: docs_dir.to_path_buf(),
         graph: RwLock::new(graph),
         site_config,
+        authors_config,
     });
 
     // Serve static assets from docs/assets
@@ -195,6 +198,18 @@ async fn record_handler(
         })
         .collect();
     ctx.insert("links".to_string(), serde_json::Value::Array(links));
+
+    // Resolve author info
+    let resolved_authors: Vec<_> = record
+        .frontmatter
+        .authors
+        .iter()
+        .map(|username| state.authors_config.resolve(username))
+        .collect();
+    ctx.insert(
+        "resolved_authors".to_string(),
+        serde_json::to_value(&resolved_authors).unwrap_or_default(),
+    );
 
     match env.get_template("record.html") {
         Ok(tmpl) => match tmpl.render(

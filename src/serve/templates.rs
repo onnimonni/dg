@@ -342,7 +342,21 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             <div class="flex items-center gap-2">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">{{ record.type_display }}</span>
             </div>
-            {% if record.authors %}
+            {% if record.resolved_authors %}
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
+                <div class="flex -space-x-2">
+                    {% for author in record.resolved_authors %}
+                    <div class="relative group">
+                        <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="w-8 h-8 rounded-full border-2 border-slate-800 bg-piper-accent" title="{{ author.name }}">
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            {{ author.name }}{% if author.email %} &lt;{{ author.email }}&gt;{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif record.authors %}
             <div class="flex items-center gap-3">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
                 <span class="text-slate-300">{{ record.authors | join(", ") }}</span>
@@ -387,7 +401,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
     <!-- Footer -->
     <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500 font-mono">
         <span>{{ record.id }}</span>
-        {% if record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
+        {% if record.resolved_authors %}<span>Authors: {% for a in record.resolved_authors %}{{ a.initials }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% elif record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
     </div>
 </div>
 {% endblock %}

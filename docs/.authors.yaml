@@ -1,0 +1,31 @@
+# Author profiles for Decision Graph
+# Use GitHub usernames to automatically fetch avatars
+# Override name/email/avatar as needed
+
+authors:
+  # Pied Piper team (Silicon Valley characters)
+  richard:
+    name: Richard Hendricks
+    github: richard-hendricks
+    email: richard@piedpiper.com
+
+  jared:
+    name: Jared Dunn
+    github: jared-dunn
+    email: jared@piedpiper.com
+
+  dinesh:
+    name: Dinesh Chugtai
+    github: dinesh-chugtai
+    email: dinesh@piedpiper.com
+
+  gilfoyle:
+    name: Bertram Gilfoyle
+    github: gilfoyle
+    email: gilfoyle@piedpiper.com
+
+  # Real user example
+  onni:
+    name: Onni Hakala
+    github: onnimonni
+    email: onni@flaky.build
