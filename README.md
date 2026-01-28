@@ -30,14 +30,14 @@ Or add to existing devenv project:
 inputs:
   dg:
     url: github:onnimonni/dg
-    flake: false
 ```
 
 ```nix
 # devenv.nix
-{ inputs, ... }:
+{ inputs, system, ... }:
 {
-  imports = [ "${inputs.dg}/devenv-module.nix" ];
+  imports = [ inputs.dg.devenvModules.default ];
+  packages = [ inputs.dg.packages.${system}.default ];
 }
 ```
 

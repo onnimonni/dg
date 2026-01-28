@@ -6,4 +6,3 @@ inputs:
     url: github:cachix/devenv-nixpkgs/rolling
   dg:
     url: github:onnimonni/dg
-    flake: false

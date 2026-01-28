@@ -1,8 +1,13 @@
-{ pkgs, lib, inputs, ... }:
+{ pkgs, lib, inputs, system, ... }:
 
 {
   # Import Decision Graph integration
-  imports = [ "${inputs.dg}/devenv-module.nix" ];
+  imports = [ inputs.dg.devenvModules.default ];
+
+  # Include the dg CLI binary
+  packages = [
+    inputs.dg.packages.${system}.default
+  ];
 
   # Decision Graph is enabled by default
   # dg.enable = true;

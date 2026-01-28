@@ -1,8 +1,7 @@
-{ pkgs, lib, config, inputs, ... }:
+{ pkgs, lib, config, ... }:
 
 let
   cfg = config.dg;
-  dgSrc = inputs.dg or ./.;
 in
 {
   options.dg = {
@@ -37,15 +36,12 @@ in
     };
 
     claude.code.hooks = {
-      dg-session-start = {
-        enable = true;
-        hookType = "Notification";
-        command = "python3 \"${dgSrc}/.claude/hooks/session-start.py\"";
-      };
       dg-session-stop = {
         enable = true;
         hookType = "Stop";
-        command = "python3 \"${dgSrc}/.claude/hooks/session-stop.py\"";
+        command = ''
+          echo '{"continue": true, "message": "Session ending - consider capturing decisions with: dg new decision \"Title\" or dg new adr \"Title\""}'
+        '';
       };
     };
 
@@ -57,13 +53,13 @@ in
 
     # Initialize dg if not already done
     enterShell = ''
-      if [ ! -d "docs/.decisions" ]; then
+      if command -v dg &> /dev/null && [ ! -d "docs/.decisions" ]; then
         echo "Initializing Decision Graph..."
         dg init 2>/dev/null || true
       fi
     '';
 
-    # Git hooks for decision graph (using new git-hooks API)
+    # Git hooks for decision graph
     git-hooks.hooks = {
       dg-lint = {
         enable = true;
