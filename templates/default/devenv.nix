@@ -1,5 +1,8 @@
-{ pkgs, lib, inputs, system, ... }:
+{ pkgs, lib, inputs, ... }:
 
+let
+  system = pkgs.stdenv.hostPlatform.system;
+in
 {
   # Import Decision Graph integration
   imports = [ inputs.dg.devenvModules.default ];

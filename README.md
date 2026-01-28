@@ -34,8 +34,9 @@ inputs:
 
 ```nix
 # devenv.nix
-{ inputs, system, ... }:
-{
+{ pkgs, inputs, ... }:
+let system = pkgs.stdenv.hostPlatform.system;
+in {
   imports = [ inputs.dg.devenvModules.default ];
   packages = [ inputs.dg.packages.${system}.default ];
 }
