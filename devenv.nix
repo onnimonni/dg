@@ -18,11 +18,16 @@
     args = [ "@playwright/mcp@latest" ];
   };
 
-  # Gemini AI for UX/frontend review (requires GEMINI_API_KEY env var)
-  claude.code.mcpServers.gemini = {
+  # Gemini UX review via consult-llm-mcp (requires GEMINI_API_KEY env var)
+  # System prompt configured in ~/.consult-llm-mcp/SYSTEM_PROMPT.md
+  claude.code.mcpServers.consult-llm = {
     type = "stdio";
     command = "npx";
-    args = [ "-y" "github:aliargun/mcp-server-gemini" ];
+    args = [ "-y" "consult-llm-mcp" ];
+    env = {
+      CONSULT_LLM_DEFAULT_MODEL = "gemini-2.5-pro";
+      CONSULT_LLM_ALLOWED_MODELS = "gemini-2.5-pro,gemini-2.0-flash";
+    };
   };
 
   # Environment variables
@@ -158,6 +163,6 @@
     echo ""
     echo "Claude skills: /decision, /adr, /incident, /runbook, /meeting, /context, /frontend"
     echo ""
-    echo "MCP servers: playwright (browser), gemini (UX review - needs GEMINI_API_KEY)"
+    echo "MCP servers: playwright (browser), consult-llm (Gemini UX review - needs GEMINI_API_KEY)"
   '';
 }

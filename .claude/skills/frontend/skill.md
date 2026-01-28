@@ -14,22 +14,18 @@ Help with frontend UI/UX design and implementation.
 
 ## Gemini UX Review
 
-For UX/frontend design questions, **use the Gemini MCP server** to get a second opinion. Gemini excels at visual and UX analysis.
+For UX/frontend design questions, **use the consult-llm MCP server** to get a second opinion from Gemini Pro. It's configured as a Principal UX Engineer who prefers Tailwind CSS.
 
-### How to Use Gemini
+### How to Use
 
-The `gemini` MCP server provides these tools:
-- `generate_text` - Ask Gemini for UX advice
-- `analyze_image` - Have Gemini review screenshots/mockups
-
-### Example Prompts for Gemini
+The `consult-llm` MCP server provides the `consult_llm` tool:
 
 ```
 # Get UX feedback on a design decision
-Use gemini generate_text: "Review this CSS for a record link button that appears inline with text. Is the styling appropriate for readability and usability? padding: 0.1rem 0.35rem, border-radius: 3px, white text on colored background"
+mcp__consult-llm__consult_llm: "Review this CSS for a record link button: padding: 0.1rem 0.35rem, border-radius: 3px, white text on colored background. Is this good for readability?"
 
-# Review a screenshot
-Use gemini analyze_image with a screenshot: "Analyze this timeline visualization. Is the information hierarchy clear? Are the colors accessible? What UX improvements would you suggest?"
+# Review layout approach
+mcp__consult-llm__consult_llm: "I'm building a timeline visualization with year markers and nodes. Should I use CSS grid or flexbox? What's the best approach?"
 ```
 
 ### When to Consult Gemini
@@ -39,6 +35,7 @@ Use gemini analyze_image with a screenshot: "Analyze this timeline visualization
 - For complex layout decisions
 - To validate UX patterns
 - When user reports something "looks weird"
+- For Tailwind CSS class recommendations
 
 ## Design Tokens (from templates.rs)
 
