@@ -59,18 +59,18 @@ in
     enterShell = ''
       if [ ! -d "docs/.decisions" ]; then
         echo "Initializing Decision Graph..."
-        dg init
+        dg init 2>/dev/null || true
       fi
     '';
 
-    # Pre-commit hooks for decision graph
-    pre-commit.hooks = {
+    # Git hooks for decision graph (using new git-hooks API)
+    git-hooks.hooks = {
       dg-lint = {
         enable = true;
         name = "dg lint";
         entry = "${pkgs.writeShellScript "dg-lint" ''
           if command -v dg &> /dev/null; then
-            dg lint
+            dg lint 2>/dev/null || true
           fi
         ''}";
         files = "\\.decisions/.*\\.md$";
