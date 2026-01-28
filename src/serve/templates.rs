@@ -83,8 +83,11 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             color: var(--accent);
             font-weight: bold;
         }
-        .card-title { font-size: 1.2rem; }
-        .card-meta { color: var(--text-dim); font-size: 0.9rem; }
+        .card-title { font-size: 1.2rem; color: var(--text); text-decoration: none; display: block; }
+        .card-title:hover { color: #fff; }
+        .card-meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.35rem; }
+        .detail-card .card-title { font-size: 1.75rem; font-weight: 700; color: #fff; }
+        .detail-card .card-meta { padding-bottom: 1rem; border-bottom: 1px solid rgba(148,163,184,0.15); }
         .badge {
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -101,13 +104,20 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .badge.superseded { background: #7f8c8d; }
         .tag {
             display: inline-block;
-            padding: 0.1rem 0.4rem;
+            padding: 0.15rem 0.5rem;
             border-radius: 3px;
             font-size: 0.75rem;
-            background: var(--primary);
+            font-family: monospace;
+            background: rgba(148,163,184,0.1);
+            color: var(--text-dim);
             margin-right: 0.25rem;
         }
-        .links { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--primary); }
+        .links { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(148,163,184,0.15); }
+        .links-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); font-family: monospace; margin-bottom: 0.75rem; }
+        .link-card { display: block; padding: 0.75rem 1rem; background: rgba(148,163,184,0.06); border: 1px solid rgba(148,163,184,0.1); border-radius: 8px; margin-bottom: 0.5rem; text-decoration: none; transition: all 0.15s; }
+        .link-card:hover { background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.2); transform: translateY(-1px); text-decoration: none; }
+        .link-card .link-id { font-family: monospace; font-size: 0.8rem; font-weight: 600; }
+        .link-card .link-rel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); border: 1px solid rgba(148,163,184,0.2); padding: 0.1rem 0.4rem; border-radius: 3px; float: right; }
         .link-type { color: var(--text-dim); font-size: 0.9rem; }
         a { color: var(--accent); text-decoration: none; }
         a:hover { text-decoration: underline; }
@@ -416,7 +426,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 <nav style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-dim);">
     <a href="/">Records</a> <span style="margin: 0 0.35rem;">›</span> <span>{{ record.id }}</span>
 </nav>
-<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}">
+<div class="card detail-card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}">
     <div class="card-header">
         <div>
             <span class="card-id">{{ record.id }}</span>
@@ -426,21 +436,23 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
     </div>
     <h2 class="card-title">{{ record.title }}</h2>
     <div class="card-meta">
-        {{ record.type_display }} | Created: {{ record.created }} | Updated: {{ record.updated }}
-        {% if record.authors %} | Authors: {{ record.authors | join(", ") }}{% endif %}
+        {{ record.type_display }} · {{ record.created }}
+        {% if record.authors %} · {{ record.authors | join(", ") }}{% endif %}
     </div>
     {% if record.tags %}
-    <div style="margin-top: 0.5rem;">
+    <div style="margin-top: 0.75rem;">
         {% for tag in record.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
     </div>
     {% endif %}
 
     {% if record.links %}
     <div class="links">
+        <div class="links-title">Connections</div>
         {% for link in record.links %}
-        <div class="link-type">
-            {{ link.type }}: <a href="/records/{{ link.target }}">{{ link.target }}</a>
-        </div>
+        <a href="/records/{{ link.target }}" class="link-card">
+            <span class="link-rel">{{ link.type }}</span>
+            <span class="link-id">{{ link.target }}</span>
+        </a>
         {% endfor %}
     </div>
     {% endif %}
