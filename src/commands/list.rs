@@ -74,20 +74,27 @@ pub fn run(
             for record in &records {
                 let status_colored = match record.status() {
                     Status::Accepted | Status::Active => record.status().to_string().green(),
-                    Status::Deprecated | Status::Superseded | Status::Cancelled => {
+                    Status::Deprecated | Status::Superseded | Status::Cancelled | Status::Open => {
                         record.status().to_string().red()
                     }
-                    Status::Draft => record.status().to_string().yellow(),
+                    Status::Draft | Status::Proposed => record.status().to_string().yellow(),
+                    Status::Resolved => record.status().to_string().blue(),
                     _ => record.status().to_string().normal(),
                 };
 
-                println!(
+                let core_marker = if record.frontmatter.foundational {
+                    " ★".yellow().to_string()
+                } else {
+                    String::new()
+                };
+                print!(
                     "{:<12} {:<10} {:<12} {}",
                     record.id().cyan(),
                     record.record_type().to_string(),
                     status_colored,
                     truncate(record.title(), 40)
                 );
+                println!("{}", core_marker);
             }
 
             println!("\n{} records", records.len());
