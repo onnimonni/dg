@@ -1,0 +1,28 @@
+digraph DecisionGraph {
+  rankdir=LR;
+  node [shape=box, style=rounded];
+
+  "STR-002" [label="STR-002\nNordic Market Expansion", fillcolor="#2196F3", style="filled,rounded"];
+  "DEC-001" [label="DEC-001\nExpand to France before Ger...", fillcolor="#4CAF50", style="filled,rounded"];
+  "STR-001" [label="STR-001\nEuropean Market Expansion 2024", fillcolor="#2196F3", style="filled,rounded"];
+  "OPP-001" [label="OPP-001\nMobile App Feature Gap", fillcolor="#E91E63", style="filled,rounded"];
+  "CUS-001" [label="CUS-001\nAcme Corp", fillcolor="#9C27B0", style="filled,rounded"];
+  "DEC-005" [label="DEC-005\nADR: Integrate Revolut API ...", fillcolor="#4CAF50", style="filled,rounded"];
+  "DEC-002" [label="DEC-002\nExpand to Sweden", fillcolor="#4CAF50", style="filled,rounded"];
+  "PRC-001" [label="PRC-001\nCustomer Onboarding", fillcolor="#00BCD4", style="filled,rounded"];
+  "DEC-004" [label="DEC-004\nSwitch to Revolut for SEK B...", fillcolor="#4CAF50", style="filled,rounded"];
+  "DEC-003" [label="DEC-003\nOpen SEK Bank Account with ...", fillcolor="#4CAF50", style="filled,rounded"];
+  "POL-001" [label="POL-001\nData Retention Policy", fillcolor="#FF9800", style="filled,rounded"];
+
+  "DEC-005" -> "DEC-004" [label="implements", color=teal];
+  "DEC-002" -> "STR-002" [label="implements", color=teal];
+  "OPP-001" -> "CUS-001" [label="relates_to", color=gray, style=dotted];
+  "CUS-001" -> "DEC-001" [label="relates_to", color=gray, style=dotted];
+  "DEC-003" -> "DEC-004" [label="superseded_by", ];
+  "DEC-003" -> "DEC-002" [label="depends_on", color=blue];
+  "POL-001" -> "STR-001" [label="relates_to", color=gray, style=dotted];
+  "DEC-004" -> "DEC-003" [label="supersedes", bold, color=red];
+  "DEC-001" -> "STR-001" [label="depends_on", color=blue];
+  "DEC-001" -> "CUS-001" [label="relates_to", color=gray, style=dotted];
+}
+

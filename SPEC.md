@@ -11,6 +11,7 @@ Ideally it would be able to document questions like:
 * Key client needs customization X into our software
 * Regulatory needs force us to keep PII out of certain decision making
 * Workforce laws require us to do X so we have policy Y
+* Customer study noticed that people are lacking featury Z
 
 This way claude could grow and maintain pool of relevant information in structured way inside a monorepo which would be able to define the direction for a whole company.
 

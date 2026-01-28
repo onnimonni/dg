@@ -1,0 +1,501 @@
+use anyhow::{anyhow, Result};
+use chrono::NaiveDate;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum RecordType {
+    Decision,
+    Strategy,
+    Policy,
+    Customer,
+    Opportunity,
+    Process,
+    Hiring,
+    Adr,
+}
+
+impl RecordType {
+    pub fn prefix(&self) -> &'static str {
+        match self {
+            RecordType::Decision => "DEC",
+            RecordType::Strategy => "STR",
+            RecordType::Policy => "POL",
+            RecordType::Customer => "CUS",
+            RecordType::Opportunity => "OPP",
+            RecordType::Process => "PRC",
+            RecordType::Hiring => "HIR",
+            RecordType::Adr => "ADR",
+        }
+    }
+
+    pub fn from_prefix(prefix: &str) -> Option<RecordType> {
+        match prefix.to_uppercase().as_str() {
+            "DEC" => Some(RecordType::Decision),
+            "STR" => Some(RecordType::Strategy),
+            "POL" => Some(RecordType::Policy),
+            "CUS" => Some(RecordType::Customer),
+            "OPP" => Some(RecordType::Opportunity),
+            "PRC" => Some(RecordType::Process),
+            "HIR" => Some(RecordType::Hiring),
+            "ADR" => Some(RecordType::Adr),
+            _ => None,
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<RecordType> {
+        match s.to_lowercase().as_str() {
+            "decision" => Some(RecordType::Decision),
+            "strategy" => Some(RecordType::Strategy),
+            "policy" => Some(RecordType::Policy),
+            "customer" => Some(RecordType::Customer),
+            "opportunity" => Some(RecordType::Opportunity),
+            "process" => Some(RecordType::Process),
+            "hiring" => Some(RecordType::Hiring),
+            "adr" => Some(RecordType::Adr),
+            _ => RecordType::from_prefix(s),
+        }
+    }
+
+    pub fn template_name(&self) -> &'static str {
+        match self {
+            RecordType::Decision => "decision",
+            RecordType::Strategy => "strategy",
+            RecordType::Policy => "policy",
+            RecordType::Customer => "customer",
+            RecordType::Opportunity => "opportunity",
+            RecordType::Process => "process",
+            RecordType::Hiring => "hiring",
+            RecordType::Adr => "adr",
+        }
+    }
+}
+
+impl std::fmt::Display for RecordType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.prefix())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Status {
+    Draft,
+    Proposed,
+    Accepted,
+    Deprecated,
+    Superseded,
+    #[serde(rename = "active")]
+    Active,
+    #[serde(rename = "open")]
+    Open,
+    #[serde(rename = "filled")]
+    Filled,
+    #[serde(rename = "cancelled")]
+    Cancelled,
+}
+
+impl Status {
+    pub fn from_str(s: &str) -> Option<Status> {
+        match s.to_lowercase().as_str() {
+            "draft" => Some(Status::Draft),
+            "proposed" => Some(Status::Proposed),
+            "accepted" => Some(Status::Accepted),
+            "deprecated" => Some(Status::Deprecated),
+            "superseded" => Some(Status::Superseded),
+            "active" => Some(Status::Active),
+            "open" => Some(Status::Open),
+            "filled" => Some(Status::Filled),
+            "cancelled" => Some(Status::Cancelled),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Status::Draft => "draft",
+            Status::Proposed => "proposed",
+            Status::Accepted => "accepted",
+            Status::Deprecated => "deprecated",
+            Status::Superseded => "superseded",
+            Status::Active => "active",
+            Status::Open => "open",
+            Status::Filled => "filled",
+            Status::Cancelled => "cancelled",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Links {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub supersedes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub superseded_by: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub depends_on: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub enables: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relates_to: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conflicts_with: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub refines: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub implements: Vec<String>,
+}
+
+impl Links {
+    pub fn all_links(&self) -> Vec<(&str, &str)> {
+        let mut result = Vec::new();
+        for id in &self.supersedes {
+            result.push(("supersedes", id.as_str()));
+        }
+        for id in &self.superseded_by {
+            result.push(("superseded_by", id.as_str()));
+        }
+        for id in &self.depends_on {
+            result.push(("depends_on", id.as_str()));
+        }
+        for id in &self.enables {
+            result.push(("enables", id.as_str()));
+        }
+        for id in &self.relates_to {
+            result.push(("relates_to", id.as_str()));
+        }
+        for id in &self.conflicts_with {
+            result.push(("conflicts_with", id.as_str()));
+        }
+        for id in &self.refines {
+            result.push(("refines", id.as_str()));
+        }
+        for id in &self.implements {
+            result.push(("implements", id.as_str()));
+        }
+        result
+    }
+
+    pub fn add_link(&mut self, link_type: &str, target: &str) -> Result<()> {
+        let vec = self.get_vec_mut(link_type)?;
+        if !vec.contains(&target.to_string()) {
+            vec.push(target.to_string());
+        }
+        Ok(())
+    }
+
+    pub fn remove_link(&mut self, link_type: &str, target: &str) -> Result<bool> {
+        let vec = self.get_vec_mut(link_type)?;
+        if let Some(pos) = vec.iter().position(|x| x == target) {
+            vec.remove(pos);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn get_vec_mut(&mut self, link_type: &str) -> Result<&mut Vec<String>> {
+        match link_type {
+            "supersedes" => Ok(&mut self.supersedes),
+            "superseded_by" => Ok(&mut self.superseded_by),
+            "depends_on" => Ok(&mut self.depends_on),
+            "enables" => Ok(&mut self.enables),
+            "relates_to" => Ok(&mut self.relates_to),
+            "conflicts_with" => Ok(&mut self.conflicts_with),
+            "refines" => Ok(&mut self.refines),
+            "implements" => Ok(&mut self.implements),
+            _ => Err(anyhow!("Unknown link type: {}", link_type)),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Frontmatter {
+    pub r#type: RecordType,
+    pub id: String,
+    pub title: String,
+    pub status: Status,
+    pub created: NaiveDate,
+    pub updated: NaiveDate,
+    #[serde(default)]
+    pub authors: Vec<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub links: Links,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_yaml::Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Record {
+    pub frontmatter: Frontmatter,
+    pub content: String,
+    pub path: PathBuf,
+}
+
+impl Record {
+    pub fn parse(path: &Path) -> Result<Record> {
+        let content = fs::read_to_string(path)?;
+        Self::parse_content(&content, path.to_path_buf())
+    }
+
+    pub fn parse_content(content: &str, path: PathBuf) -> Result<Record> {
+        let re = Regex::new(r"(?s)^---\n(.*?)\n---\n(.*)$")?;
+        let caps = re
+            .captures(content)
+            .ok_or_else(|| anyhow!("Invalid frontmatter format"))?;
+
+        // Safe: regex pattern guarantees groups 1 and 2 exist when captures succeeds
+        let yaml_str = caps
+            .get(1)
+            .ok_or_else(|| anyhow!("Missing YAML frontmatter"))?
+            .as_str();
+        let body = caps
+            .get(2)
+            .ok_or_else(|| anyhow!("Missing content body"))?
+            .as_str()
+            .to_string();
+
+        let frontmatter: Frontmatter = serde_yaml::from_str(yaml_str)?;
+
+        Ok(Record {
+            frontmatter,
+            content: body,
+            path,
+        })
+    }
+
+    pub fn id(&self) -> &str {
+        &self.frontmatter.id
+    }
+
+    pub fn title(&self) -> &str {
+        &self.frontmatter.title
+    }
+
+    pub fn record_type(&self) -> &RecordType {
+        &self.frontmatter.r#type
+    }
+
+    pub fn status(&self) -> &Status {
+        &self.frontmatter.status
+    }
+
+    pub fn save(&self) -> Result<()> {
+        use fs2::FileExt;
+        use std::io::Write;
+
+        let yaml = serde_yaml::to_string(&self.frontmatter)?;
+        let content = format!("---\n{}---\n{}", yaml, self.content);
+
+        // Open file with exclusive lock to prevent concurrent writes
+        let file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&self.path)?;
+
+        // Acquire exclusive lock (blocks if another process has the file locked)
+        file.lock_exclusive()?;
+
+        // Write content
+        let mut writer = std::io::BufWriter::new(&file);
+        writer.write_all(content.as_bytes())?;
+        writer.flush()?;
+
+        // Lock is automatically released when file is dropped
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub fn filename(&self) -> String {
+        let slug = self
+            .frontmatter
+            .title
+            .to_lowercase()
+            .replace(' ', "-")
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '-')
+            .collect::<String>();
+        format!("{}-{}.md", self.frontmatter.id, slug)
+    }
+}
+
+#[allow(dead_code)]
+pub fn parse_id(id: &str) -> Option<(RecordType, u32)> {
+    let re = Regex::new(r"^([A-Z]{3})-(\d+)").ok()?;
+    let caps = re.captures(id)?;
+    let prefix = caps.get(1)?.as_str();
+    let num: u32 = caps.get(2)?.as_str().parse().ok()?;
+    let record_type = RecordType::from_prefix(prefix)?;
+    Some((record_type, num))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_id() {
+        let (rt, num) = parse_id("DEC-001").unwrap();
+        assert_eq!(rt, RecordType::Decision);
+        assert_eq!(num, 1);
+
+        let (rt, num) = parse_id("STR-042-some-slug").unwrap();
+        assert_eq!(rt, RecordType::Strategy);
+        assert_eq!(num, 42);
+    }
+
+    #[test]
+    fn test_parse_id_all_types() {
+        assert!(parse_id("DEC-001").is_some());
+        assert!(parse_id("STR-001").is_some());
+        assert!(parse_id("POL-001").is_some());
+        assert!(parse_id("CUS-001").is_some());
+        assert!(parse_id("OPP-001").is_some());
+        assert!(parse_id("PRC-001").is_some());
+        assert!(parse_id("HIR-001").is_some());
+        assert!(parse_id("ADR-001").is_some());
+    }
+
+    #[test]
+    fn test_parse_id_invalid() {
+        assert!(parse_id("INVALID").is_none());
+        assert!(parse_id("DEC").is_none());
+        assert!(parse_id("001").is_none());
+        assert!(parse_id("XXX-001").is_none());
+    }
+
+    #[test]
+    fn test_record_type_from_str() {
+        assert_eq!(
+            RecordType::from_str("decision"),
+            Some(RecordType::Decision)
+        );
+        assert_eq!(RecordType::from_str("DEC"), Some(RecordType::Decision));
+        assert_eq!(RecordType::from_str("invalid"), None);
+    }
+
+    #[test]
+    fn test_record_type_from_str_all_types() {
+        assert_eq!(RecordType::from_str("decision"), Some(RecordType::Decision));
+        assert_eq!(RecordType::from_str("strategy"), Some(RecordType::Strategy));
+        assert_eq!(RecordType::from_str("policy"), Some(RecordType::Policy));
+        assert_eq!(RecordType::from_str("customer"), Some(RecordType::Customer));
+        assert_eq!(RecordType::from_str("opportunity"), Some(RecordType::Opportunity));
+        assert_eq!(RecordType::from_str("process"), Some(RecordType::Process));
+        assert_eq!(RecordType::from_str("hiring"), Some(RecordType::Hiring));
+        assert_eq!(RecordType::from_str("adr"), Some(RecordType::Adr));
+    }
+
+    #[test]
+    fn test_record_type_prefix() {
+        assert_eq!(RecordType::Decision.prefix(), "DEC");
+        assert_eq!(RecordType::Strategy.prefix(), "STR");
+        assert_eq!(RecordType::Policy.prefix(), "POL");
+        assert_eq!(RecordType::Customer.prefix(), "CUS");
+        assert_eq!(RecordType::Opportunity.prefix(), "OPP");
+        assert_eq!(RecordType::Process.prefix(), "PRC");
+        assert_eq!(RecordType::Hiring.prefix(), "HIR");
+        assert_eq!(RecordType::Adr.prefix(), "ADR");
+    }
+
+    #[test]
+    fn test_status_from_str() {
+        assert_eq!(Status::from_str("draft"), Some(Status::Draft));
+        assert_eq!(Status::from_str("proposed"), Some(Status::Proposed));
+        assert_eq!(Status::from_str("accepted"), Some(Status::Accepted));
+        assert_eq!(Status::from_str("deprecated"), Some(Status::Deprecated));
+        assert_eq!(Status::from_str("superseded"), Some(Status::Superseded));
+        assert_eq!(Status::from_str("active"), Some(Status::Active));
+        assert_eq!(Status::from_str("invalid"), None);
+    }
+
+    #[test]
+    fn test_links_add_and_remove() {
+        let mut links = Links::default();
+
+        // Add links
+        links.add_link("depends_on", "STR-001").unwrap();
+        links.add_link("relates_to", "CUS-001").unwrap();
+
+        assert!(links.depends_on.contains(&"STR-001".to_string()));
+        assert!(links.relates_to.contains(&"CUS-001".to_string()));
+
+        // Add duplicate (should not duplicate)
+        links.add_link("depends_on", "STR-001").unwrap();
+        assert_eq!(links.depends_on.len(), 1);
+
+        // Remove links
+        assert!(links.remove_link("depends_on", "STR-001").unwrap());
+        assert!(!links.depends_on.contains(&"STR-001".to_string()));
+
+        // Remove non-existent
+        assert!(!links.remove_link("depends_on", "STR-001").unwrap());
+    }
+
+    #[test]
+    fn test_links_invalid_type() {
+        let mut links = Links::default();
+        assert!(links.add_link("invalid_type", "DEC-001").is_err());
+    }
+
+    #[test]
+    fn test_links_all_links() {
+        let mut links = Links::default();
+        links.add_link("depends_on", "STR-001").unwrap();
+        links.add_link("relates_to", "CUS-001").unwrap();
+
+        let all = links.all_links();
+        assert_eq!(all.len(), 2);
+        assert!(all.contains(&("depends_on", "STR-001")));
+        assert!(all.contains(&("relates_to", "CUS-001")));
+    }
+
+    #[test]
+    fn test_record_parse_content() {
+        let content = r#"---
+type: decision
+id: DEC-001
+title: Test Decision
+status: proposed
+created: 2024-01-15
+updated: 2024-01-15
+authors: []
+tags: []
+links:
+  supersedes: []
+  depends_on: []
+  enables: []
+  relates_to: []
+  conflicts_with: []
+---
+
+# Test Decision
+
+Some content here.
+"#;
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+
+        assert_eq!(record.id(), "DEC-001");
+        assert_eq!(record.title(), "Test Decision");
+        assert_eq!(*record.record_type(), RecordType::Decision);
+        assert_eq!(*record.status(), Status::Proposed);
+        assert!(record.content.contains("Some content here"));
+    }
+
+    #[test]
+    fn test_record_parse_invalid_frontmatter() {
+        let content = "No frontmatter here";
+        let result = Record::parse_content(content, std::path::PathBuf::from("test.md"));
+        assert!(result.is_err());
+    }
+}
