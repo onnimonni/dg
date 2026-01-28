@@ -1,4 +1,6 @@
 use crate::models::{graph_to_d2, D2Renderer, Graph};
+use crate::serve::config::SiteConfig;
+use crate::serve::generator::markdown_to_html;
 use crate::serve::templates::create_environment;
 use anyhow::Result;
 use axum::{
@@ -17,6 +19,7 @@ use tokio::sync::RwLock;
 pub struct AppState {
     docs_dir: PathBuf,
     graph: RwLock<Graph>,
+    site_config: SiteConfig,
 }
 
 impl AppState {
@@ -27,9 +30,11 @@ impl AppState {
 
 pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Result<()> {
     let graph = Graph::load(docs_dir)?;
+    let site_config = SiteConfig::load(docs_dir)?;
     let state = Arc::new(AppState {
         docs_dir: docs_dir.to_path_buf(),
         graph: RwLock::new(graph),
+        site_config,
     });
 
     let app = Router::new()
@@ -96,6 +101,7 @@ async fn index_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     match env.get_template("index.html") {
         Ok(tmpl) => {
             match tmpl.render(context! {
+                site => &state.site_config,
                 records => records_data,
                 record_types => record_types,
             }) {
@@ -134,7 +140,7 @@ async fn record_handler(
     // Add content as HTML
     ctx.insert(
         "content_html".to_string(),
-        serde_json::Value::String(simple_markdown_to_html(&record.content)),
+        serde_json::Value::String(markdown_to_html(&record.content)),
     );
 
     // Add links
@@ -153,7 +159,7 @@ async fn record_handler(
     ctx.insert("links".to_string(), serde_json::Value::Array(links));
 
     match env.get_template("record.html") {
-        Ok(tmpl) => match tmpl.render(context! { record => ctx }) {
+        Ok(tmpl) => match tmpl.render(context! { site => &state.site_config, record => ctx }) {
             Ok(html) => Html(html).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -194,6 +200,7 @@ async fn graph_page_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
     match env.get_template("graph.html") {
         Ok(tmpl) => {
             match tmpl.render(context! {
+                site => &state.site_config,
                 graph_data => graph_data.to_string(),
             }) {
                 Ok(html) => Html(html).into_response(),
@@ -241,6 +248,7 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     match env.get_template("stats.html") {
         Ok(tmpl) => {
             match tmpl.render(context! {
+                site => &state.site_config,
                 stats => stats_ctx,
             }) {
                 Ok(html) => Html(html).into_response(),
@@ -456,73 +464,4 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
         ),
     );
     map
-}
-
-fn simple_markdown_to_html(md: &str) -> String {
-    let mut html = String::new();
-    let mut in_code_block = false;
-    let mut in_list = false;
-
-    for line in md.lines() {
-        if line.starts_with("```") {
-            if in_code_block {
-                html.push_str("</code></pre>\n");
-                in_code_block = false;
-            } else {
-                html.push_str("<pre><code>");
-                in_code_block = true;
-            }
-            continue;
-        }
-
-        if in_code_block {
-            html.push_str(&escape_html(line));
-            html.push('\n');
-            continue;
-        }
-
-        if line.trim().is_empty() {
-            if in_list {
-                html.push_str("</ul>\n");
-                in_list = false;
-            }
-            continue;
-        }
-
-        if line.starts_with("### ") {
-            html.push_str(&format!("<h3>{}</h3>\n", escape_html(&line[4..])));
-        } else if line.starts_with("## ") {
-            html.push_str(&format!("<h2>{}</h2>\n", escape_html(&line[3..])));
-        } else if line.starts_with("# ") {
-            html.push_str(&format!("<h1>{}</h1>\n", escape_html(&line[2..])));
-        } else if line.starts_with("- ") || line.starts_with("* ") {
-            if !in_list {
-                html.push_str("<ul>\n");
-                in_list = true;
-            }
-            html.push_str(&format!("<li>{}</li>\n", escape_html(&line[2..])));
-        } else {
-            if in_list {
-                html.push_str("</ul>\n");
-                in_list = false;
-            }
-            html.push_str(&format!("<p>{}</p>\n", escape_html(line)));
-        }
-    }
-
-    if in_list {
-        html.push_str("</ul>\n");
-    }
-    if in_code_block {
-        html.push_str("</code></pre>\n");
-    }
-
-    html
-}
-
-fn escape_html(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
 }

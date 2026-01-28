@@ -22,7 +22,7 @@ pub fn run(docs_dir: &str, output: Option<&str>) -> Result<()> {
         record_count
     );
 
-    generate_site(&graph, &output_path)?;
+    generate_site(&graph, &output_path, docs_path)?;
 
     println!(
         "{} Static site generated at {}",

@@ -1,17 +1,18 @@
-use minijinja::{context, Environment};
+use minijinja::Environment;
 
-const BASE_TEMPLATE: &str = r#"<!DOCTYPE html>
+const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Decision Graph{% endblock %}</title>
+    <title>{% block title %}{{ site.title }}{% endblock %}</title>
+    {% if site.description %}<meta name="description" content="{{ site.description }}">{% endif %}
     <style>
         :root {
             --bg: #1a1a2e;
             --surface: #16213e;
-            --primary: #0f3460;
-            --accent: #e94560;
+            --primary: {{ site.primary_color | default(value="#0f3460") }};
+            --accent: {{ site.accent_color | default(value="#e94560") }};
             --text: #eee;
             --text-dim: #999;
             --success: #4CAF50;
@@ -32,6 +33,8 @@ const BASE_TEMPLATE: &str = r#"<!DOCTYPE html>
             justify-content: space-between;
             align-items: center;
         }
+        header .brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; }
+        header .brand img { height: 32px; }
         header h1 { font-size: 1.5rem; }
         header nav a {
             color: var(--text);
@@ -41,6 +44,12 @@ const BASE_TEMPLATE: &str = r#"<!DOCTYPE html>
         }
         header nav a:hover { opacity: 1; }
         main { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
         .card {
             background: var(--surface);
             border-radius: 8px;
@@ -98,22 +107,35 @@ const BASE_TEMPLATE: &str = r#"<!DOCTYPE html>
         .stat-value { font-size: 2rem; font-weight: bold; color: var(--accent); }
         .stat-label { color: var(--text-dim); }
         .graph-container { background: var(--surface); border-radius: 8px; padding: 1rem; min-height: 500px; }
-        .content { background: var(--surface); border-radius: 8px; padding: 2rem; }
-        .content h1, .content h2, .content h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .content { background: var(--surface); border-radius: 8px; padding: 2rem; margin-top: 1rem; }
+        .content h1, .content h2, .content h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text); }
+        .content h1:first-child, .content h2:first-child { margin-top: 0; }
         .content p { margin-bottom: 1rem; }
         .content ul, .content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
-        .content code { background: var(--primary); padding: 0.2rem 0.4rem; border-radius: 3px; }
+        .content li { margin-bottom: 0.25rem; }
+        .content strong { font-weight: bold; }
+        .content em { font-style: italic; }
+        .content code { background: var(--primary); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace; }
         .content pre { background: var(--primary); padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; }
+        .content pre code { background: none; padding: 0; }
+        .content blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; color: var(--text-dim); }
+        .content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .content th, .content td { padding: 0.5rem; border: 1px solid var(--primary); text-align: left; }
+        .content th { background: var(--primary); }
         .search-box { width: 100%; padding: 0.75rem; border: 1px solid var(--primary); border-radius: 8px; background: var(--surface); color: var(--text); margin-bottom: 1.5rem; }
         .filter-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
         .filter-btn { padding: 0.5rem 1rem; border: 1px solid var(--primary); border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
         .filter-btn.active { background: var(--primary); }
+        {{ site.custom_css | default(value="") | safe }}
     </style>
     {% block head %}{% endblock %}
 </head>
 <body>
     <header>
-        <h1>Decision Graph</h1>
+        <a href="/" class="brand">
+            {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}">{% endif %}
+            <h1>{{ site.title }}</h1>
+        </a>
         <nav>
             <a href="/">Records</a>
             <a href="/graph">Graph</a>
@@ -123,14 +145,17 @@ const BASE_TEMPLATE: &str = r#"<!DOCTYPE html>
     <main>
         {% block content %}{% endblock %}
     </main>
+    {% if site.footer %}
+    <footer>{{ site.footer }}</footer>
+    {% endif %}
     {% block scripts %}{% endblock %}
 </body>
 </html>
-"#;
+"##;
 
-const INDEX_TEMPLATE: &str = r#"{% extends "base.html" %}
+const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
-{% block title %}Records - Decision Graph{% endblock %}
+{% block title %}Records - {{ site.title }}{% endblock %}
 
 {% block content %}
 <input type="text" class="search-box" placeholder="Search records..." id="search">
@@ -189,11 +214,11 @@ function filterRecords() {
 }
 </script>
 {% endblock %}
-"#;
+"##;
 
-const RECORD_TEMPLATE: &str = r#"{% extends "base.html" %}
+const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
-{% block title %}{{ record.id }} - Decision Graph{% endblock %}
+{% block title %}{{ record.id }} - {{ site.title }}{% endblock %}
 
 {% block content %}
 <div class="card {% if record.foundational %}foundational{% endif %}">
@@ -230,11 +255,11 @@ const RECORD_TEMPLATE: &str = r#"{% extends "base.html" %}
     {{ record.content_html | safe }}
 </div>
 {% endblock %}
-"#;
+"##;
 
-const GRAPH_TEMPLATE: &str = r#"{% extends "base.html" %}
+const GRAPH_TEMPLATE: &str = r##"{% extends "base.html" %}
 
-{% block title %}Graph - Decision Graph{% endblock %}
+{% block title %}Graph - {{ site.title }}{% endblock %}
 
 {% block head %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -308,11 +333,11 @@ function dragged(e) { e.subject.fx = e.x; e.subject.fy = e.y; }
 function dragended(e) { if (!e.active) simulation.alphaTarget(0); e.subject.fx = null; e.subject.fy = null; }
 </script>
 {% endblock %}
-"#;
+"##;
 
-const STATS_TEMPLATE: &str = r#"{% extends "base.html" %}
+const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
 
-{% block title %}Stats - Decision Graph{% endblock %}
+{% block title %}Stats - {{ site.title }}{% endblock %}
 
 {% block content %}
 <h2 style="margin-bottom: 1.5rem;">Statistics</h2>
@@ -352,7 +377,7 @@ const STATS_TEMPLATE: &str = r#"{% extends "base.html" %}
     {% endfor %}
 </div>
 {% endblock %}
-"#;
+"##;
 
 pub fn create_environment() -> Environment<'static> {
     let mut env = Environment::new();

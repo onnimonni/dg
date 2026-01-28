@@ -20,6 +20,7 @@ impl D2Renderer {
     }
 
     /// Check if d2 is available
+    #[allow(dead_code)]
     pub fn is_available() -> bool {
         which::which("d2").is_ok()
     }
@@ -49,6 +50,7 @@ impl D2Renderer {
     }
 
     /// Render D2 source to file
+    #[allow(dead_code)]
     pub fn render_to_file(&self, d2_source: &str, output_path: &std::path::Path) -> Result<()> {
         // Create temp file for D2 source
         let temp_dir = std::env::temp_dir();

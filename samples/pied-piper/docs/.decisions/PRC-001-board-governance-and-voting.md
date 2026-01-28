@@ -1,0 +1,96 @@
+---
+type: process
+id: PRC-001
+title: "Board Governance and Voting"
+status: proposed
+created: 2026-01-28
+updated: 2026-01-28
+authors: []
+tags: []
+process_meta:
+  frequency: as-needed
+  duration: null
+  last_review: null
+links:
+  supersedes: []
+  superseded_by: []
+  depends_on: []
+  enables: []
+  relates_to: []
+  conflicts_with: []
+  refines: []
+  implements: []
+---
+
+# Board Governance and Voting
+
+<!-- DACI Framework -->
+
+## Purpose
+<!-- Why does this process exist? -->
+
+## DACI
+
+- **Driver**: <!-- Who herds the cats? -->
+- **Approver**: <!-- Who makes the final call? -->
+- **Contributors**: <!-- Who does the work? -->
+- **Informed**: <!-- Who needs to know after? -->
+
+## Trigger
+<!-- What initiates this process? -->
+
+## Inputs
+<!-- What's needed to start? -->
+
+-
+
+## Process Steps
+
+### Step 1: Option
+**Owner**:
+**Duration**:
+
+**Actions**:
+1.
+2.
+
+**Output**:
+
+### Step 2: Option
+**Owner**:
+**Duration**:
+
+**Actions**:
+1.
+2.
+
+**Output**:
+
+## Outputs
+<!-- What's produced? -->
+
+-
+
+## Quality Checks
+<!-- How do we know it was done correctly? -->
+
+- [ ]
+
+## Exceptions
+<!-- What if something goes wrong? -->
+
+| Scenario | Action | Escalation |
+|----------|--------|------------|
+| | | |
+
+## Tools & Systems
+<!-- What tools are used? -->
+
+-
+
+## Metrics
+<!-- How do we measure process health? -->
+
+| Metric | Target | Current |
+|--------|--------|---------|
+| | | |

@@ -1,14 +1,19 @@
 use crate::models::Graph;
+use crate::serve::config::SiteConfig;
 use crate::serve::templates::create_environment;
 use anyhow::Result;
 use minijinja::context;
+use pulldown_cmark::{html, Options, Parser};
 use std::fs;
 use std::path::Path;
 
-pub fn generate_site(graph: &Graph, output_dir: &Path) -> Result<()> {
+pub fn generate_site(graph: &Graph, output_dir: &Path, docs_dir: &Path) -> Result<()> {
     fs::create_dir_all(output_dir)?;
     let records_dir = output_dir.join("records");
     fs::create_dir_all(&records_dir)?;
+
+    // Load site config
+    let site_config = SiteConfig::load(docs_dir)?;
 
     let env = create_environment();
 
@@ -29,6 +34,7 @@ pub fn generate_site(graph: &Graph, output_dir: &Path) -> Result<()> {
     record_types.sort();
 
     let index_html = index_tmpl.render(context! {
+        site => site_config,
         records => records_data,
         record_types => record_types,
     })?;
@@ -39,8 +45,8 @@ pub fn generate_site(graph: &Graph, output_dir: &Path) -> Result<()> {
     for record in graph.all_records() {
         let mut ctx = record_to_context(record);
 
-        // Add content as HTML (basic markdown conversion)
-        let content_html = simple_markdown_to_html(&record.content);
+        // Add content as HTML using pulldown-cmark
+        let content_html = markdown_to_html(&record.content);
         ctx.insert(
             "content_html".to_string(),
             serde_json::Value::String(content_html),
@@ -61,7 +67,10 @@ pub fn generate_site(graph: &Graph, output_dir: &Path) -> Result<()> {
             .collect();
         ctx.insert("links".to_string(), serde_json::Value::Array(links));
 
-        let record_html = record_tmpl.render(context! { record => ctx })?;
+        let record_html = record_tmpl.render(context! {
+            site => site_config,
+            record => ctx,
+        })?;
         fs::write(
             records_dir.join(format!("{}.html", record.id())),
             record_html,
@@ -88,6 +97,7 @@ pub fn generate_site(graph: &Graph, output_dir: &Path) -> Result<()> {
         }).collect::<Vec<_>>(),
     });
     let graph_html = graph_tmpl.render(context! {
+        site => site_config,
         graph_data => graph_data.to_string(),
     })?;
     fs::write(output_dir.join("graph.html"), graph_html)?;
@@ -117,9 +127,22 @@ pub fn generate_site(graph: &Graph, output_dir: &Path) -> Result<()> {
         "by_status": by_status,
     });
     let stats_html = stats_tmpl.render(context! {
+        site => site_config,
         stats => stats_ctx,
     })?;
     fs::write(output_dir.join("stats.html"), stats_html)?;
+
+    // Copy logo if specified
+    if let Some(ref logo_path) = site_config.logo {
+        let src = docs_dir.join(logo_path);
+        if src.exists() {
+            let dest = output_dir.join(logo_path);
+            if let Some(parent) = dest.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(&src, &dest)?;
+        }
+    }
 
     Ok(())
 }
@@ -179,109 +202,15 @@ fn record_to_context(record: &crate::models::Record) -> serde_json::Map<String, 
     map
 }
 
-fn simple_markdown_to_html(md: &str) -> String {
-    let mut html = String::new();
-    let mut in_code_block = false;
-    let mut in_list = false;
+/// Convert markdown to HTML using pulldown-cmark
+pub fn markdown_to_html(md: &str) -> String {
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_TASKLISTS);
 
-    for line in md.lines() {
-        // Code blocks
-        if line.starts_with("```") {
-            if in_code_block {
-                html.push_str("</code></pre>\n");
-                in_code_block = false;
-            } else {
-                html.push_str("<pre><code>");
-                in_code_block = true;
-            }
-            continue;
-        }
-
-        if in_code_block {
-            html.push_str(&escape_html(line));
-            html.push('\n');
-            continue;
-        }
-
-        // Empty line
-        if line.trim().is_empty() {
-            if in_list {
-                html.push_str("</ul>\n");
-                in_list = false;
-            }
-            html.push_str("<br>\n");
-            continue;
-        }
-
-        // Headers
-        if line.starts_with("### ") {
-            html.push_str(&format!("<h3>{}</h3>\n", escape_html(&line[4..])));
-            continue;
-        }
-        if line.starts_with("## ") {
-            html.push_str(&format!("<h2>{}</h2>\n", escape_html(&line[3..])));
-            continue;
-        }
-        if line.starts_with("# ") {
-            html.push_str(&format!("<h1>{}</h1>\n", escape_html(&line[2..])));
-            continue;
-        }
-
-        // List items
-        if line.starts_with("- ") || line.starts_with("* ") {
-            if !in_list {
-                html.push_str("<ul>\n");
-                in_list = true;
-            }
-            html.push_str(&format!("<li>{}</li>\n", inline_markdown(&line[2..])));
-            continue;
-        }
-
-        // Regular paragraph
-        if in_list {
-            html.push_str("</ul>\n");
-            in_list = false;
-        }
-        html.push_str(&format!("<p>{}</p>\n", inline_markdown(line)));
-    }
-
-    if in_list {
-        html.push_str("</ul>\n");
-    }
-    if in_code_block {
-        html.push_str("</code></pre>\n");
-    }
-
-    html
-}
-
-fn inline_markdown(text: &str) -> String {
-    let mut result = escape_html(text);
-
-    // Bold
-    let re = regex::Regex::new(r"\*\*(.+?)\*\*").unwrap();
-    result = re.replace_all(&result, "<strong>$1</strong>").to_string();
-
-    // Italic
-    let re = regex::Regex::new(r"\*(.+?)\*").unwrap();
-    result = re.replace_all(&result, "<em>$1</em>").to_string();
-
-    // Code
-    let re = regex::Regex::new(r"`(.+?)`").unwrap();
-    result = re.replace_all(&result, "<code>$1</code>").to_string();
-
-    // Links
-    let re = regex::Regex::new(r"\[(.+?)\]\((.+?)\)").unwrap();
-    result = re
-        .replace_all(&result, r#"<a href="$2">$1</a>"#)
-        .to_string();
-
-    result
-}
-
-fn escape_html(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
+    let parser = Parser::new_ext(md, options);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
 }

@@ -1,11 +1,8 @@
 { pkgs, lib, ... }:
 
 {
-  # Enable Rust toolchain
-  languages.rust = {
-    enable = true;
-    channel = "stable";
-  };
+  # Enable Rust toolchain (uses nixpkgs default)
+  languages.rust.enable = true;
 
   # Additional packages
   packages = with pkgs; [
@@ -59,6 +56,18 @@
     release.exec = "cargo build --release";
     test.exec = "cargo test";
     install.exec = "cargo install --path .";
+
+    # dg alias - uses release build if available, falls back to debug
+    dg.exec = ''
+      if [ -x "$DEVENV_ROOT/target/release/dg" ]; then
+        "$DEVENV_ROOT/target/release/dg" "$@"
+      elif [ -x "$DEVENV_ROOT/target/debug/dg" ]; then
+        "$DEVENV_ROOT/target/debug/dg" "$@"
+      else
+        echo "dg not built. Run: cargo build"
+        exit 1
+      fi
+    '';
   };
 
   # ============================================================================

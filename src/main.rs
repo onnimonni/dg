@@ -4,7 +4,8 @@ mod serve;
 mod templates;
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, Shell};
 
 #[derive(Parser)]
 #[command(name = "dg")]
@@ -265,6 +266,35 @@ enum Commands {
         #[arg(short, long, default_value = "table")]
         format: String,
     },
+
+    /// List orphaned records (no links)
+    Orphans {
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+    },
+
+    /// Show timeline of records
+    Timeline {
+        /// Number of records to show
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+
+        /// Sort by: created, updated
+        #[arg(short, long, default_value = "updated")]
+        sort: String,
+
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+    },
+
+    /// Generate shell completions
+    Completions {
+        /// Shell to generate completions for
+        #[arg(value_enum)]
+        shell: Shell,
+    },
 }
 
 fn main() -> Result<()> {
@@ -347,6 +377,16 @@ fn main() -> Result<()> {
         Commands::Serve { port, open } => commands::serve::run(&cli.docs_dir, port, open),
         Commands::Suggest { since, format } => {
             commands::suggest::run(&cli.docs_dir, Some(&since), &format)
+        }
+        Commands::Orphans { format } => commands::orphans::run(&cli.docs_dir, &format),
+        Commands::Timeline {
+            limit,
+            sort,
+            format,
+        } => commands::timeline::run(&cli.docs_dir, limit, &sort, &format),
+        Commands::Completions { shell } => {
+            generate(shell, &mut Cli::command(), "dg", &mut std::io::stdout());
+            Ok(())
         }
     }
 }

@@ -1,0 +1,9 @@
+title: "Pied Piper Decision Graph"
+description: "The complete decision history of Pied Piper - from Middle-Out compression to the New Internet"
+logo: "assets/logo.svg"
+primary_color: "#2E7D32"
+accent_color: "#4CAF50"
+footer: "Pied Piper Inc. (2014-2019) - Making the world a better place"
+custom_css: |
+  .foundational .card-id { color: gold !important; }
+  .badge.accepted { background: #2E7D32 !important; }

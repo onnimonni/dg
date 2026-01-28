@@ -49,7 +49,7 @@ pub fn run(
             require_content: true,
             check_orphans: warn_orphans,
             type_specific: true,
-            check_principle_conflicts: check_principles || true,
+            check_principle_conflicts: true,
         }
     } else {
         ValidationOptions {
