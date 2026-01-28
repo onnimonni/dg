@@ -9,6 +9,30 @@ use walkdir::WalkDir;
 // Re-export validation from shared module
 pub use super::validation::{validate_graph, ValidationError, ValidationOptions};
 
+/// Path through dependency graph
+#[derive(Debug, Clone)]
+pub struct DependencyPath {
+    pub nodes: Vec<String>,
+    pub link_types: Vec<String>,
+}
+
+impl DependencyPath {
+    pub fn new(start: String) -> Self {
+        Self {
+            nodes: vec![start],
+            link_types: Vec::new(),
+        }
+    }
+
+    pub fn extend(&self, next_id: String, link_type: String) -> Self {
+        let mut nodes = self.nodes.clone();
+        let mut link_types = self.link_types.clone();
+        nodes.push(next_id);
+        link_types.push(link_type);
+        Self { nodes, link_types }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct GraphNode {
@@ -232,11 +256,7 @@ impl Graph {
             .records
             .keys()
             .filter(|id| id.starts_with(prefix))
-            .filter_map(|id| {
-                id.split('-')
-                    .nth(1)
-                    .and_then(|s| s.parse::<u32>().ok())
-            })
+            .filter_map(|id| id.split('-').nth(1).and_then(|s| s.parse::<u32>().ok()))
             .max()
             .unwrap_or(0);
 
@@ -268,9 +288,7 @@ impl Graph {
         let mut by_status = HashMap::new();
 
         for record in self.records.values() {
-            *by_type
-                .entry(record.record_type().to_string())
-                .or_insert(0) += 1;
+            *by_type.entry(record.record_type().to_string()).or_insert(0) += 1;
             *by_status.entry(record.status().to_string()).or_insert(0) += 1;
         }
 
@@ -359,6 +377,125 @@ impl Graph {
         dot.push_str("}\n");
         dot
     }
+
+    /// Returns all records marked as foundational
+    pub fn foundational_records(&self) -> Vec<&Record> {
+        self.records
+            .values()
+            .filter(|r| r.frontmatter.foundational)
+            .collect()
+    }
+
+    /// Trace dependencies backward through depends_on links (BFS)
+    /// Returns all paths from the given ID to its dependencies
+    pub fn trace_dependencies(&self, id: &str) -> Vec<DependencyPath> {
+        let mut paths = Vec::new();
+        let mut queue = VecDeque::new();
+        let mut visited = HashSet::new();
+
+        queue.push_back(DependencyPath::new(id.to_string()));
+        visited.insert(id.to_string());
+
+        while let Some(current_path) = queue.pop_front() {
+            let current_id = current_path.nodes.last().unwrap();
+
+            // Find depends_on edges from current node
+            let deps: Vec<_> = self
+                .edges
+                .iter()
+                .filter(|e| &e.from == current_id && e.link_type == "depends_on")
+                .collect();
+
+            let has_deps = !deps.is_empty();
+            if !has_deps && current_path.nodes.len() > 1 {
+                // End of chain - save this path
+                paths.push(current_path);
+            } else {
+                for edge in &deps {
+                    if !visited.contains(&edge.to) {
+                        visited.insert(edge.to.clone());
+                        let new_path = current_path.extend(edge.to.clone(), edge.link_type.clone());
+                        queue.push_back(new_path);
+                    }
+                }
+                // If we had deps but also want to save intermediate paths
+                if current_path.nodes.len() > 1 && has_deps {
+                    paths.push(current_path);
+                }
+            }
+        }
+
+        paths
+    }
+
+    /// Trace dependents forward - what depends on this record (BFS)
+    /// Returns all paths from records that depend on the given ID
+    pub fn trace_dependents(&self, id: &str) -> Vec<DependencyPath> {
+        let mut paths = Vec::new();
+        let mut queue = VecDeque::new();
+        let mut visited = HashSet::new();
+
+        queue.push_back(DependencyPath::new(id.to_string()));
+        visited.insert(id.to_string());
+
+        while let Some(current_path) = queue.pop_front() {
+            let current_id = current_path.nodes.last().unwrap();
+
+            // Find records that have depends_on pointing TO current node
+            let dependents: Vec<_> = self
+                .edges
+                .iter()
+                .filter(|e| &e.to == current_id && e.link_type == "depends_on")
+                .collect();
+
+            let has_dependents = !dependents.is_empty();
+            if !has_dependents && current_path.nodes.len() > 1 {
+                paths.push(current_path);
+            } else {
+                for edge in &dependents {
+                    if !visited.contains(&edge.from) {
+                        visited.insert(edge.from.clone());
+                        let new_path =
+                            current_path.extend(edge.from.clone(), edge.link_type.clone());
+                        queue.push_back(new_path);
+                    }
+                }
+                if current_path.nodes.len() > 1 && has_dependents {
+                    paths.push(current_path);
+                }
+            }
+        }
+
+        paths
+    }
+
+    /// Get related records for context (all neighbors + their links)
+    pub fn context(&self, query: &str, depth: usize) -> ContextResult<'_> {
+        let matching = self.search(query, true);
+        let mut all_ids: HashSet<String> = matching.iter().map(|r| r.id().to_string()).collect();
+
+        // Expand to neighbors
+        for record in &matching {
+            let neighbors = self.neighbors(record.id(), depth);
+            all_ids.extend(neighbors);
+        }
+
+        let records: Vec<&Record> = all_ids.iter().filter_map(|id| self.get(id)).collect();
+
+        let edges: Vec<&GraphEdge> = self
+            .edges
+            .iter()
+            .filter(|e| all_ids.contains(&e.from) && all_ids.contains(&e.to))
+            .collect();
+
+        ContextResult { records, edges }
+    }
+}
+
+/// Result of context query
+pub struct ContextResult<'a> {
+    pub records: Vec<&'a Record>,
+    pub edges: Vec<&'a GraphEdge>,
 }
 
 fn truncate(s: &str, max_len: usize) -> String {
@@ -368,7 +505,6 @@ fn truncate(s: &str, max_len: usize) -> String {
         format!("{}...", &s[..max_len - 3])
     }
 }
-
 
 #[derive(Debug)]
 pub struct GraphStats {

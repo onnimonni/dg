@@ -25,7 +25,10 @@ impl LintError {
     }
 
     fn is_warning(&self) -> bool {
-        matches!(self.error, ValidationError::OrphanedRecord { .. })
+        matches!(
+            self.error,
+            ValidationError::OrphanedRecord { .. } | ValidationError::PrincipleConflict { .. }
+        )
     }
 }
 
@@ -34,6 +37,7 @@ pub fn run(
     files: Option<Vec<String>>,
     strict: bool,
     warn_orphans: bool,
+    check_principles: bool,
     quiet: bool,
 ) -> Result<()> {
     let docs_path = Path::new(docs_dir);
@@ -45,10 +49,12 @@ pub fn run(
             require_content: true,
             check_orphans: warn_orphans,
             type_specific: true,
+            check_principle_conflicts: check_principles || true,
         }
     } else {
         ValidationOptions {
             check_orphans: warn_orphans,
+            check_principle_conflicts: check_principles,
             ..ValidationOptions::basic()
         }
     };
@@ -62,7 +68,7 @@ pub fn run(
     let (errors, warnings): (Vec<_>, Vec<_>) =
         lint_errors.into_iter().partition(|e| !e.is_warning());
 
-    if !warnings.is_empty() && warn_orphans && !quiet {
+    if !warnings.is_empty() && (warn_orphans || check_principles) && !quiet {
         println!("{} {} warnings:\n", "WARN".yellow().bold(), warnings.len());
         for warn in &warnings {
             println!("  {} {}", "⚠".yellow(), warn);

@@ -249,6 +249,9 @@ pub struct Frontmatter {
     pub tags: Vec<String>,
     #[serde(default)]
     pub links: Links,
+    /// Marks this record as a foundational principle that other records depend on
+    #[serde(default)]
+    pub foundational: bool,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_yaml::Value>,
 }
@@ -395,10 +398,7 @@ mod tests {
 
     #[test]
     fn test_record_type_from_str() {
-        assert_eq!(
-            RecordType::from_str("decision"),
-            Some(RecordType::Decision)
-        );
+        assert_eq!(RecordType::from_str("decision"), Some(RecordType::Decision));
         assert_eq!(RecordType::from_str("DEC"), Some(RecordType::Decision));
         assert_eq!(RecordType::from_str("invalid"), None);
     }
@@ -409,7 +409,10 @@ mod tests {
         assert_eq!(RecordType::from_str("strategy"), Some(RecordType::Strategy));
         assert_eq!(RecordType::from_str("policy"), Some(RecordType::Policy));
         assert_eq!(RecordType::from_str("customer"), Some(RecordType::Customer));
-        assert_eq!(RecordType::from_str("opportunity"), Some(RecordType::Opportunity));
+        assert_eq!(
+            RecordType::from_str("opportunity"),
+            Some(RecordType::Opportunity)
+        );
         assert_eq!(RecordType::from_str("process"), Some(RecordType::Process));
         assert_eq!(RecordType::from_str("hiring"), Some(RecordType::Hiring));
         assert_eq!(RecordType::from_str("adr"), Some(RecordType::Adr));

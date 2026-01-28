@@ -31,6 +31,11 @@ pub enum ValidationError {
         id: String,
         message: String,
     },
+    PrincipleConflict {
+        id: String,
+        conflicts_with: String,
+        message: String,
+    },
 }
 
 impl std::fmt::Display for ValidationError {
@@ -63,6 +68,17 @@ impl std::fmt::Display for ValidationError {
             ValidationError::MissingRequiredLink { id, message } => {
                 write!(f, "{}: {}", id, message)
             }
+            ValidationError::PrincipleConflict {
+                id,
+                conflicts_with,
+                message,
+            } => {
+                write!(
+                    f,
+                    "{}: conflicts with foundational record {}: {}",
+                    id, conflicts_with, message
+                )
+            }
         }
     }
 }
@@ -78,6 +94,8 @@ pub struct ValidationOptions {
     pub check_orphans: bool,
     /// Type-specific validation
     pub type_specific: bool,
+    /// Check for principle conflicts
+    pub check_principle_conflicts: bool,
 }
 
 impl ValidationOptions {
@@ -92,6 +110,7 @@ impl ValidationOptions {
             require_content: true,
             check_orphans: false,
             type_specific: true,
+            check_principle_conflicts: true,
         }
     }
 }
@@ -148,6 +167,11 @@ pub fn validate_record(
         errors.extend(check_type_specific(record));
     }
 
+    // Check for conflicts with foundational records
+    if opts.check_principle_conflicts {
+        errors.extend(check_principle_conflicts(record, graph));
+    }
+
     errors
 }
 
@@ -178,12 +202,7 @@ pub fn check_supersedes_inverse(record: &Record, graph: &Graph) -> Vec<Validatio
         .iter()
         .filter_map(|target| {
             graph.get(target).and_then(|target_record| {
-                if !target_record
-                    .frontmatter
-                    .links
-                    .superseded_by
-                    .contains(&id)
-                {
+                if !target_record.frontmatter.links.superseded_by.contains(&id) {
                     Some(ValidationError::MissingInverseLink {
                         from: id.clone(),
                         to: target.clone(),
@@ -239,6 +258,52 @@ fn check_type_specific(record: &Record) -> Vec<ValidationError> {
         }
         _ => vec![],
     }
+}
+
+/// Check for conflicts with foundational records
+fn check_principle_conflicts(record: &Record, graph: &Graph) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id();
+
+    // Get all foundational records
+    let foundational: Vec<_> = graph.foundational_records();
+
+    // Check if this record has conflicts_with any foundational record
+    for conflict_id in &record.frontmatter.links.conflicts_with {
+        if let Some(conflict_record) = graph.get(conflict_id) {
+            if conflict_record.frontmatter.foundational {
+                errors.push(ValidationError::PrincipleConflict {
+                    id: id.to_string(),
+                    conflicts_with: conflict_id.clone(),
+                    message: format!(
+                        "This record conflicts with '{}' which is a foundational principle",
+                        conflict_record.title()
+                    ),
+                });
+            }
+        }
+    }
+
+    // Check if any foundational record has conflicts_with this record
+    for foundational_record in &foundational {
+        if foundational_record
+            .frontmatter
+            .links
+            .conflicts_with
+            .contains(&id.to_string())
+        {
+            errors.push(ValidationError::PrincipleConflict {
+                id: id.to_string(),
+                conflicts_with: foundational_record.id().to_string(),
+                message: format!(
+                    "Foundational record '{}' explicitly conflicts with this record",
+                    foundational_record.title()
+                ),
+            });
+        }
+    }
+
+    errors
 }
 
 /// Validate all records in a graph

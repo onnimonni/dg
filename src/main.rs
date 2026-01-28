@@ -1,5 +1,6 @@
 mod commands;
 mod models;
+mod serve;
 mod templates;
 
 use anyhow::Result;
@@ -104,6 +105,14 @@ enum Commands {
         /// Search in content (not just titles)
         #[arg(short, long)]
         content: bool,
+
+        /// Filter by tag
+        #[arg(short, long)]
+        tag: Option<String>,
+
+        /// Output format: table, json, ids
+        #[arg(short, long, default_value = "table")]
+        format: String,
     },
 
     /// Show graph of relationships
@@ -115,9 +124,17 @@ enum Commands {
         #[arg(short, long, default_value = "2")]
         depth: usize,
 
-        /// Output format: text, dot, json
+        /// Output format: text, dot, d2, json
         #[arg(short, long, default_value = "text")]
         format: String,
+
+        /// Render format for d2: svg
+        #[arg(short, long)]
+        render: Option<String>,
+
+        /// Output file path (for rendered output)
+        #[arg(short, long)]
+        output: Option<String>,
     },
 
     /// Update record status
@@ -173,6 +190,80 @@ enum Commands {
         /// Warn about orphaned records (no incoming or outgoing links)
         #[arg(short = 'o', long)]
         warn_orphans: bool,
+
+        /// Check for conflicts with foundational principles
+        #[arg(short = 'p', long)]
+        principles: bool,
+    },
+
+    /// List foundational records (core principles)
+    Principles {
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+    },
+
+    /// Trace why a record exists (follow depends_on backward)
+    Why {
+        /// Record ID
+        id: String,
+
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+    },
+
+    /// Show impact of changing a record (what depends on it)
+    Impact {
+        /// Record ID
+        id: String,
+
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+    },
+
+    /// Get context for a topic (LLM-friendly)
+    Context {
+        /// Topic to search for
+        topic: String,
+
+        /// Depth of neighbor traversal
+        #[arg(short, long, default_value = "2")]
+        depth: usize,
+
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+    },
+
+    /// Generate static site
+    Build {
+        /// Output directory (default: docs/_site)
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+
+    /// Start HTTP server for browsing records
+    Serve {
+        /// Port to listen on
+        #[arg(short, long, default_value = "3000")]
+        port: u16,
+
+        /// Open browser automatically
+        #[arg(long)]
+        open: bool,
+    },
+
+    /// Suggest missing decisions from git commits
+    Suggest {
+        /// Look at commits since this date (e.g., "1 week ago", "2024-01-01")
+        #[arg(short, long, default_value = "1 week ago")]
+        since: String,
+
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
     },
 }
 
@@ -201,10 +292,26 @@ fn main() -> Result<()> {
             link_type,
             to,
         } => commands::unlink::run(&cli.docs_dir, &from, &link_type, &to),
-        Commands::Search { query, content } => commands::search::run(&cli.docs_dir, &query, content),
-        Commands::Graph { id, depth, format } => {
-            commands::graph::run(&cli.docs_dir, id.as_deref(), depth, &format)
-        }
+        Commands::Search {
+            query,
+            content,
+            tag,
+            format,
+        } => commands::search::run(&cli.docs_dir, &query, content, tag.as_deref(), &format),
+        Commands::Graph {
+            id,
+            depth,
+            format,
+            render,
+            output,
+        } => commands::graph::run(
+            &cli.docs_dir,
+            id.as_deref(),
+            depth,
+            &format,
+            render.as_deref(),
+            output.as_deref(),
+        ),
         Commands::Status { id, status } => commands::status::run(&cli.docs_dir, &id, &status),
         Commands::Reindex => commands::reindex::run(&cli.docs_dir),
         Commands::Export { format, output } => {
@@ -212,11 +319,34 @@ fn main() -> Result<()> {
         }
         Commands::Validate => commands::validate::run(&cli.docs_dir, cli.quiet),
         Commands::Stats => commands::stats::run(&cli.docs_dir),
-        Commands::Fmt { check, files } => commands::fmt::run(&cli.docs_dir, check, files, cli.quiet),
+        Commands::Fmt { check, files } => {
+            commands::fmt::run(&cli.docs_dir, check, files, cli.quiet)
+        }
         Commands::Lint {
             files,
             strict,
             warn_orphans,
-        } => commands::lint::run(&cli.docs_dir, files, strict, warn_orphans, cli.quiet),
+            principles,
+        } => commands::lint::run(
+            &cli.docs_dir,
+            files,
+            strict,
+            warn_orphans,
+            principles,
+            cli.quiet,
+        ),
+        Commands::Principles { format } => commands::principles::run(&cli.docs_dir, &format),
+        Commands::Why { id, format } => commands::why::run(&cli.docs_dir, &id, &format),
+        Commands::Impact { id, format } => commands::impact::run(&cli.docs_dir, &id, &format),
+        Commands::Context {
+            topic,
+            depth,
+            format,
+        } => commands::context::run(&cli.docs_dir, &topic, depth, &format),
+        Commands::Build { output } => commands::build::run(&cli.docs_dir, output.as_deref()),
+        Commands::Serve { port, open } => commands::serve::run(&cli.docs_dir, port, open),
+        Commands::Suggest { since, format } => {
+            commands::suggest::run(&cli.docs_dir, Some(&since), &format)
+        }
     }
 }
