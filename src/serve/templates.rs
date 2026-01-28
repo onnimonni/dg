@@ -136,12 +136,12 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             border-radius: 4px;
             font-family: monospace;
             font-size: 0.9em;
-            color: var(--accent);
+            color: #fff;
             text-decoration: none;
             cursor: pointer;
             position: relative;
         }
-        .record-link:hover { background: var(--surface); text-decoration: none; }
+        .record-link:hover { background: var(--accent); text-decoration: none; color: #fff; }
         .record-preview {
             position: absolute;
             bottom: 100%;
