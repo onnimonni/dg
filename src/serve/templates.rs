@@ -488,10 +488,12 @@ const TIMELINE_TEMPLATE: &str = r##"{% extends "base.html" %}
     }
     .timeline-node {
         cursor: pointer;
-        transition: transform 0.15s;
     }
-    .timeline-node:hover {
-        transform: scale(1.1);
+    .timeline-node circle {
+        transition: r 0.15s ease-out, stroke-width 0.15s ease-out;
+    }
+    .timeline-node:hover circle {
+        stroke-width: 3;
     }
     .timeline-node text {
         pointer-events: none;
@@ -611,9 +613,8 @@ for (let y = minYear; y <= maxYear; y++) years.push(y);
 
 // Layout config
 const margin = { top: 60, right: 60, bottom: 40, left: 80 };
-const yearHeight = 180;
 const nodeRadius = 24;
-const height = margin.top + years.length * yearHeight + margin.bottom;
+const nodeSpacing = 60; // Minimum vertical spacing between nodes
 
 // Assign lanes (columns) to avoid overlap - git-style
 const lanes = {};  // type -> lane index
@@ -628,13 +629,47 @@ dataTypes.forEach((t, i) => lanes[t] = i);
 const laneWidth = 70;
 const width = margin.left + (dataTypes.length) * laneWidth + margin.right;
 
-// Calculate positions
-records.forEach(r => {
-    const yearIndex = r.year - minYear;
-    const dayOfYear = (r.date - new Date(r.year, 0, 1)) / (1000 * 60 * 60 * 24);
-    const yearProgress = dayOfYear / 365;
-    r.y = margin.top + yearIndex * yearHeight + yearProgress * (yearHeight - 40) + 20;
-    r.x = margin.left + lanes[r.type] * laneWidth + laneWidth / 2;
+// Group records by year and calculate year heights based on record count
+const recordsByYear = {};
+years.forEach(y => recordsByYear[y] = []);
+records.forEach(r => recordsByYear[r.year].push(r));
+
+// Calculate year section heights (minimum 120px, grows with record count)
+const yearHeights = {};
+const minYearHeight = 120;
+years.forEach(y => {
+    const count = recordsByYear[y].length;
+    yearHeights[y] = Math.max(minYearHeight, count * nodeSpacing + 40);
+});
+
+// Calculate cumulative Y offsets for each year
+const yearOffsets = {};
+let cumulativeY = margin.top;
+years.forEach(y => {
+    yearOffsets[y] = cumulativeY;
+    cumulativeY += yearHeights[y];
+});
+
+const height = cumulativeY + margin.bottom;
+
+// Calculate positions - spread nodes evenly within each year section
+years.forEach(year => {
+    const yearRecords = recordsByYear[year];
+    if (yearRecords.length === 0) return;
+
+    // Sort by date within year, then by type for consistent ordering
+    yearRecords.sort((a, b) => a.date - b.date || lanes[a.type] - lanes[b.type]);
+
+    const sectionHeight = yearHeights[year];
+    const startY = yearOffsets[year] + 30; // Padding from year line
+    const availableHeight = sectionHeight - 60; // Leave padding at bottom
+
+    yearRecords.forEach((r, i) => {
+        // Spread nodes evenly within the year section
+        const progress = yearRecords.length === 1 ? 0.5 : i / (yearRecords.length - 1);
+        r.y = startY + progress * availableHeight;
+        r.x = margin.left + lanes[r.type] * laneWidth + laneWidth / 2;
+    });
 });
 
 // Build ID to record map
@@ -649,7 +684,7 @@ svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
 // Draw year separators and labels
 years.forEach((year, i) => {
-    const y = margin.top + i * yearHeight;
+    const y = yearOffsets[year];
 
     // Year line
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -663,7 +698,7 @@ years.forEach((year, i) => {
     // Year label
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', 20);
-    text.setAttribute('y', y + yearHeight / 2);
+    text.setAttribute('y', y + yearHeights[year] / 2);
     text.setAttribute('class', 'year-label');
     text.textContent = year;
     svg.appendChild(text);
@@ -671,7 +706,7 @@ years.forEach((year, i) => {
 
 // Draw trunk lines for each lane (vertical lines like git branches)
 dataTypes.forEach((type, i) => {
-    const x = margin.left + i * laneWidth + laneWidth / 2;
+    const x = margin.left + lanes[type] * laneWidth + laneWidth / 2;
     const typeRecords = records.filter(r => r.type === type);
     if (typeRecords.length < 2) return;
 
@@ -686,6 +721,7 @@ dataTypes.forEach((type, i) => {
     line.setAttribute('stroke', typeColors[type] || '#666');
     line.setAttribute('stroke-width', 2);
     line.setAttribute('opacity', 0.3);
+    line.setAttribute('class', 'trunk-line');
     svg.appendChild(line);
 });
 
