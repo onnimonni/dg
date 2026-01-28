@@ -18,6 +18,13 @@
     args = [ "@playwright/mcp@latest" ];
   };
 
+  # Gemini AI for UX/frontend review (requires GEMINI_API_KEY env var)
+  claude.code.mcpServers.gemini = {
+    type = "stdio";
+    command = "npx";
+    args = [ "-y" "github:aliargun/mcp-server-gemini" ];
+  };
+
   # Environment variables
   env = {
     RUST_BACKTRACE = "1";
@@ -149,6 +156,8 @@
     echo "  dg serve               - Start HTTP server"
     echo "  dg build               - Generate static site"
     echo ""
-    echo "Claude skills: /decision, /adr, /incident, /runbook, /meeting, /context"
+    echo "Claude skills: /decision, /adr, /incident, /runbook, /meeting, /context, /frontend"
+    echo ""
+    echo "MCP servers: playwright (browser), gemini (UX review - needs GEMINI_API_KEY)"
   '';
 }
