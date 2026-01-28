@@ -369,7 +369,35 @@ const sortModes = {
     oldest: { next: 'default', icon: '↑', title: 'Oldest First' }
 };
 
-search.addEventListener('input', filterRecords);
+// URL state management
+function updateUrl() {
+    const params = new URLSearchParams();
+    if (search.value) params.set('q', search.value);
+    if (activeType !== 'all') params.set('type', activeType);
+    if (sortMode !== 'default') params.set('sort', sortMode);
+    const url = params.toString() ? '?' + params.toString() : '/';
+    history.replaceState(null, '', url);
+}
+
+function loadFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('q')) search.value = params.get('q');
+    if (params.get('type')) {
+        activeType = params.get('type');
+        filters.forEach(b => {
+            if (b.id !== 'sort' && b.tagName === 'BUTTON') {
+                b.classList.toggle('active', b.dataset.type === activeType);
+            }
+        });
+    }
+    if (params.get('sort') && sortModes[params.get('sort')]) {
+        sortMode = params.get('sort');
+        sortBtn.innerHTML = sortModes[sortMode].icon;
+        sortBtn.title = sortModes[sortMode].title;
+    }
+}
+
+search.addEventListener('input', () => { filterRecords(); updateUrl(); });
 sortBtn.addEventListener('click', cycleSortMode);
 filters.forEach(btn => {
     if (btn.id !== 'sort' && btn.tagName === 'BUTTON') {
@@ -378,6 +406,7 @@ filters.forEach(btn => {
             btn.classList.add('active');
             activeType = btn.dataset.type;
             filterRecords();
+            updateUrl();
         });
     }
 });
@@ -387,6 +416,7 @@ function cycleSortMode() {
     sortBtn.innerHTML = sortModes[sortMode].icon;
     sortBtn.title = sortModes[sortMode].title;
     sortRecords();
+    updateUrl();
 }
 
 function filterRecords() {
@@ -414,6 +444,11 @@ function sortRecords() {
     });
     cards.forEach(card => recordsContainer.appendChild(card));
 }
+
+// Initialize from URL on page load
+loadFromUrl();
+filterRecords();
+sortRecords();
 </script>
 {% endblock %}
 "##;
