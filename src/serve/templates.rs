@@ -34,31 +34,57 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             --success: #4CAF50;
             --warning: #FF9800;
         }
-        /* Author tooltip - hidden by default, shown via JS */
-        .author-tooltip {
-            display: none !important;
+        /* Author avatar and tooltip - CSS only with group-hover */
+        .author-wrapper {
+            position: relative;
         }
-        .author-tooltip.show {
-            display: block !important;
+        .author-avatar, .avatar-initials {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            border: 2px solid #1e293b;
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.15s;
+        }
+        .author-wrapper:hover .author-avatar,
+        .author-wrapper:hover .avatar-initials {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            z-index: 10;
+        }
+        .author-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            color: #e2e8f0;
+            white-space: nowrap;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s, visibility 0.15s;
+            pointer-events: none;
+        }
+        .author-wrapper:hover .author-tooltip {
+            opacity: 1;
+            visibility: visible;
         }
         /* Avatar initials fallback */
         .avatar-initials {
             display: none;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 9999px;
-            border: 2px solid #1e293b;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             color: white;
-            font-size: 0.75rem;
+            font-size: 0.875rem;
             font-weight: 600;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-        .avatar-initials:hover {
-            border-color: var(--accent);
         }
         .avatar-initials.show {
             display: flex;
@@ -173,36 +199,16 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
 
     document.addEventListener('DOMContentLoaded', linkifyRecordIds);
 
-    // Author avatar handling: tooltips and image fallback
+    // Author avatar: image error fallback (tooltips are CSS-only)
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.author-avatar').forEach(avatar => {
-            const fallback = avatar.nextElementSibling;
-            const tooltip = fallback && fallback.classList.contains('avatar-initials')
-                ? fallback.nextElementSibling
-                : avatar.nextElementSibling;
-
-            // Image error fallback - show initials
             avatar.addEventListener('error', function() {
                 this.classList.add('hidden');
+                const fallback = this.nextElementSibling;
                 if (fallback && fallback.classList.contains('avatar-initials')) {
                     fallback.classList.add('show');
                 }
             });
-
-            // Tooltip hover handling
-            if (tooltip && tooltip.classList.contains('author-tooltip')) {
-                const showTooltip = () => tooltip.classList.add('show');
-                const hideTooltip = () => tooltip.classList.remove('show');
-
-                avatar.addEventListener('mouseenter', showTooltip);
-                avatar.addEventListener('mouseleave', hideTooltip);
-                if (fallback && fallback.classList.contains('avatar-initials')) {
-                    fallback.addEventListener('mouseenter', showTooltip);
-                    fallback.addEventListener('mouseleave', hideTooltip);
-                }
-                tooltip.addEventListener('mouseenter', showTooltip);
-                tooltip.addEventListener('mouseleave', hideTooltip);
-            }
         });
     });
     </script>
@@ -278,10 +284,10 @@ const sortModes = {
 // Tag filter UI
 function updateTagFilterUI() {
     if (activeTag) {
-        tagFilterEl.innerHTML = `<span class="px-3 py-1.5 bg-piper-accent text-white rounded-lg text-sm flex items-center gap-2">
-            #${activeTag}
-            <button onclick="clearTag()" class="hover:text-red-300">&times;</button>
-        </span>`;
+        tagFilterEl.innerHTML = `<button class="filter-btn px-4 py-2 border rounded-lg transition-colors flex items-center gap-2 active border-piper-accent bg-piper-accent/20 text-piper-light" onclick="clearTag()">
+            <span>#${activeTag}</span>
+            <span class="text-piper-light/60 hover:text-red-400 text-lg leading-none">&times;</span>
+        </button>`;
         tagFilterEl.classList.remove('hidden');
     } else {
         tagFilterEl.classList.add('hidden');
@@ -455,14 +461,14 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             {% if record.resolved_authors %}
             <div class="flex items-center gap-3">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
-                <div class="flex -space-x-2">
+                <div class="flex -space-x-3">
                     {% for author in record.resolved_authors %}
-                    <div class="relative">
-                        <img src="{{ author.avatar_url }}" alt="" class="author-avatar w-8 h-8 rounded-full border-2 border-slate-800 bg-piper-accent hover:border-piper-accent transition-colors cursor-pointer" data-initials="{{ author.initials }}">
+                    <div class="author-wrapper">
+                        <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar bg-piper-accent" data-initials="{{ author.initials }}">
                         <span class="avatar-initials" data-initials="{{ author.initials }}">{{ author.initials }}</span>
-                        <div class="author-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 whitespace-nowrap z-50 shadow-lg">
+                        <div class="author-tooltip">
                             <div class="font-medium">{{ author.name }}</div>
-                            {% if author.email %}<div class="text-slate-400">{{ author.email }}</div>{% endif %}
+                            {% if author.email %}<div class="text-slate-400 text-[11px]">{{ author.email }}</div>{% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -739,8 +745,8 @@ for (let y = minYear; y <= maxYear; y++) years.push(y);
 
 // Layout config
 const margin = { top: 60, right: 60, bottom: 40, left: 80 };
-const nodeRadius = 24;
-const nodeSpacing = 60; // Minimum vertical spacing between nodes
+const nodeRadius = 14;
+const nodeSpacing = 50; // Minimum vertical spacing between nodes
 
 // Assign lanes (columns) to avoid overlap - git-style
 const lanes = {};  // type -> lane index
@@ -907,7 +913,8 @@ records.forEach(r => {
 
     // Hover highlighting
     const tooltip = document.getElementById('timeline-tooltip');
-    g.addEventListener('mouseenter', (e) => {
+    const svgRect = () => svg.getBoundingClientRect();
+    g.addEventListener('mouseenter', () => {
         svg.classList.add('hover-active');
         g.classList.add('highlight');
         // Highlight connected nodes and edges
@@ -919,12 +926,10 @@ records.forEach(r => {
         });
         tooltip.innerHTML = `<strong>${r.id}</strong>: ${r.title}<br><span style="color:var(--text-dim)">${r.type} | ${r.created}</span>`;
         tooltip.style.display = 'block';
-        tooltip.style.left = (e.clientX + 12) + 'px';
-        tooltip.style.top = (e.clientY - 10) + 'px';
-    });
-    g.addEventListener('mousemove', (e) => {
-        tooltip.style.left = (e.clientX + 12) + 'px';
-        tooltip.style.top = (e.clientY - 10) + 'px';
+        // Position tooltip relative to node
+        const rect = svgRect();
+        tooltip.style.left = (rect.left + r.x + nodeRadius + 8) + 'px';
+        tooltip.style.top = (rect.top + r.y - 10 + window.scrollY) + 'px';
     });
     g.addEventListener('mouseleave', () => {
         svg.classList.remove('hover-active');
@@ -986,34 +991,46 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block head %}
 <style>
+    .edit-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 140px);
+        min-height: 500px;
+    }
     .editor-layout {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
-        height: calc(100vh - 280px);
-        min-height: 400px;
+        flex: 1;
+        min-height: 0;
     }
-    .editor-pane {
+    .editor-layout.editor-only { grid-template-columns: 1fr; }
+    .editor-layout.editor-only .preview-pane { display: none; }
+    .editor-layout.preview-only { grid-template-columns: 1fr; }
+    .editor-layout.preview-only .editor-pane-wrapper { display: none; }
+    .editor-pane-wrapper, .preview-pane {
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        min-height: 0;
     }
-    .editor-pane textarea {
+    .editor-pane-wrapper textarea {
         flex: 1;
         resize: none;
         font-family: 'JetBrains Mono', monospace;
         font-size: 14px;
         line-height: 1.6;
         tab-size: 2;
+        min-height: 0;
     }
-    .preview-pane {
+    .preview-content {
+        flex: 1;
         overflow-y: auto;
+        min-height: 0;
     }
     @media (max-width: 768px) {
-        .editor-layout {
-            grid-template-columns: 1fr;
-            grid-template-rows: 1fr 1fr;
-        }
+        .editor-layout { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+        .editor-layout.editor-only, .editor-layout.preview-only { grid-template-rows: 1fr; }
     }
     .field-input {
         background: #1e293b;
@@ -1023,18 +1040,15 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
         color: #e2e8f0;
         font-size: 0.875rem;
         width: 100%;
-        transition: border-color 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .field-input:focus {
+    .field-input:focus, .field-input:focus-within {
         outline: none;
-        border-color: #007c43;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(0, 124, 67, 0.2);
     }
-    .field-input::placeholder {
-        color: #64748b;
-    }
-    select.field-input {
-        cursor: pointer;
-    }
+    .field-input::placeholder { color: #64748b; }
+    select.field-input { cursor: pointer; }
     .tag-input {
         display: flex;
         flex-wrap: wrap;
@@ -1042,6 +1056,7 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
         padding: 0.5rem;
         min-height: 42px;
         align-items: center;
+        cursor: text;
     }
     .tag {
         display: inline-flex;
@@ -1057,23 +1072,27 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
         color: #64748b;
         font-size: 1rem;
         line-height: 1;
-    }
-    .tag button:hover {
-        color: #ef4444;
-    }
-    .metadata-toggle {
+        background: none;
+        border: none;
         cursor: pointer;
-        user-select: none;
+        padding: 0;
     }
+    .tag button:hover { color: #ef4444; }
+    .tag button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .view-btn { padding: 0.375rem; border-radius: 0.375rem; color: #64748b; transition: all 0.15s; }
+    .view-btn:hover { background: #334155; color: #e2e8f0; }
+    .view-btn.active { background: var(--primary); color: white; }
+    .view-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    #saveBtn:focus-visible, .cancel-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="w-full">
+<div class="edit-container">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-4">
+    <div class="flex justify-between items-center mb-4 flex-shrink-0">
         <div class="flex items-center gap-4">
-            <a href="/records/{{ record_id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Back">
+            <a href="/records/{{ record_id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-piper-accent" title="Back">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             </a>
             <div>
@@ -1082,30 +1101,30 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
             </div>
         </div>
         <div class="flex gap-3">
-            <button id="saveBtn" class="px-4 py-2 bg-piper-accent hover:bg-piper-light text-white font-medium rounded-lg transition-colors flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                Save
+            <button id="saveBtn" class="px-4 py-2 bg-piper-accent hover:bg-piper-light text-white font-medium rounded-lg transition-all flex items-center gap-2">
+                <svg id="saveIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span id="saveBtnText">Save</span>
             </button>
-            <a href="/records/{{ record_id }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors">Cancel</a>
+            <a href="/records/{{ record_id }}" class="cancel-btn px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors">Cancel</a>
         </div>
     </div>
 
     <!-- Status bar -->
-    <div id="statusBar" class="mb-4 px-4 py-2 rounded-lg text-sm hidden"></div>
+    <div id="statusBar" class="mb-4 px-4 py-2 rounded-lg text-sm hidden flex-shrink-0"></div>
 
     <!-- Metadata Section -->
-    <div class="bg-piper-card border border-slate-700 rounded-xl mb-4 overflow-hidden">
-        <div class="metadata-toggle px-4 py-3 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center" onclick="toggleMetadata()">
+    <div class="bg-piper-card border border-slate-700 rounded-xl mb-4 overflow-hidden flex-shrink-0">
+        <button type="button" id="metadataToggle" aria-expanded="true" aria-controls="metadataFields" class="w-full px-4 py-3 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-piper-accent focus-visible:outline-offset-[-2px]" onclick="toggleMetadata()">
             <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Metadata</span>
             <svg id="metadataChevron" class="w-4 h-4 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </div>
-        <div id="metadataFields" class="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-xs text-slate-500 mb-1">Title</label>
+        </button>
+        <div id="metadataFields" class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="md:col-span-2">
+                <label for="fieldTitle" class="block text-xs text-slate-500 mb-1">Title</label>
                 <input type="text" id="fieldTitle" class="field-input" placeholder="Record title">
             </div>
             <div>
-                <label class="block text-xs text-slate-500 mb-1">Status</label>
+                <label for="fieldStatus" class="block text-xs text-slate-500 mb-1">Status</label>
                 <select id="fieldStatus" class="field-input">
                     <option value="proposed">Proposed</option>
                     <option value="draft">Draft</option>
@@ -1118,45 +1137,56 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
                     <option value="cancelled">Cancelled</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-xs text-slate-500 mb-1">Authors</label>
-                <div id="authorsContainer" class="field-input tag-input">
+            <div class="flex items-end pb-1">
+                <label for="fieldFoundational" class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+                    <input type="checkbox" id="fieldFoundational" class="rounded bg-slate-800 border-slate-600 text-piper-accent focus:ring-piper-accent focus:ring-offset-slate-900">
+                    <span>Core</span>
+                </label>
+            </div>
+            <div class="md:col-span-2">
+                <label for="authorInput" class="block text-xs text-slate-500 mb-1">Authors</label>
+                <div id="authorsContainer" class="field-input tag-input" onclick="document.getElementById('authorInput').focus()">
                     <input type="text" id="authorInput" class="bg-transparent border-none outline-none text-sm flex-1 min-w-[80px]" placeholder="Add author...">
                 </div>
             </div>
-            <div>
-                <label class="block text-xs text-slate-500 mb-1">Tags</label>
-                <div id="tagsContainer" class="field-input tag-input">
+            <div class="md:col-span-2">
+                <label for="tagInput" class="block text-xs text-slate-500 mb-1">Tags</label>
+                <div id="tagsContainer" class="field-input tag-input" onclick="document.getElementById('tagInput').focus()">
                     <input type="text" id="tagInput" class="bg-transparent border-none outline-none text-sm flex-1 min-w-[80px]" placeholder="Add tag...">
                 </div>
-            </div>
-            <div class="col-span-2">
-                <label class="block text-xs text-slate-500 mb-1">
-                    <input type="checkbox" id="fieldFoundational" class="mr-2 rounded">
-                    Mark as foundational (CORE)
-                </label>
             </div>
         </div>
     </div>
 
     <!-- Editor -->
-    <div class="editor-layout">
-        <div class="editor-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
-            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+    <div id="editorLayout" class="editor-layout">
+        <div class="editor-pane-wrapper bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Content</span>
                 <span id="cursorPos" class="text-xs text-slate-500 font-mono">Ln 1, Col 1</span>
             </div>
-            <textarea id="editor" class="w-full p-4 bg-transparent text-slate-200 border-none outline-none flex-1" spellcheck="false" placeholder="Write your content here..."></textarea>
+            <textarea id="editor" class="w-full p-4 bg-transparent text-slate-200 border-none outline-none" spellcheck="false" placeholder="Write your content here..."></textarea>
         </div>
-        <div class="editor-pane preview-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
-            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700">
+        <div class="preview-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Preview</span>
+                <div class="flex gap-1">
+                    <button type="button" class="view-btn" data-view="split" title="Split View" onclick="setView('split')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"></path></svg>
+                    </button>
+                    <button type="button" class="view-btn" data-view="editor-only" title="Editor Only" onclick="setView('editor-only')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </button>
+                    <button type="button" class="view-btn" data-view="preview-only" title="Preview Only" onclick="setView('preview-only')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </button>
+                </div>
             </div>
-            <div id="preview" class="p-4 text-slate-300 content overflow-y-auto"></div>
+            <div id="preview" class="preview-content p-4 text-slate-300 content"></div>
         </div>
     </div>
 
-    <div class="mt-4 text-xs text-slate-500 flex gap-6">
+    <div class="mt-4 text-xs text-slate-500 flex gap-6 flex-shrink-0">
         <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Ctrl</kbd>+<kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">S</kbd> Save</span>
         <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Esc</kbd> Cancel</span>
     </div>
@@ -1344,9 +1374,25 @@ tagInput.addEventListener('keydown', (e) => {
 function toggleMetadata() {
     const fields = document.getElementById('metadataFields');
     const chevron = document.getElementById('metadataChevron');
+    const toggle = document.getElementById('metadataToggle');
+    const isExpanded = !fields.classList.contains('hidden');
     fields.classList.toggle('hidden');
-    chevron.style.transform = fields.classList.contains('hidden') ? 'rotate(-90deg)' : '';
+    chevron.style.transform = !isExpanded ? '' : 'rotate(-90deg)';
+    toggle.setAttribute('aria-expanded', !isExpanded);
 }
+
+// View switcher
+let currentView = 'split';
+function setView(view) {
+    currentView = view;
+    const layout = document.getElementById('editorLayout');
+    layout.classList.remove('split', 'editor-only', 'preview-only');
+    if (view !== 'split') layout.classList.add(view);
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+    });
+}
+setView('split'); // Initialize
 
 function buildFullContent() {
     const fm = {
@@ -1433,8 +1479,11 @@ function showStatus(message, type = 'info') {
 }
 
 async function save() {
+    const saveIcon = document.getElementById('saveIcon');
+    const saveBtnText = document.getElementById('saveBtnText');
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Saving...';
+    saveIcon.outerHTML = '<svg id="saveIcon" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>';
+    saveBtnText.textContent = 'Saving...';
 
     try {
         const content = buildFullContent();
@@ -1445,19 +1494,39 @@ async function save() {
         });
         const data = await res.json();
         if (res.ok) {
-            showStatus('Saved successfully!', 'success');
+            // Show success state on button
+            saveBtn.classList.remove('bg-piper-accent', 'hover:bg-piper-light');
+            saveBtn.classList.add('bg-green-600');
+            document.getElementById('saveIcon').outerHTML = '<svg id="saveIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+            saveBtnText.textContent = 'Saved!';
             originalFull = content;
             isDirty = false;
             document.title = 'Edit ' + recordId + ' - {{ site.title }}';
+            // Reset button after 2s
+            setTimeout(() => {
+                saveBtn.classList.remove('bg-green-600');
+                saveBtn.classList.add('bg-piper-accent', 'hover:bg-piper-light');
+                saveBtnText.textContent = 'Save';
+            }, 2000);
         } else {
             showStatus(data.error || 'Failed to save', 'error');
+            resetSaveBtn();
         }
     } catch (err) {
         showStatus('Network error: ' + err.message, 'error');
+        resetSaveBtn();
     } finally {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Save';
     }
+}
+
+function resetSaveBtn() {
+    const saveIcon = document.getElementById('saveIcon');
+    const saveBtnText = document.getElementById('saveBtnText');
+    saveBtn.classList.remove('bg-green-600');
+    saveBtn.classList.add('bg-piper-accent', 'hover:bg-piper-light');
+    saveIcon.outerHTML = '<svg id="saveIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+    saveBtnText.textContent = 'Save';
 }
 
 // Event listeners
