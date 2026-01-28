@@ -13,8 +13,8 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             --surface: #16213e;
             --primary: {{ site.primary_color | default(value="#0f3460") }};
             --accent: {{ site.accent_color | default(value="#e94560") }};
-            --text: #eee;
-            --text-dim: #999;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
             --success: #4CAF50;
             --warning: #FF9800;
         }
@@ -60,6 +60,17 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             margin-bottom: 1rem;
             border-left: 4px solid var(--primary);
         }
+        .card[data-type="DEC"] { border-left-color: #4CAF50; }
+        .card[data-type="ADR"] { border-left-color: #607D8B; }
+        .card[data-type="INC"] { border-left-color: #F44336; }
+        .card[data-type="POL"] { border-left-color: #FF9800; }
+        .card[data-type="RUN"] { border-left-color: #8BC34A; }
+        .card[data-type="STR"] { border-left-color: #2196F3; }
+        .card[data-type="PRC"] { border-left-color: #00BCD4; }
+        .card[data-type="CUS"] { border-left-color: #9C27B0; }
+        .card[data-type="OPP"] { border-left-color: #E91E63; }
+        .card[data-type="HIR"] { border-left-color: #795548; }
+        .card[data-type="MTG"] { border-left-color: #03A9F4; }
         .card.foundational { border-left-color: gold; }
         .card-header {
             display: flex;
@@ -114,12 +125,14 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .stat-value { font-size: 2rem; font-weight: bold; color: var(--accent); }
         .stat-label { color: var(--text-dim); }
         .graph-container { background: var(--surface); border-radius: 8px; padding: 1rem; min-height: 500px; }
-        .content { background: var(--surface); border-radius: 8px; padding: 2rem; margin-top: 1rem; }
-        .content h1, .content h2, .content h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text); }
+        .content { background: var(--surface); border-radius: 8px; padding: 2rem; margin-top: 1rem; max-width: 48rem; line-height: 1.75; }
+        .content h1 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--text); }
+        .content h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.75rem; margin-bottom: 0.5rem; color: var(--text); }
+        .content h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text); }
         .content h1:first-child, .content h2:first-child { margin-top: 0; }
         .content p { margin-bottom: 1rem; }
         .content ul, .content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
-        .content li { margin-bottom: 0.25rem; }
+        .content li { margin-bottom: 0.35rem; }
         .content strong { font-weight: bold; }
         .content em { font-style: italic; }
         .content code { background: var(--primary); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace; }
@@ -132,17 +145,17 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .record-link {
             display: inline;
             padding: 0.1rem 0.35rem;
-            background: var(--primary);
+            background: rgba(148, 163, 184, 0.15);
             border-radius: 3px;
             font-family: monospace;
             font-size: 0.85em;
-            color: #fff;
+            color: #94a3b8;
             text-decoration: none;
             cursor: pointer;
             position: relative;
             vertical-align: baseline;
         }
-        .record-link:hover { background: var(--accent); text-decoration: none; color: #fff; }
+        .record-link:hover { background: rgba(148, 163, 184, 0.25); text-decoration: underline; color: #e2e8f0; }
         .record-preview {
             position: absolute;
             bottom: 100%;
@@ -400,7 +413,10 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}{{ record.id }} - {{ site.title }}{% endblock %}
 
 {% block content %}
-<div class="card {% if record.foundational %}foundational{% endif %}">
+<nav style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-dim);">
+    <a href="/">Records</a> <span style="margin: 0 0.35rem;">›</span> <span>{{ record.id }}</span>
+</nav>
+<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}">
     <div class="card-header">
         <div>
             <span class="card-id">{{ record.id }}</span>
@@ -553,6 +569,26 @@ const TIMELINE_TEMPLATE: &str = r##"{% extends "base.html" %}
         fill: none;
         stroke-width: 2;
         opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .timeline-svg.hover-active .dependency-line { opacity: 0.1; }
+    .timeline-svg.hover-active .dependency-line.highlight { opacity: 1; stroke-width: 3; }
+    .timeline-svg.hover-active .timeline-node { opacity: 0.3; transition: opacity 0.2s; }
+    .timeline-svg.hover-active .timeline-node.highlight { opacity: 1; }
+    .timeline-svg.hover-active line[class="trunk-line"],
+    .timeline-svg.hover-active line:not([class]) { opacity: 0.1; transition: opacity 0.2s; }
+    .timeline-tooltip {
+        position: fixed;
+        background: var(--surface);
+        border: 1px solid var(--primary);
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        pointer-events: none;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        display: none;
+        color: var(--text);
     }
     .trunk-line {
         stroke: var(--text-dim);
@@ -586,6 +622,7 @@ const TIMELINE_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div class="timeline-container">
     <svg id="timeline" class="timeline-svg"></svg>
+    <div id="timeline-tooltip" class="timeline-tooltip"></div>
 </div>
 {% endblock %}
 
@@ -712,12 +749,12 @@ dataTypes.forEach((type, i) => {
 });
 
 // Draw dependency edges (curved lines like git merge)
+const edgePaths = [];
 edges.forEach(edge => {
     const source = recordMap[edge.source];
     const target = recordMap[edge.target];
     if (!source || !target) return;
 
-    // Draw curved path
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const midY = (source.y + target.y) / 2;
     const d = `M ${source.x} ${source.y} C ${source.x} ${midY}, ${target.x} ${midY}, ${target.x} ${target.y}`;
@@ -725,16 +762,27 @@ edges.forEach(edge => {
     path.setAttribute('class', 'dependency-line');
     path.setAttribute('stroke', typeColors[source.type] || '#666');
     svg.appendChild(path);
+    edgePaths.push({ source: edge.source, target: edge.target, pathEl: path });
+});
+
+// Build edge index for hover highlighting (populated after edges are drawn)
+const edgeIndex = {};
+records.forEach(r => edgeIndex[r.id] = []);
+edgePaths.forEach(ep => {
+    if (edgeIndex[ep.source]) edgeIndex[ep.source].push(ep);
+    if (edgeIndex[ep.target]) edgeIndex[ep.target].push(ep);
 });
 
 // Draw nodes
+const nodeElements = {};
+const pathElements = [];
 records.forEach(r => {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'timeline-node');
+    g.setAttribute('data-id', r.id);
     g.setAttribute('transform', `translate(${r.x}, ${r.y})`);
     g.onclick = () => window.location.href = '/records/' + r.id;
 
-    // Circle
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', nodeRadius);
     circle.setAttribute('fill', typeColors[r.type] || '#666');
@@ -742,7 +790,6 @@ records.forEach(r => {
     circle.setAttribute('stroke-width', r.foundational ? 3 : 1);
     g.appendChild(circle);
 
-    // ID text
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dy', 4);
@@ -752,12 +799,35 @@ records.forEach(r => {
     text.textContent = r.id;
     g.appendChild(text);
 
-    // Title on hover
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    title.textContent = `${r.id}: ${r.title}\n${r.created}`;
-    g.appendChild(title);
-
+    nodeElements[r.id] = g;
     svg.appendChild(g);
+
+    // Hover highlighting
+    const tooltip = document.getElementById('timeline-tooltip');
+    g.addEventListener('mouseenter', (e) => {
+        svg.classList.add('hover-active');
+        g.classList.add('highlight');
+        // Highlight connected nodes and edges
+        const connected = edgeIndex[r.id] || [];
+        connected.forEach(c => {
+            c.pathEl.classList.add('highlight');
+            const otherId = c.source === r.id ? c.target : c.source;
+            if (nodeElements[otherId]) nodeElements[otherId].classList.add('highlight');
+        });
+        tooltip.innerHTML = `<strong>${r.id}</strong>: ${r.title}<br><span style="color:var(--text-dim)">${r.type} | ${r.created}</span>`;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+    });
+    g.addEventListener('mousemove', (e) => {
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+    });
+    g.addEventListener('mouseleave', () => {
+        svg.classList.remove('hover-active');
+        svg.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+        tooltip.style.display = 'none';
+    });
 });
 </script>
 {% endblock %}
