@@ -38,3 +38,6 @@ devenv.local.yaml
 
 # Generated CSS (rebuild with: css-build)
 src/serve/static/tailwind.css
+
+# Generated sites
+samples/microsoft/docs/_site
