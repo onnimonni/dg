@@ -123,6 +123,16 @@ cargo clippy      # Lint
 cargo build --release  # Build CLI
 ```
 
+## Frontend Development
+
+When working on `src/serve/templates.rs` or any HTML/CSS, follow the guidelines in `.claude/skills/frontend/skill.md`. Key points:
+
+- Use existing design tokens (--bg, --surface, --text, etc.)
+- Follow the visual hierarchy: Primary > Secondary > Tertiary
+- Always add hover states and transitions for interactivity
+- Consult Gemini via `mcp__consult-llm__consult_llm` for UX feedback
+- Test visually with `dg serve` and Playwright screenshots
+
 ## Policy
 
 - Do not use shell commands from within Rust code

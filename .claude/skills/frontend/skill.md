@@ -1,54 +1,63 @@
 # Frontend Design
 
-Help with frontend UI/UX design and implementation.
+Use this skill when working on HTML templates, CSS, or UI components in `src/serve/templates.rs`.
 
-## When to Use
+## Design Philosophy
 
-- Designing new UI components
-- Improving visual design (colors, spacing, typography)
-- Fixing layout/alignment issues
-- Adding CSS animations or transitions
-- Responsive design adjustments
-- Accessibility improvements
-- UX review and feedback
+1. **Data Density, Not Clutter:** Display complex technical data (IDs, timestamps, dependencies) without overwhelming. Use whitespace and grouping effectively.
 
-## Gemini UX Review
+2. **"Unfurling" References:** Never display raw IDs (e.g., "DEC-005") as plain text. Unfurl them into rich, interactive components (mini-cards) showing status, title, and context.
 
-For UX/frontend design questions, **use the consult-llm MCP server** to get a second opinion from Gemini Pro. It's configured as a Principal UX Engineer who prefers Tailwind CSS.
+3. **Visual Hierarchy:**
+   - **Primary:** Titles, Status Badges (Critical info)
+   - **Secondary:** Metadata, Authors, Dates (Context)
+   - **Tertiary:** Borders, backgrounds, decorative elements
 
-### How to Use
+4. **Micro-Interactions:** Always include `:hover` states, focus rings, and subtle transitions (e.g., `transition 0.15s`, `transform: translateY(-2px)`). UI must feel "alive."
 
-The `consult-llm` MCP server provides the `consult_llm` tool:
+## Technical Stack
 
-```
-# Get UX feedback on a design decision
-mcp__consult-llm__consult_llm: "Review this CSS for a record link button: padding: 0.1rem 0.35rem, border-radius: 3px, white text on colored background. Is this good for readability?"
+- **Templates:** `src/serve/templates.rs` - Rust string constants with MiniJinja
+- **CSS:** Inline in BASE_TEMPLATE, no external framework
+- **Icons:** Inline SVG or Unicode symbols (★, →, ›)
+- **Fonts:** System fonts + monospace for IDs/code
+- **Mode:** Dark mode default
 
-# Review layout approach
-mcp__consult-llm__consult_llm: "I'm building a timeline visualization with year markers and nodes. Should I use CSS grid or flexbox? What's the best approach?"
-```
-
-### When to Consult Gemini
-
-- Before finalizing visual design changes
-- When unsure about color contrast or accessibility
-- For complex layout decisions
-- To validate UX patterns
-- When user reports something "looks weird"
-- For Tailwind CSS class recommendations
-
-## Design Tokens (from templates.rs)
+## Design Tokens
 
 ```css
 --bg: #1a1a2e        /* Page background */
 --surface: #16213e   /* Card/panel background */
 --primary: site-configured
 --accent: site-configured
---text: #eee         /* Primary text */
---text-dim: #999     /* Secondary text */
+--text: #e2e8f0      /* Primary text (slate-200) */
+--text-dim: #94a3b8  /* Secondary text (slate-400) */
 --success: #4CAF50   /* Accepted/positive */
 --warning: #FF9800   /* Proposed/warning */
 ```
+
+## Type Colors
+
+```css
+DEC: #4CAF50  /* Decision - green */
+ADR: #607D8B  /* Architecture - blue-gray */
+INC: #F44336  /* Incident - red */
+POL: #FF9800  /* Policy - orange */
+RUN: #8BC34A  /* Runbook - light green */
+STR: #2196F3  /* Strategy - blue */
+PRC: #00BCD4  /* Process - cyan */
+```
+
+## Gemini UX Review
+
+For complex design decisions, use `mcp__consult-llm__consult_llm` to get feedback from Gemini (configured as Principal UX Engineer).
+
+### When to Consult
+
+- Before finalizing visual design changes
+- When unsure about color contrast or accessibility
+- For complex layout decisions
+- To validate UX patterns
 
 ## Workflow
 
@@ -57,19 +66,37 @@ mcp__consult-llm__consult_llm: "I'm building a timeline visualization with year 
 3. **Consult Gemini** for UX feedback on non-trivial changes
 4. **Make minimal changes** - don't over-engineer
 5. **Test visually** - run `dg serve` and check in browser
-6. **Check responsive** - resize browser to verify layout
+6. **Take screenshots** - use Playwright MCP for visual verification
 
-## Common Tasks
+## Common Patterns
 
-### Fix alignment
-- Use `vertical-align: baseline` for inline elements
-- Use flexbox for layout: `display: flex; align-items: center;`
+### Clickable Cards
+```css
+.card-link {
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.card-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+```
 
-### Fix colors
-- Text on dark bg: use `#fff` or `var(--text)`
-- Text on colored bg: use `#fff` for contrast
-- **Ask Gemini** to verify contrast ratios
+### Status Badges
+```css
+.badge.accepted { background: var(--success); }
+.badge.proposed { background: var(--warning); color: #000; }
+.badge.open { background: #e74c3c; }
+.badge.resolved { background: #3498db; }
+```
 
-### Fix spacing
-- Use rem units: `0.25rem`, `0.5rem`, `1rem`
-- Padding for buttons: `0.25rem 0.5rem`
+### Muted Pills/Tags
+```css
+.tag {
+    background: rgba(148,163,184,0.1);
+    color: var(--text-dim);
+    font-family: monospace;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+}
+```
