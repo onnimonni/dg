@@ -130,16 +130,17 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .content th, .content td { padding: 0.5rem; border: 1px solid var(--primary); text-align: left; }
         .content th { background: var(--primary); }
         .record-link {
-            display: inline-block;
-            padding: 0.15rem 0.4rem;
+            display: inline;
+            padding: 0.1rem 0.35rem;
             background: var(--primary);
-            border-radius: 4px;
+            border-radius: 3px;
             font-family: monospace;
-            font-size: 0.9em;
+            font-size: 0.85em;
             color: #fff;
             text-decoration: none;
             cursor: pointer;
             position: relative;
+            vertical-align: baseline;
         }
         .record-link:hover { background: var(--accent); text-decoration: none; color: #fff; }
         .record-preview {
