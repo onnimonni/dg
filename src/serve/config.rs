@@ -33,6 +33,14 @@ pub struct SiteConfig {
     /// Footer text
     #[serde(default)]
     pub footer: Option<String>,
+
+    /// Enable quick preview popups on record ID hover (default: true)
+    #[serde(default = "default_quick_preview")]
+    pub quick_preview: bool,
+}
+
+fn default_quick_preview() -> bool {
+    true
 }
 
 fn default_title() -> String {

@@ -129,6 +129,54 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
         .content th, .content td { padding: 0.5rem; border: 1px solid var(--primary); text-align: left; }
         .content th { background: var(--primary); }
+        .record-link {
+            display: inline-block;
+            padding: 0.15rem 0.4rem;
+            background: var(--primary);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: var(--accent);
+            text-decoration: none;
+            cursor: pointer;
+            position: relative;
+        }
+        .record-link:hover { background: var(--surface); text-decoration: none; }
+        .record-preview {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            min-width: 280px;
+            max-width: 350px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+        .record-link:hover .record-preview { opacity: 1; }
+        .record-preview::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: var(--primary);
+        }
+        .preview-title { font-weight: bold; margin-bottom: 0.25rem; color: var(--text); font-family: inherit; }
+        .preview-meta { font-size: 0.8rem; color: var(--text-dim); font-family: inherit; }
+        .preview-status { display: inline-block; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.75rem; margin-left: 0.5rem; }
+        .preview-status.accepted { background: var(--success); }
+        .preview-status.proposed { background: var(--warning); color: #000; }
+        .preview-status.resolved { background: #3498db; }
         .search-box { width: 100%; padding: 0.75rem; border: 1px solid var(--primary); border-radius: 8px; background: var(--surface); color: var(--text); margin-bottom: 1.5rem; }
         .filter-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
         .filter-btn { padding: 0.5rem 1rem; border: 1px solid var(--primary); border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
@@ -160,6 +208,87 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
     <footer>{{ site.footer }} ©</footer>
     {% endif %}
     {% block scripts %}{% endblock %}
+    <script>
+    // Record ID linkification with hover previews
+    const quickPreview = {{ site.quick_preview | default(value=true) }};
+    const recordCache = {};
+    const recordPattern = /\b(DEC|STR|POL|CUS|OPP|PRC|HIR|ADR|INC|RUN|MTG)-\d{3}\b/g;
+
+    function linkifyRecordIds() {
+        const contentElements = document.querySelectorAll('.content, .card-meta, .preview-meta, td, .link-type');
+        contentElements.forEach(el => {
+            if (el.querySelector('.record-link')) return; // already processed
+            linkifyTextNodes(el);
+        });
+    }
+
+    function linkifyTextNodes(element) {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+        const nodesToReplace = [];
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            if (node.parentElement.closest('a, .record-link, code, pre, script, style')) continue;
+            if (recordPattern.test(node.textContent)) {
+                nodesToReplace.push(node);
+            }
+            recordPattern.lastIndex = 0;
+        }
+        nodesToReplace.forEach(node => {
+            const fragment = document.createDocumentFragment();
+            let lastIndex = 0;
+            let match;
+            recordPattern.lastIndex = 0;
+            while ((match = recordPattern.exec(node.textContent)) !== null) {
+                if (match.index > lastIndex) {
+                    fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
+                }
+                const link = createRecordLink(match[0]);
+                fragment.appendChild(link);
+                lastIndex = match.index + match[0].length;
+            }
+            if (lastIndex < node.textContent.length) {
+                fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
+            }
+            node.parentNode.replaceChild(fragment, node);
+        });
+    }
+
+    function createRecordLink(id) {
+        const link = document.createElement('a');
+        link.href = '/records/' + id;
+        link.className = 'record-link';
+        link.textContent = id;
+        if (quickPreview) {
+            link.addEventListener('mouseenter', () => showPreview(link, id));
+        }
+        return link;
+    }
+
+    async function showPreview(link, id) {
+        if (link.querySelector('.record-preview')) return;
+        let data = recordCache[id];
+        if (!data) {
+            try {
+                const resp = await fetch('/api/records/' + id);
+                if (resp.ok) {
+                    data = await resp.json();
+                    recordCache[id] = data;
+                }
+            } catch (e) { return; }
+        }
+        if (!data) return;
+        const preview = document.createElement('div');
+        preview.className = 'record-preview';
+        preview.innerHTML = `
+            <div class="preview-title">${data.title}<span class="preview-status ${data.status}">${data.status}</span></div>
+            <div class="preview-meta">${data.type_display} | ${data.created}</div>
+        `;
+        link.appendChild(preview);
+        link.addEventListener('mouseleave', () => preview.remove(), { once: true });
+    }
+
+    document.addEventListener('DOMContentLoaded', linkifyRecordIds);
+    </script>
 </body>
 </html>
 "##;
