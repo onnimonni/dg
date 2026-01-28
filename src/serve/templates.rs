@@ -156,7 +156,7 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         {% block content %}{% endblock %}
     </main>
     {% if site.footer %}
-    <footer>{{ site.footer }}</footer>
+    <footer>{{ site.footer }} ©</footer>
     {% endif %}
     {% block scripts %}{% endblock %}
 </body>
