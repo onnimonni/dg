@@ -28,8 +28,9 @@ pub fn run(docs_dir: &str) -> Result<()> {
     for (status, count) in statuses {
         let colored_status = match status.as_str() {
             "accepted" | "active" => status.green(),
-            "deprecated" | "superseded" | "cancelled" => status.red(),
-            "draft" => status.yellow(),
+            "deprecated" | "superseded" | "cancelled" | "open" => status.red(),
+            "draft" | "proposed" => status.yellow(),
+            "resolved" => status.blue(),
             _ => status.normal(),
         };
         println!("  {:<12} {}", colored_status, count);

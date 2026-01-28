@@ -1,4 +1,4 @@
-use crate::models::Graph;
+use crate::models::{Graph, Status};
 use anyhow::{anyhow, Result};
 use colored::Colorize;
 use std::path::Path;
@@ -39,17 +39,31 @@ pub fn run(docs_dir: &str, id: &str, show_links: bool, as_json: bool) -> Result<
     }
 
     // Header
-    println!("{}", record.id().cyan().bold());
+    let core_marker = if record.frontmatter.foundational {
+        format!(" {}", "★ CORE".yellow().bold())
+    } else {
+        String::new()
+    };
+    println!("{}{}", record.id().cyan().bold(), core_marker);
     println!("{}", record.title().bold());
     println!("{}", "=".repeat(60));
 
     // Metadata
+    let status_colored = match record.status() {
+        Status::Accepted | Status::Active => record.status().to_string().green(),
+        Status::Deprecated | Status::Superseded | Status::Cancelled | Status::Open => {
+            record.status().to_string().red()
+        }
+        Status::Draft | Status::Proposed => record.status().to_string().yellow(),
+        Status::Resolved => record.status().to_string().blue(),
+        _ => record.status().to_string().normal(),
+    };
     println!(
         "{}: {}  {}: {}",
         "Type".dimmed(),
         record.record_type(),
         "Status".dimmed(),
-        record.status()
+        status_colored
     );
     println!(
         "{}: {}  {}: {}",
@@ -75,7 +89,7 @@ pub fn run(docs_dir: &str, id: &str, show_links: bool, as_json: bool) -> Result<
                 .frontmatter
                 .tags
                 .iter()
-                .map(|t| format!("#{}", t))
+                .map(|t| format!("[{}]", t).green().to_string())
                 .collect::<Vec<_>>()
                 .join(" ")
         );
