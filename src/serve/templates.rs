@@ -7,231 +7,57 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site.title }}{% endblock %}</title>
     {% if site.description %}<meta name="description" content="{{ site.description }}">{% endif %}
+    <link rel="stylesheet" href="/static/tailwind.css">
+    <link rel="stylesheet" href="/static/katex.min.css">
     <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 100 900;
+            font-display: swap;
+            src: url('/static/fonts/InterVariable.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'JetBrains Mono';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url('/static/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+        }
         :root {
-            --bg: #1a1a2e;
-            --surface: #16213e;
-            --primary: {{ site.primary_color | default(value="#0f3460") }};
-            --accent: {{ site.accent_color | default(value="#e94560") }};
+            --bg: #101524;
+            --surface: #1a202c;
+            --primary: {{ site.primary_color | default(value="#007c43") }};
+            --accent: {{ site.accent_color | default(value="#00a55a") }};
             --text: #e2e8f0;
             --text-dim: #94a3b8;
             --success: #4CAF50;
             --warning: #FF9800;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        header {
-            background: var(--surface);
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        header .brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; }
-        header .brand img { height: 32px; }
-        header h1 { font-size: 1.5rem; }
-        header nav a {
-            color: var(--text);
-            text-decoration: none;
-            margin-left: 1.5rem;
-            opacity: 0.7;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-        header nav a:hover { opacity: 1; }
-        header nav a.active { opacity: 1; background: var(--primary); }
-        main { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
-        footer {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-dim);
-            font-size: 0.9rem;
-        }
-        .card {
-            background: var(--surface);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--primary);
-        }
-        .card[data-type="DEC"] { border-left-color: #4CAF50; }
-        .card[data-type="ADR"] { border-left-color: #607D8B; }
-        .card[data-type="INC"] { border-left-color: #F44336; }
-        .card[data-type="POL"] { border-left-color: #FF9800; }
-        .card[data-type="RUN"] { border-left-color: #8BC34A; }
-        .card[data-type="STR"] { border-left-color: #2196F3; }
-        .card[data-type="PRC"] { border-left-color: #00BCD4; }
-        .card[data-type="CUS"] { border-left-color: #9C27B0; }
-        .card[data-type="OPP"] { border-left-color: #E91E63; }
-        .card[data-type="HIR"] { border-left-color: #795548; }
-        .card[data-type="MTG"] { border-left-color: #03A9F4; }
-        .card.foundational { border-left-color: gold; }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        .card-id {
-            font-family: monospace;
-            color: var(--accent);
-            font-weight: bold;
-        }
-        .card-title { font-size: 1.2rem; color: var(--text); text-decoration: none; display: block; }
-        .card-title:hover { color: #fff; }
-        .card-meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.35rem; }
-        .detail-card .card-title { font-size: 1.75rem; font-weight: 700; color: #fff; }
-        .detail-card .card-meta { padding-bottom: 1rem; border-bottom: 1px solid rgba(148,163,184,0.15); }
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            background: var(--primary);
-        }
-        .badge.accepted { background: var(--success); }
-        .badge.proposed { background: var(--warning); color: #000; }
-        .badge.open { background: #e74c3c; }
-        .badge.resolved { background: #3498db; }
-        .badge.draft { background: #666; }
-        .badge.deprecated { background: #95a5a6; }
-        .badge.superseded { background: #7f8c8d; }
-        .tag {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            border-radius: 3px;
-            font-size: 0.75rem;
-            font-family: monospace;
-            background: rgba(148,163,184,0.1);
-            color: var(--text-dim);
-            margin-right: 0.25rem;
-        }
-        .links { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(148,163,184,0.15); }
-        .links-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); font-family: monospace; margin-bottom: 0.75rem; }
-        .link-card { display: block; padding: 0.75rem 1rem; background: rgba(148,163,184,0.06); border: 1px solid rgba(148,163,184,0.1); border-radius: 8px; margin-bottom: 0.5rem; text-decoration: none; transition: all 0.15s; }
-        .link-card:hover { background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.2); transform: translateY(-1px); text-decoration: none; }
-        .link-card .link-id { font-family: monospace; font-size: 0.8rem; font-weight: 600; }
-        .link-card .link-rel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); border: 1px solid rgba(148,163,184,0.2); padding: 0.1rem 0.4rem; border-radius: 3px; float: right; }
-        .link-type { color: var(--text-dim); font-size: 0.9rem; }
-        a { color: var(--accent); text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        .stat-card {
-            background: var(--surface);
-            padding: 1.5rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .stat-value { font-size: 2rem; font-weight: bold; color: var(--accent); }
-        .stat-label { color: var(--text-dim); }
-        .stat-link { text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
-        .stat-link:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .graph-container { background: var(--surface); border-radius: 8px; padding: 1rem; min-height: 500px; }
-        .content { background: var(--surface); border-radius: 8px; padding: 2rem; margin-top: 1rem; max-width: 48rem; line-height: 1.75; }
-        .content h1 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--text); }
-        .content h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.75rem; margin-bottom: 0.5rem; color: var(--text); }
-        .content h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text); }
-        .content h1:first-child, .content h2:first-child { margin-top: 0; }
-        .content p { margin-bottom: 1rem; }
-        .content ul, .content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
-        .content li { margin-bottom: 0.35rem; }
-        .content strong { font-weight: bold; }
-        .content em { font-style: italic; }
-        .content code { background: var(--primary); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace; }
-        .content pre { background: var(--primary); padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; }
-        .content pre code { background: none; padding: 0; }
-        .content blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; color: var(--text-dim); }
-        .content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-        .content th, .content td { padding: 0.5rem; border: 1px solid var(--primary); text-align: left; }
-        .content th { background: var(--primary); }
-        .record-link {
-            display: inline;
-            padding: 0.1rem 0.35rem;
-            background: rgba(148, 163, 184, 0.15);
-            border-radius: 3px;
-            font-family: monospace;
-            font-size: 0.85em;
-            color: #94a3b8;
-            text-decoration: none;
-            cursor: pointer;
-            position: relative;
-            vertical-align: baseline;
-        }
-        .record-link:hover { background: rgba(148, 163, 184, 0.25); text-decoration: underline; color: #e2e8f0; }
-        .record-preview {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--surface);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            min-width: 280px;
-            max-width: 350px;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.15s;
-            margin-bottom: 8px;
-            text-align: left;
-        }
-        .record-link:hover .record-preview { opacity: 1; }
-        .record-preview::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 8px solid transparent;
-            border-top-color: var(--primary);
-        }
-        .preview-title { font-weight: bold; margin-bottom: 0.25rem; color: var(--text); font-family: inherit; }
-        .preview-meta { font-size: 0.8rem; color: var(--text-dim); font-family: inherit; }
-        .preview-status { display: inline-block; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.75rem; margin-left: 0.5rem; }
-        .preview-status.accepted { background: var(--success); }
-        .preview-status.proposed { background: var(--warning); color: #000; }
-        .preview-status.resolved { background: #3498db; }
-        .search-box { width: 100%; padding: 0.75rem; border: 1px solid var(--primary); border-radius: 8px; background: var(--surface); color: var(--text); margin-bottom: 1.5rem; }
-        .filter-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .filter-btn { padding: 0.5rem 1rem; border: 1px solid var(--primary); border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
-        .filter-btn.active { background: var(--primary); }
         {{ site.custom_css | default(value="") | safe }}
     </style>
-    <link rel="stylesheet" href="/static/katex.min.css">
     <script defer src="/static/katex.min.js"></script>
     <script defer src="/static/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
     {% block head %}{% endblock %}
 </head>
-<body>
-    <header>
-        <a href="/" class="brand">
-            {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}">
-            {% else %}<h1>{{ site.title }}</h1>{% endif %}
+<body class="bg-piper-dark text-slate-300 min-h-screen font-sans">
+    <header class="bg-piper-card border-b border-slate-700 px-8 py-4 flex justify-between items-center">
+        <a href="/" class="flex items-center gap-3 no-underline text-inherit">
+            {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}" class="h-8">
+            {% else %}<h1 class="text-xl font-bold text-white">{{ site.title }}</h1>{% endif %}
         </a>
-        <nav>
-            <a href="/"{% if current_page == "records" %} class="active"{% endif %}>Records</a>
-            <a href="/timeline"{% if current_page == "timeline" %} class="active"{% endif %}>Timeline</a>
-            <a href="/graph"{% if current_page == "graph" %} class="active"{% endif %}>Graph</a>
-            <a href="/stats"{% if current_page == "stats" %} class="active"{% endif %}>Stats</a>
+        <nav class="flex gap-1">
+            <a href="/" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "records" %} bg-piper-accent text-white{% endif %}">Records</a>
+            <a href="/timeline" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "timeline" %} bg-piper-accent text-white{% endif %}">Timeline</a>
+            <a href="/graph" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "graph" %} bg-piper-accent text-white{% endif %}">Graph</a>
+            <a href="/stats" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "stats" %} bg-piper-accent text-white{% endif %}">Stats</a>
         </nav>
     </header>
-    <main>
+    <main class="max-w-5xl mx-auto px-8 py-8">
         {% block content %}{% endblock %}
     </main>
     {% if site.footer %}
-    <footer>{{ site.footer }} ©</footer>
+    <footer class="text-center py-8 text-slate-500 text-sm">{{ site.footer }} ©</footer>
     {% endif %}
     {% block scripts %}{% endblock %}
     <script>
@@ -323,35 +149,44 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block title %}Records - {{ site.title }}{% endblock %}
 
-{% block content %}
-<input type="text" class="search-box" placeholder="Search records..." id="search">
+{% block head %}
+<style>
+    .filter-btn.active { background: #007c43; border-color: #007c43; color: white; }
+</style>
+{% endblock %}
 
-<div class="filter-bar">
-    <button class="filter-btn active" data-type="all">All</button>
+{% block content %}
+<input type="text" class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-piper-card text-slate-300 mb-6 focus:outline-none focus:border-piper-accent" placeholder="Search records..." id="search">
+
+<div class="flex gap-2 mb-6 flex-wrap">
+    <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors active" data-type="all">All</button>
     {% for rt in record_types %}
-    <button class="filter-btn" data-type="{{ rt.code }}">{{ rt.display }}</button>
+    <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" data-type="{{ rt.code }}">{{ rt.display }}</button>
     {% endfor %}
-    <button id="sort" class="filter-btn" style="margin-left: auto;" title="Core First">&#9733;</button>
+    <button id="sort" class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors ml-auto" title="Core First">★</button>
 </div>
 
-<div id="records">
+<div id="records" class="space-y-3">
 {% for record in records %}
-<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}">
-    <div class="card-header">
-        <div>
-            <a href="/records/{{ record.id }}" class="card-id">{{ record.id }}</a>
-            {% if record.foundational %}<span class="badge" style="background: gold; color: #000;">CORE</span>{% endif %}
+<a href="/records/{{ record.id }}" class="card block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-yellow-500{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}">
+    <div class="flex justify-between items-start mb-2">
+        <div class="flex items-center gap-2">
+            <span class="font-mono text-sm font-medium text-piper-light">{{ record.id }}</span>
+            {% if record.foundational %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">CORE</span>{% endif %}
         </div>
-        <span class="badge {{ record.status }}">{{ record.status }}</span>
+        <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase {% if record.status == 'accepted' or record.status == 'active' %}bg-green-900/30 text-green-500{% elif record.status == 'proposed' or record.status == 'draft' %}bg-yellow-900/30 text-yellow-500{% elif record.status == 'open' %}bg-red-900/30 text-red-500{% elif record.status == 'resolved' %}bg-blue-900/30 text-blue-500{% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
     </div>
-    <a href="/records/{{ record.id }}" class="card-title">{{ record.title }}</a>
-    <div class="card-meta">
-        {{ record.type_display }} | {{ record.created }}
+    <div class="text-lg font-semibold text-slate-200 hover:text-white mb-1">{{ record.title }}</div>
+    <div class="text-sm text-slate-500 flex items-center gap-2">
+        <span>{{ record.type_display }}</span>
+        <span class="text-slate-600">·</span>
+        <span>{{ record.created }}</span>
         {% if record.tags %}
-        | {% for tag in record.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
+        <span class="text-slate-600">·</span>
+        {% for tag in record.tags %}<span class="px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400 font-mono">#{{ tag }}</span>{% endfor %}
         {% endif %}
     </div>
-</div>
+</a>
 {% endfor %}
 </div>
 {% endblock %}
@@ -466,43 +301,94 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}{{ record.id }} - {{ site.title }}{% endblock %}
 
 {% block content %}
-<nav style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-dim);">
-    <a href="/">Records</a> <span style="margin: 0 0.35rem;">›</span> <span>{{ record.id }}</span>
-</nav>
-<div class="card detail-card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}">
-    <div class="card-header">
-        <div>
-            <span class="card-id">{{ record.id }}</span>
-            {% if record.foundational %}<span class="badge" style="background: gold; color: #000;">FOUNDATIONAL</span>{% endif %}
+<div class="w-full bg-piper-card border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+    <!-- Accent bar -->
+    <div class="h-1.5 w-full bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+
+    <div class="p-8 pb-4">
+        <!-- Header row -->
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+                <span class="font-mono text-sm font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                    {{ record.id }}
+                </span>
+                {% if record.foundational %}
+                <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-900/30 border border-yellow-800/30 text-yellow-500 text-xs font-semibold uppercase tracking-wide">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    CORE
+                </span>
+                {% endif %}
+                <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-piper-accent/10 border border-piper-accent/30 text-piper-light text-xs font-semibold uppercase tracking-wide">
+                    <span class="w-2 h-2 rounded-full bg-piper-light {% if record.status == 'accepted' or record.status == 'active' %}animate-pulse{% endif %}"></span>
+                    {{ record.status }}
+                </span>
+            </div>
+            <div class="flex gap-2">
+                <a href="/graph?focus={{ record.id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="View Graph">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </a>
+            </div>
         </div>
-        <span class="badge {{ record.status }}">{{ record.status }}</span>
+
+        <!-- Title -->
+        <h1 class="text-3xl font-bold text-white mb-4 leading-tight">{{ record.title }}</h1>
+
+        <!-- Meta row -->
+        <div class="flex flex-wrap items-center gap-6 text-sm text-slate-400 border-b border-slate-700/50 pb-6">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span>{{ record.created }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">{{ record.type_display }}</span>
+            </div>
+            {% if record.authors %}
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
+                <span class="text-slate-300">{{ record.authors | join(", ") }}</span>
+            </div>
+            {% endif %}
+            {% if record.tags %}
+            <div class="flex gap-2 ml-auto">
+                {% for tag in record.tags %}
+                <span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 font-mono hover:bg-slate-700 cursor-pointer">#{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Content preview -->
+        <div class="mt-6 text-slate-300 leading-relaxed max-w-3xl content">
+            {{ record.content_html | safe }}
+        </div>
     </div>
-    <h2 class="card-title">{{ record.title }}</h2>
-    <div class="card-meta">
-        {{ record.type_display }} · {{ record.created }}
-        {% if record.authors %} · {{ record.authors | join(", ") }}{% endif %}
-    </div>
-    {% if record.tags %}
-    <div style="margin-top: 0.75rem;">
-        {% for tag in record.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
-    </div>
-    {% endif %}
 
     {% if record.links %}
-    <div class="links">
-        <div class="links-title">Connections</div>
-        {% for link in record.links %}
-        <a href="/records/{{ link.target }}" class="link-card">
-            <span class="link-rel">{{ link.type }}</span>
-            <span class="link-id">{{ link.target }}</span>
-        </a>
-        {% endfor %}
+    <!-- Connections section -->
+    <div class="bg-slate-800/30 border-t border-slate-700 p-8">
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 font-mono">Decision Graph Connections</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for link in record.links %}
+            <a href="/records/{{ link.target }}" class="group block p-4 bg-slate-800 border border-slate-700 rounded-xl hover:border-piper-light/50 hover:bg-slate-700/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-mono text-xs text-piper-light font-medium">{{ link.target }}</span>
+                    <span class="text-[10px] uppercase font-bold text-slate-500 border border-slate-600 px-1 rounded">{{ link.type }}</span>
+                </div>
+                {% if link.title %}
+                <div class="font-semibold text-slate-200 group-hover:text-white">{{ link.title }}</div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
-</div>
 
-<div class="content">
-    {{ record.content_html | safe }}
+    <!-- Footer -->
+    <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500 font-mono">
+        <span>{{ record.id }}</span>
+        {% if record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
+    </div>
 </div>
 {% endblock %}
 "##;
@@ -893,39 +779,39 @@ const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}Stats - {{ site.title }}{% endblock %}
 
 {% block content %}
-<h2 style="margin-bottom: 1.5rem;">Statistics</h2>
+<h2 class="text-2xl font-bold text-white mb-6">Statistics</h2>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-value">{{ stats.total_records }}</div>
-        <div class="stat-label">Total Records</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="bg-piper-card border border-slate-700 rounded-xl p-6 text-center">
+        <div class="text-4xl font-bold text-piper-light">{{ stats.total_records }}</div>
+        <div class="text-slate-400 mt-1">Total Records</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-value">{{ stats.total_edges }}</div>
-        <div class="stat-label">Total Links</div>
+    <div class="bg-piper-card border border-slate-700 rounded-xl p-6 text-center">
+        <div class="text-4xl font-bold text-piper-light">{{ stats.total_edges }}</div>
+        <div class="text-slate-400 mt-1">Total Links</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-value">{{ stats.foundational }}</div>
-        <div class="stat-label">Foundational</div>
+    <div class="bg-piper-card border border-slate-700 rounded-xl p-6 text-center">
+        <div class="text-4xl font-bold text-yellow-500">{{ stats.foundational }}</div>
+        <div class="text-slate-400 mt-1">Core Records</div>
     </div>
 </div>
 
-<h3 style="margin: 2rem 0 1rem;">By Type</h3>
-<div class="stats-grid">
+<h3 class="text-lg font-semibold text-white mb-4">By Type</h3>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-8">
     {% for item in stats.by_type %}
-    <a href="/?type={{ item.type }}" class="stat-card stat-link">
-        <div class="stat-value">{{ item.count }}</div>
-        <div class="stat-label">{{ item.type_display }}</div>
+    <a href="/?type={{ item.type }}" class="bg-piper-card border border-slate-700 rounded-xl p-4 text-center hover:border-piper-light/50 hover:-translate-y-0.5 transition-all">
+        <div class="text-2xl font-bold text-piper-light">{{ item.count }}</div>
+        <div class="text-slate-400 text-sm">{{ item.type_display }}</div>
     </a>
     {% endfor %}
 </div>
 
-<h3 style="margin: 2rem 0 1rem;">By Status</h3>
-<div class="stats-grid">
+<h3 class="text-lg font-semibold text-white mb-4">By Status</h3>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
     {% for item in stats.by_status %}
-    <a href="/?status={{ item.status }}" class="stat-card stat-link">
-        <div class="stat-value">{{ item.count }}</div>
-        <div class="stat-label">{{ item.status }}</div>
+    <a href="/?status={{ item.status }}" class="bg-piper-card border border-slate-700 rounded-xl p-4 text-center hover:border-piper-light/50 hover:-translate-y-0.5 transition-all">
+        <div class="text-2xl font-bold text-piper-light">{{ item.count }}</div>
+        <div class="text-slate-400 text-sm capitalize">{{ item.status }}</div>
     </a>
     {% endfor %}
 </div>

@@ -123,6 +123,23 @@ cargo clippy      # Lint
 cargo build --release  # Build CLI
 ```
 
+## Asset Setup
+
+Fonts are managed via Nix (inter, jetbrains-mono packages). They're copied automatically when entering devenv shell.
+
+```bash
+# Enter devenv shell (fonts copied automatically)
+devenv shell
+
+# Build CSS
+css-build
+
+# Or build everything (CSS + release binary)
+build-all
+```
+
+Fonts used: Inter (UI), JetBrains Mono (code). Licensed under SIL OFL 1.1.
+
 ## Frontend Development
 
 When working on `src/serve/templates.rs` or any HTML/CSS, follow the guidelines in `.claude/skills/frontend/skill.md`. Key points:

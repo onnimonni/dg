@@ -35,3 +35,6 @@ devenv.local.yaml
 # Claude settings generated directly from devenv.nix
 .claude/commands/
 .claude/settings.json
+
+# Generated CSS (rebuild with: css-build)
+src/serve/static/tailwind.css
