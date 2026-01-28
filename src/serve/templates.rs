@@ -134,6 +134,8 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         }
         .stat-value { font-size: 2rem; font-weight: bold; color: var(--accent); }
         .stat-label { color: var(--text-dim); }
+        .stat-link { text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
+        .stat-link:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
         .graph-container { background: var(--surface); border-radius: 8px; padding: 1rem; min-height: 500px; }
         .content { background: var(--surface); border-radius: 8px; padding: 2rem; margin-top: 1rem; max-width: 48rem; line-height: 1.75; }
         .content h1 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--text); }
@@ -334,7 +336,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div id="records">
 {% for record in records %}
-<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}">
+<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}">
     <div class="card-header">
         <div>
             <a href="/records/{{ record.id }}" class="card-id">{{ record.id }}</a>
@@ -361,6 +363,7 @@ const recordsContainer = document.getElementById('records');
 const filters = document.querySelectorAll('.filter-btn');
 const sortBtn = document.getElementById('sort');
 let activeType = 'all';
+let activeStatus = 'all';
 let sortMode = 'default'; // default -> newest -> oldest -> default
 
 const sortModes = {
@@ -374,6 +377,7 @@ function updateUrl() {
     const params = new URLSearchParams();
     if (search.value) params.set('q', search.value);
     if (activeType !== 'all') params.set('type', activeType);
+    if (activeStatus !== 'all') params.set('status', activeStatus);
     if (sortMode !== 'default') params.set('sort', sortMode);
     const url = params.toString() ? '?' + params.toString() : '/';
     history.replaceState(null, '', url);
@@ -389,6 +393,9 @@ function loadFromUrl() {
                 b.classList.toggle('active', b.dataset.type === activeType);
             }
         });
+    }
+    if (params.get('status')) {
+        activeStatus = params.get('status');
     }
     if (params.get('sort') && sortModes[params.get('sort')]) {
         sortMode = params.get('sort');
@@ -423,8 +430,9 @@ function filterRecords() {
     const query = search.value.toLowerCase();
     document.querySelectorAll('.card').forEach(r => {
         const matchesType = activeType === 'all' || r.dataset.type === activeType;
+        const matchesStatus = activeStatus === 'all' || r.dataset.status === activeStatus;
         const matchesQuery = !query || r.textContent.toLowerCase().includes(query);
-        r.style.display = matchesType && matchesQuery ? 'block' : 'none';
+        r.style.display = matchesType && matchesStatus && matchesQuery ? 'block' : 'none';
     });
 }
 
@@ -905,20 +913,20 @@ const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
 <h3 style="margin: 2rem 0 1rem;">By Type</h3>
 <div class="stats-grid">
     {% for item in stats.by_type %}
-    <div class="stat-card">
+    <a href="/?type={{ item.type }}" class="stat-card stat-link">
         <div class="stat-value">{{ item.count }}</div>
         <div class="stat-label">{{ item.type_display }}</div>
-    </div>
+    </a>
     {% endfor %}
 </div>
 
 <h3 style="margin: 2rem 0 1rem;">By Status</h3>
 <div class="stats-grid">
     {% for item in stats.by_status %}
-    <div class="stat-card">
+    <a href="/?status={{ item.status }}" class="stat-card stat-link">
         <div class="stat-value">{{ item.count }}</div>
         <div class="stat-label">{{ item.status }}</div>
-    </div>
+    </a>
     {% endfor %}
 </div>
 {% endblock %}
