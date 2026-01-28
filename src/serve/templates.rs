@@ -148,6 +148,7 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         </a>
         <nav>
             <a href="/"{% if current_page == "records" %} class="active"{% endif %}>Records</a>
+            <a href="/timeline"{% if current_page == "timeline" %} class="active"{% endif %}>Timeline</a>
             <a href="/graph"{% if current_page == "graph" %} class="active"{% endif %}>Graph</a>
             <a href="/stats"{% if current_page == "stats" %} class="active"{% endif %}>Stats</a>
         </nav>
@@ -383,6 +384,255 @@ function dragended(e) { if (!e.active) simulation.alphaTarget(0); e.subject.fx =
 {% endblock %}
 "##;
 
+const TIMELINE_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}Timeline - {{ site.title }}{% endblock %}
+
+{% block head %}
+<style>
+    .timeline-container {
+        position: relative;
+        padding: 2rem 0;
+        overflow-x: auto;
+    }
+    .timeline-svg {
+        display: block;
+        margin: 0 auto;
+    }
+    .timeline-node {
+        cursor: pointer;
+        transition: transform 0.15s;
+    }
+    .timeline-node:hover {
+        transform: scale(1.1);
+    }
+    .timeline-node text {
+        pointer-events: none;
+    }
+    .year-label {
+        fill: var(--text-dim);
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .year-line {
+        stroke: var(--primary);
+        stroke-width: 1;
+        stroke-dasharray: 4,4;
+    }
+    .dependency-line {
+        fill: none;
+        stroke-width: 2;
+        opacity: 0.6;
+    }
+    .trunk-line {
+        stroke: var(--text-dim);
+        stroke-width: 3;
+    }
+    .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        justify-content: center;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1rem; text-align: center;">Decision Timeline</h2>
+
+<div class="legend" id="legend"></div>
+
+<div class="timeline-container">
+    <svg id="timeline" class="timeline-svg"></svg>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const data = {{ timeline_data | safe }};
+const records = data.nodes;
+const edges = data.edges;
+
+// Type colors matching graph view
+const typeColors = {
+    DEC: '#4CAF50', STR: '#2196F3', POL: '#FF9800', CUS: '#9C27B0',
+    OPP: '#E91E63', PRC: '#00BCD4', HIR: '#795548', ADR: '#607D8B',
+    INC: '#F44336', RUN: '#8BC34A', MTG: '#03A9F4'
+};
+
+const typeNames = {
+    DEC: 'Decision', STR: 'Strategy', POL: 'Policy', CUS: 'Customer',
+    OPP: 'Opportunity', PRC: 'Process', HIR: 'Hiring', ADR: 'Architecture',
+    INC: 'Incident', RUN: 'Runbook', MTG: 'Meeting'
+};
+
+// Build legend
+const legend = document.getElementById('legend');
+const usedTypes = [...new Set(records.map(r => r.type))].sort();
+usedTypes.forEach(type => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-dot" style="background: ${typeColors[type] || '#666'}"></span><span>${typeNames[type] || type}</span>`;
+    legend.appendChild(item);
+});
+
+// Parse dates and sort
+records.forEach(r => {
+    r.date = new Date(r.created);
+    r.year = r.date.getFullYear();
+});
+records.sort((a, b) => a.date - b.date);
+
+// Get year range
+const minYear = Math.min(...records.map(r => r.year));
+const maxYear = Math.max(...records.map(r => r.year));
+const years = [];
+for (let y = minYear; y <= maxYear; y++) years.push(y);
+
+// Layout config
+const margin = { top: 60, right: 60, bottom: 40, left: 80 };
+const yearHeight = 180;
+const nodeRadius = 24;
+const height = margin.top + years.length * yearHeight + margin.bottom;
+
+// Assign lanes (columns) to avoid overlap - git-style
+const lanes = {};  // type -> lane index
+const typeOrder = ['DEC', 'STR', 'POL', 'ADR', 'INC', 'RUN', 'PRC', 'HIR', 'CUS', 'OPP', 'MTG'];
+typeOrder.forEach((t, i) => lanes[t] = i);
+
+// Get unique types in our data and assign lanes
+const dataTypes = [...new Set(records.map(r => r.type))];
+dataTypes.sort((a, b) => (typeOrder.indexOf(a) !== -1 ? typeOrder.indexOf(a) : 99) - (typeOrder.indexOf(b) !== -1 ? typeOrder.indexOf(b) : 99));
+dataTypes.forEach((t, i) => lanes[t] = i);
+
+const laneWidth = 70;
+const width = margin.left + (dataTypes.length) * laneWidth + margin.right;
+
+// Calculate positions
+records.forEach(r => {
+    const yearIndex = r.year - minYear;
+    const dayOfYear = (r.date - new Date(r.year, 0, 1)) / (1000 * 60 * 60 * 24);
+    const yearProgress = dayOfYear / 365;
+    r.y = margin.top + yearIndex * yearHeight + yearProgress * (yearHeight - 40) + 20;
+    r.x = margin.left + lanes[r.type] * laneWidth + laneWidth / 2;
+});
+
+// Build ID to record map
+const recordMap = {};
+records.forEach(r => recordMap[r.id] = r);
+
+// Create SVG
+const svg = document.getElementById('timeline');
+svg.setAttribute('width', width);
+svg.setAttribute('height', height);
+svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+// Draw year separators and labels
+years.forEach((year, i) => {
+    const y = margin.top + i * yearHeight;
+
+    // Year line
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', margin.left - 20);
+    line.setAttribute('y1', y);
+    line.setAttribute('x2', width - margin.right + 20);
+    line.setAttribute('y2', y);
+    line.setAttribute('class', 'year-line');
+    svg.appendChild(line);
+
+    // Year label
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', 20);
+    text.setAttribute('y', y + yearHeight / 2);
+    text.setAttribute('class', 'year-label');
+    text.textContent = year;
+    svg.appendChild(text);
+});
+
+// Draw trunk lines for each lane (vertical lines like git branches)
+dataTypes.forEach((type, i) => {
+    const x = margin.left + i * laneWidth + laneWidth / 2;
+    const typeRecords = records.filter(r => r.type === type);
+    if (typeRecords.length < 2) return;
+
+    const minY = Math.min(...typeRecords.map(r => r.y));
+    const maxY = Math.max(...typeRecords.map(r => r.y));
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x);
+    line.setAttribute('y1', minY);
+    line.setAttribute('x2', x);
+    line.setAttribute('y2', maxY);
+    line.setAttribute('stroke', typeColors[type] || '#666');
+    line.setAttribute('stroke-width', 2);
+    line.setAttribute('opacity', 0.3);
+    svg.appendChild(line);
+});
+
+// Draw dependency edges (curved lines like git merge)
+edges.forEach(edge => {
+    const source = recordMap[edge.source];
+    const target = recordMap[edge.target];
+    if (!source || !target) return;
+
+    // Draw curved path
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const midY = (source.y + target.y) / 2;
+    const d = `M ${source.x} ${source.y} C ${source.x} ${midY}, ${target.x} ${midY}, ${target.x} ${target.y}`;
+    path.setAttribute('d', d);
+    path.setAttribute('class', 'dependency-line');
+    path.setAttribute('stroke', typeColors[source.type] || '#666');
+    svg.appendChild(path);
+});
+
+// Draw nodes
+records.forEach(r => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'timeline-node');
+    g.setAttribute('transform', `translate(${r.x}, ${r.y})`);
+    g.onclick = () => window.location.href = '/records/' + r.id;
+
+    // Circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('r', nodeRadius);
+    circle.setAttribute('fill', typeColors[r.type] || '#666');
+    circle.setAttribute('stroke', r.foundational ? 'gold' : '#333');
+    circle.setAttribute('stroke-width', r.foundational ? 3 : 1);
+    g.appendChild(circle);
+
+    // ID text
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dy', 4);
+    text.setAttribute('fill', '#fff');
+    text.setAttribute('font-size', '9px');
+    text.setAttribute('font-family', 'monospace');
+    text.textContent = r.id;
+    g.appendChild(text);
+
+    // Title on hover
+    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    title.textContent = `${r.id}: ${r.title}\n${r.created}`;
+    g.appendChild(title);
+
+    svg.appendChild(g);
+});
+</script>
+{% endblock %}
+"##;
+
 const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block title %}Stats - {{ site.title }}{% endblock %}
@@ -434,5 +684,7 @@ pub fn create_environment() -> Environment<'static> {
     env.add_template("record.html", RECORD_TEMPLATE).unwrap();
     env.add_template("graph.html", GRAPH_TEMPLATE).unwrap();
     env.add_template("stats.html", STATS_TEMPLATE).unwrap();
+    env.add_template("timeline.html", TIMELINE_TEMPLATE)
+        .unwrap();
     env
 }

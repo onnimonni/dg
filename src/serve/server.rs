@@ -50,6 +50,7 @@ pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Re
     let app = Router::new()
         .route("/", get(index_handler))
         .route("/records/{id}", get(record_handler))
+        .route("/timeline", get(timeline_handler))
         .route("/graph", get(graph_page_handler))
         .route("/stats", get(stats_handler))
         .route("/api/records", get(api_records))
@@ -242,6 +243,52 @@ async fn graph_page_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
                 site => &state.site_config,
                 current_page => "graph",
                 graph_data => graph_data.to_string(),
+            }) {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Render error: {}", e),
+                )
+                    .into_response(),
+            }
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
+async fn timeline_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let graph = state.graph.read().await;
+    let env = create_environment();
+
+    let timeline_data = serde_json::json!({
+        "nodes": graph.all_records().map(|r| {
+            serde_json::json!({
+                "id": r.id(),
+                "title": r.title(),
+                "type": r.record_type().to_string(),
+                "created": r.frontmatter.created.to_string(),
+                "foundational": r.frontmatter.foundational,
+            })
+        }).collect::<Vec<_>>(),
+        "edges": graph.edges.iter().map(|e| {
+            serde_json::json!({
+                "source": e.from,
+                "target": e.to,
+                "type": e.link_type,
+            })
+        }).collect::<Vec<_>>(),
+    });
+
+    match env.get_template("timeline.html") {
+        Ok(tmpl) => {
+            match tmpl.render(context! {
+                site => &state.site_config,
+                current_page => "timeline",
+                timeline_data => timeline_data.to_string(),
             }) {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => (
