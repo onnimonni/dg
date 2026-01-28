@@ -11,11 +11,11 @@ foundational: true
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-001]
+  depends_on: [DEC-002]
   enables: [DEC-005]
   relates_to: []
   conflicts_with: []
-  refines: [DEC-001]
+  refines: [DEC-002]
   implements: []
 ---
 

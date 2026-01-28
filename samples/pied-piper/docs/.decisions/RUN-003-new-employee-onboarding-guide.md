@@ -10,7 +10,7 @@ tags: [onboarding, culture, documentation]
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-001, POL-001]
+  depends_on: [DEC-002, POL-001]
   enables: []
   relates_to: []
   conflicts_with: []
@@ -36,7 +36,7 @@ This shows our **foundational records**—the core beliefs that guide every deci
 
 | Record | What It Tells You |
 |--------|-------------------|
-| **DEC-001** | Why we exist (Anti-Hooli principle) |
+| **DEC-002** | Why we exist (Anti-Hooli principle) |
 | **ADR-001** | Our core technology (Middle-Out compression) |
 | **POL-001** | How we operate ethically (Tethics) |
 
@@ -72,7 +72,7 @@ dg why ADR-004  # Why did we build PiperNet?
 To see what depends on a decision:
 
 ```bash
-dg impact DEC-001  # What does Anti-Hooli enable?
+dg impact DEC-002  # What does Anti-Hooli enable?
 ```
 
 ## Using the Decision Graph Website
@@ -88,9 +88,9 @@ Visit our internal documentation site (built with `dg serve`):
 ### The Journey (2014-2019)
 
 ```
-2014 ─┬─ DEC-001: Anti-Hooli Principle (FOUNDATIONAL)
+2014 ─┬─ DEC-001: Peter Gregory Seed Funding
       │
-      ├─ DEC-003: Peter Gregory Seed Funding
+      ├─ DEC-002: Anti-Hooli Principle (FOUNDATIONAL)
       │
       ├─ ADR-001: Middle-Out Algorithm (FOUNDATIONAL)
       │
@@ -117,7 +117,7 @@ Visit our internal documentation site (built with `dg serve`):
 
 ### Key Lessons from Our History
 
-1. **Principles matter** — DEC-001 guided us even to company death
+1. **Principles matter** — DEC-002 guided us even to company death
 2. **Legal risks are real** — INC-001 nearly killed us
 3. **Regulatory compliance isn't optional** — INC-002 cost us everything
 4. **Technical excellence alone isn't enough** — We had the best tech but still failed

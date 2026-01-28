@@ -1,6 +1,6 @@
 ---
 type: decision
-id: DEC-002
+id: DEC-003
 title: "Data Privacy First - No Ad Mining"
 status: proposed
 created: 2014-05-15

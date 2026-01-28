@@ -1,10 +1,10 @@
 ---
 type: decision
-id: DEC-003
+id: DEC-001
 title: "Accept Peter Gregory Seed Funding"
-status: proposed
-created: 2014-04-10
-updated: 2014-04-15
+status: accepted
+created: 2014-04-06
+updated: 2014-04-06
 authors: []
 tags: []
 links:

@@ -10,12 +10,12 @@ tags: [ethics, final-decision, tethics, security]
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-001, POL-001, INC-004]
+  depends_on: [DEC-002, POL-001, INC-004]
   enables: []
   relates_to: [ADR-004]
   conflicts_with: []
   refines: []
-  implements: [DEC-001, POL-001]
+  implements: [DEC-002, POL-001]
 ---
 
 # Sabotage PiperNet Launch to Save the World

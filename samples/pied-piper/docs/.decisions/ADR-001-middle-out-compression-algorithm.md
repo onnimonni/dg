@@ -11,7 +11,7 @@ foundational: true
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-001]
+  depends_on: [DEC-002]
   enables: [ADR-002, ADR-003, ADR-004]
   relates_to: [INC-001]
   conflicts_with: []

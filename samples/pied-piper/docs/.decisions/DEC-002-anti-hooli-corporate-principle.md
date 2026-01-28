@@ -1,10 +1,10 @@
 ---
 type: decision
-id: DEC-001
+id: DEC-002
 title: "Anti-Hooli Corporate Principle"
 status: accepted
-created: 2014-04-01
-updated: 2014-04-01
+created: 2014-04-13
+updated: 2014-04-13
 authors: ["Richard Hendricks"]
 tags: [foundational, culture, ethics]
 foundational: true
@@ -12,7 +12,7 @@ links:
   supersedes: []
   superseded_by: []
   depends_on: []
-  enables: [DEC-002, POL-001]
+  enables: [DEC-003, POL-001]
   relates_to: []
   conflicts_with: []
   refines: []

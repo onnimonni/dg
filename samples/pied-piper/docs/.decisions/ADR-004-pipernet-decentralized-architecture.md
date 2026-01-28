@@ -10,12 +10,12 @@ tags: [architecture, decentralized, p2p, web3]
 links:
   supersedes: [ADR-002, ADR-003]
   superseded_by: []
-  depends_on: [ADR-001, DEC-001]
+  depends_on: [ADR-001, DEC-002]
   enables: [ADR-005, RUN-002]
   relates_to: [INC-003, INC-004]
   conflicts_with: []
   refines: []
-  implements: [DEC-001]
+  implements: [DEC-002]
 ---
 
 # PiperNet Decentralized Architecture
