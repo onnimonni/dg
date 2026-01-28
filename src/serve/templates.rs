@@ -34,6 +34,13 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             --success: #4CAF50;
             --warning: #FF9800;
         }
+        /* Author tooltip - hidden by default, shown via JS */
+        .author-tooltip {
+            display: none !important;
+        }
+        .author-tooltip.show {
+            display: block !important;
+        }
         {{ site.custom_css | default(value="") | safe }}
     </style>
     <script defer src="/static/katex.min.js"></script>
@@ -140,6 +147,19 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
     }
 
     document.addEventListener('DOMContentLoaded', linkifyRecordIds);
+
+    // Author tooltip hover handling
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.author-avatar').forEach(avatar => {
+            const tooltip = avatar.nextElementSibling;
+            if (tooltip && tooltip.classList.contains('author-tooltip')) {
+                avatar.addEventListener('mouseenter', () => tooltip.classList.add('show'));
+                avatar.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+                tooltip.addEventListener('mouseenter', () => tooltip.classList.add('show'));
+                tooltip.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+            }
+        });
+    });
     </script>
 </body>
 </html>
@@ -350,10 +370,11 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
                 <div class="flex -space-x-2">
                     {% for author in record.resolved_authors %}
-                    <div class="relative group">
-                        <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="w-8 h-8 rounded-full border-2 border-slate-800 bg-piper-accent" title="{{ author.name }}">
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                            {{ author.name }}{% if author.email %} &lt;{{ author.email }}&gt;{% endif %}
+                    <div class="relative">
+                        <img src="{{ author.avatar_url }}" alt="" class="author-avatar w-8 h-8 rounded-full border-2 border-slate-800 bg-piper-accent hover:border-piper-accent transition-colors cursor-pointer">
+                        <div class="author-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 whitespace-nowrap z-50 shadow-lg">
+                            <div class="font-medium">{{ author.name }}</div>
+                            {% if author.email %}<div class="text-slate-400">{{ author.email }}</div>{% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -877,12 +898,12 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block head %}
 <style>
-    .editor-container {
+    .editor-layout {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
-        height: calc(100vh - 200px);
-        min-height: 500px;
+        height: calc(100vh - 280px);
+        min-height: 400px;
     }
     .editor-pane {
         display: flex;
@@ -900,24 +921,61 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
     .preview-pane {
         overflow-y: auto;
     }
-    .preview-content {
-        font-family: 'Inter', system-ui, sans-serif;
-    }
     @media (max-width: 768px) {
-        .editor-container {
+        .editor-layout {
             grid-template-columns: 1fr;
             grid-template-rows: 1fr 1fr;
         }
     }
-    /* Syntax highlighting for frontmatter */
-    .frontmatter-indicator {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 4px;
-        background: linear-gradient(to bottom, #007c43 0%, #007c43 var(--fm-height, 0%), transparent var(--fm-height, 0%));
-        height: 100%;
-        pointer-events: none;
+    .field-input {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        color: #e2e8f0;
+        font-size: 0.875rem;
+        width: 100%;
+        transition: border-color 0.2s;
+    }
+    .field-input:focus {
+        outline: none;
+        border-color: #007c43;
+    }
+    .field-input::placeholder {
+        color: #64748b;
+    }
+    select.field-input {
+        cursor: pointer;
+    }
+    .tag-input {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        min-height: 42px;
+        align-items: center;
+    }
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: #334155;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+    .tag button {
+        color: #64748b;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .tag button:hover {
+        color: #ef4444;
+    }
+    .metadata-toggle {
+        cursor: pointer;
+        user-select: none;
     }
 </style>
 {% endblock %}
@@ -925,14 +983,14 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block content %}
 <div class="w-full">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-center mb-4">
         <div class="flex items-center gap-4">
-            <a href="/records/{{ record_id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Back to record">
+            <a href="/records/{{ record_id }}" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Back">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             </a>
             <div>
-                <h1 class="text-2xl font-bold text-white">Edit {{ record_id }}</h1>
-                <p class="text-slate-400 text-sm">{{ record_title }}</p>
+                <h1 class="text-2xl font-bold text-white">Edit <span id="displayId">{{ record_id }}</span></h1>
+                <p class="text-slate-400 text-sm" id="displayTitle">{{ record_title }}</p>
             </div>
         </div>
         <div class="flex gap-3">
@@ -940,174 +998,369 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 Save
             </button>
-            <a href="/records/{{ record_id }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors">
-                Cancel
-            </a>
+            <a href="/records/{{ record_id }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors">Cancel</a>
         </div>
     </div>
 
     <!-- Status bar -->
     <div id="statusBar" class="mb-4 px-4 py-2 rounded-lg text-sm hidden"></div>
 
-    <!-- Editor -->
-    <div class="editor-container">
-        <!-- Markdown Editor -->
-        <div class="editor-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
-            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
-                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Markdown</span>
-                <span id="cursorPos" class="text-xs text-slate-500 font-mono">Ln 1, Col 1</span>
+    <!-- Metadata Section -->
+    <div class="bg-piper-card border border-slate-700 rounded-xl mb-4 overflow-hidden">
+        <div class="metadata-toggle px-4 py-3 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center" onclick="toggleMetadata()">
+            <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Metadata</span>
+            <svg id="metadataChevron" class="w-4 h-4 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+        <div id="metadataFields" class="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-xs text-slate-500 mb-1">Title</label>
+                <input type="text" id="fieldTitle" class="field-input" placeholder="Record title">
             </div>
-            <div class="relative flex-1 flex">
-                <textarea
-                    id="editor"
-                    class="w-full p-4 bg-transparent text-slate-200 border-none outline-none"
-                    spellcheck="false"
-                    placeholder="Enter markdown content..."
-                >{{ raw_content }}</textarea>
+            <div>
+                <label class="block text-xs text-slate-500 mb-1">Status</label>
+                <select id="fieldStatus" class="field-input">
+                    <option value="proposed">Proposed</option>
+                    <option value="draft">Draft</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="active">Active</option>
+                    <option value="deprecated">Deprecated</option>
+                    <option value="superseded">Superseded</option>
+                    <option value="open">Open</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-500 mb-1">Authors</label>
+                <div id="authorsContainer" class="field-input tag-input">
+                    <input type="text" id="authorInput" class="bg-transparent border-none outline-none text-sm flex-1 min-w-[80px]" placeholder="Add author...">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-500 mb-1">Tags</label>
+                <div id="tagsContainer" class="field-input tag-input">
+                    <input type="text" id="tagInput" class="bg-transparent border-none outline-none text-sm flex-1 min-w-[80px]" placeholder="Add tag...">
+                </div>
+            </div>
+            <div class="col-span-2">
+                <label class="block text-xs text-slate-500 mb-1">
+                    <input type="checkbox" id="fieldFoundational" class="mr-2 rounded">
+                    Mark as foundational (CORE)
+                </label>
             </div>
         </div>
+    </div>
 
-        <!-- Preview -->
+    <!-- Editor -->
+    <div class="editor-layout">
+        <div class="editor-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+            <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Content</span>
+                <span id="cursorPos" class="text-xs text-slate-500 font-mono">Ln 1, Col 1</span>
+            </div>
+            <textarea id="editor" class="w-full p-4 bg-transparent text-slate-200 border-none outline-none flex-1" spellcheck="false" placeholder="Write your content here..."></textarea>
+        </div>
         <div class="editor-pane preview-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
             <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Preview</span>
             </div>
-            <div id="preview" class="preview-content p-4 text-slate-300 content"></div>
+            <div id="preview" class="p-4 text-slate-300 content overflow-y-auto"></div>
         </div>
     </div>
 
-    <!-- Keyboard shortcuts help -->
     <div class="mt-4 text-xs text-slate-500 flex gap-6">
-        <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">S</kbd> Save</span>
+        <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Ctrl</kbd>+<kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">S</kbd> Save</span>
         <span><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700">Esc</kbd> Cancel</span>
     </div>
 </div>
+
+<!-- Hidden field for raw content -->
+<textarea id="rawContent" style="display:none">{{ raw_content }}</textarea>
 {% endblock %}
 
 {% block scripts %}
 <script>
+const recordId = '{{ record_id }}';
 const editor = document.getElementById('editor');
 const preview = document.getElementById('preview');
 const saveBtn = document.getElementById('saveBtn');
 const statusBar = document.getElementById('statusBar');
 const cursorPos = document.getElementById('cursorPos');
-const recordId = '{{ record_id }}';
+const rawContent = document.getElementById('rawContent').value;
 
-let originalContent = editor.value;
+// Form fields
+const fieldTitle = document.getElementById('fieldTitle');
+const fieldStatus = document.getElementById('fieldStatus');
+const fieldFoundational = document.getElementById('fieldFoundational');
+const authorInput = document.getElementById('authorInput');
+const tagInput = document.getElementById('tagInput');
+const authorsContainer = document.getElementById('authorsContainer');
+const tagsContainer = document.getElementById('tagsContainer');
+
+let frontmatter = {};
+let authors = [];
+let tags = [];
+let links = {};
+let originalFull = rawContent;
 let isDirty = false;
 
-// Simple markdown to HTML converter (basic)
-function renderMarkdown(md) {
-    // Remove frontmatter for preview
-    let content = md;
-    if (content.startsWith('---')) {
-        const endIndex = content.indexOf('---', 3);
-        if (endIndex !== -1) {
-            content = content.substring(endIndex + 3).trim();
+// Parse frontmatter from raw content
+function parseFrontmatter(content) {
+    if (!content.startsWith('---')) return { frontmatter: {}, body: content };
+    const endIdx = content.indexOf('---', 3);
+    if (endIdx === -1) return { frontmatter: {}, body: content };
+
+    const yamlStr = content.substring(3, endIdx).trim();
+    const body = content.substring(endIdx + 3).trim();
+
+    // Simple YAML parser for our use case
+    const fm = {};
+    const lines = yamlStr.split('\n');
+    let currentKey = null;
+    let inArray = false;
+    let arrayKey = null;
+    let inLinks = false;
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        if (line.startsWith('  ') && inLinks) {
+            // Links sub-key
+            const match = trimmed.match(/^(\w+):\s*\[(.*)\]$/);
+            if (match) {
+                if (!fm.links) fm.links = {};
+                fm.links[match[1]] = match[2] ? match[2].split(',').map(s => s.trim()) : [];
+            }
+            continue;
+        }
+
+        inLinks = false;
+        const colonIdx = trimmed.indexOf(':');
+        if (colonIdx === -1) continue;
+
+        const key = trimmed.substring(0, colonIdx).trim();
+        let value = trimmed.substring(colonIdx + 1).trim();
+
+        if (key === 'links') {
+            inLinks = true;
+            fm.links = {};
+            continue;
+        }
+
+        // Handle arrays like [a, b, c]
+        if (value.startsWith('[') && value.endsWith(']')) {
+            const inner = value.slice(1, -1);
+            fm[key] = inner ? inner.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')) : [];
+        } else if (value === 'true') {
+            fm[key] = true;
+        } else if (value === 'false') {
+            fm[key] = false;
+        } else {
+            // Remove quotes
+            fm[key] = value.replace(/^["']|["']$/g, '');
         }
     }
 
-    // Basic markdown rendering
-    let html = content
-        // Code blocks
+    return { frontmatter: fm, body };
+}
+
+// Initialize from raw content
+function initFromRaw() {
+    const { frontmatter: fm, body } = parseFrontmatter(rawContent);
+    frontmatter = fm;
+
+    fieldTitle.value = fm.title || '';
+    fieldStatus.value = fm.status || 'proposed';
+    fieldFoundational.checked = fm.foundational || false;
+
+    authors = fm.authors || [];
+    tags = fm.tags || [];
+    links = fm.links || {};
+
+    renderAuthors();
+    renderTags();
+    editor.value = body;
+    updatePreview();
+}
+
+function renderAuthors() {
+    // Clear existing tags (keep input)
+    authorsContainer.querySelectorAll('.tag').forEach(t => t.remove());
+    authors.forEach((a, i) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.innerHTML = `${a}<button onclick="removeAuthor(${i})">&times;</button>`;
+        authorsContainer.insertBefore(tag, authorInput);
+    });
+}
+
+function renderTags() {
+    tagsContainer.querySelectorAll('.tag').forEach(t => t.remove());
+    tags.forEach((t, i) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.innerHTML = `#${t}<button onclick="removeTag(${i})">&times;</button>`;
+        tagsContainer.insertBefore(tag, tagInput);
+    });
+}
+
+function removeAuthor(idx) {
+    authors.splice(idx, 1);
+    renderAuthors();
+    markDirty();
+}
+
+function removeTag(idx) {
+    tags.splice(idx, 1);
+    renderTags();
+    markDirty();
+}
+
+authorInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = authorInput.value.trim().replace(',', '');
+        if (val && !authors.includes(val)) {
+            authors.push(val);
+            renderAuthors();
+            markDirty();
+        }
+        authorInput.value = '';
+    }
+    if (e.key === 'Backspace' && !authorInput.value && authors.length) {
+        authors.pop();
+        renderAuthors();
+        markDirty();
+    }
+});
+
+tagInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = tagInput.value.trim().replace(',', '').replace('#', '');
+        if (val && !tags.includes(val)) {
+            tags.push(val);
+            renderTags();
+            markDirty();
+        }
+        tagInput.value = '';
+    }
+    if (e.key === 'Backspace' && !tagInput.value && tags.length) {
+        tags.pop();
+        renderTags();
+        markDirty();
+    }
+});
+
+function toggleMetadata() {
+    const fields = document.getElementById('metadataFields');
+    const chevron = document.getElementById('metadataChevron');
+    fields.classList.toggle('hidden');
+    chevron.style.transform = fields.classList.contains('hidden') ? 'rotate(-90deg)' : '';
+}
+
+function buildFullContent() {
+    const fm = {
+        type: frontmatter.type || 'decision',
+        id: frontmatter.id || recordId,
+        title: fieldTitle.value,
+        status: fieldStatus.value,
+        created: frontmatter.created || new Date().toISOString().split('T')[0],
+        updated: new Date().toISOString().split('T')[0],
+        authors: authors,
+        tags: tags,
+        foundational: fieldFoundational.checked || undefined,
+        links: links
+    };
+
+    // Build YAML
+    let yaml = '---\n';
+    yaml += `type: ${fm.type}\n`;
+    yaml += `id: ${fm.id}\n`;
+    yaml += `title: ${fm.title.includes(':') ? `"${fm.title}"` : fm.title}\n`;
+    yaml += `status: ${fm.status}\n`;
+    yaml += `created: ${fm.created}\n`;
+    yaml += `updated: ${fm.updated}\n`;
+    yaml += `authors: [${fm.authors.join(', ')}]\n`;
+    yaml += `tags: [${fm.tags.join(', ')}]\n`;
+    if (fm.foundational) yaml += `foundational: true\n`;
+    yaml += `links:\n`;
+    for (const [k, v] of Object.entries(fm.links)) {
+        yaml += `  ${k}: [${(v || []).join(', ')}]\n`;
+    }
+    yaml += '---\n\n';
+
+    return yaml + editor.value;
+}
+
+function renderMarkdown(md) {
+    let html = md
         .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-slate-800 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>')
-        // Inline code
         .replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-1.5 py-0.5 rounded text-piper-light">$1</code>')
-        // Headers
         .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-white mt-6 mb-2">$1</h3>')
         .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-8 mb-3 pb-2 border-b border-slate-700">$1</h2>')
         .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-white mt-6 mb-4">$1</h1>')
-        // Bold and italic
         .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
         .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        // Links
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-piper-light hover:underline">$1</a>')
-        // Lists
+        .replace(/^- \[x\] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" checked disabled> <span class="line-through text-slate-500">$1</span></li>')
+        .replace(/^- \[ \] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" disabled> $1</li>')
         .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
-        .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4">$2</li>')
-        // Task lists
-        .replace(/^- \[x\] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" checked disabled class="rounded"> <span class="line-through text-slate-500">$1</span></li>')
-        .replace(/^- \[ \] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" disabled class="rounded"> $1</li>')
-        // Tables (basic)
-        .replace(/^\|(.+)\|$/gm, (match, content) => {
-            const cells = content.split('|').map(c => c.trim());
-            if (cells.every(c => c.match(/^[-:]+$/))) {
-                return ''; // Skip separator row
-            }
-            const cellHtml = cells.map(c => `<td class="border border-slate-700 px-3 py-2">${c}</td>`).join('');
-            return `<tr>${cellHtml}</tr>`;
-        })
-        // Blockquotes
         .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-piper-accent pl-4 my-4 text-slate-400 italic">$1</blockquote>')
-        // Horizontal rules
-        .replace(/^---$/gm, '<hr class="border-slate-700 my-6">')
-        // Paragraphs
         .replace(/\n\n/g, '</p><p class="my-4">')
         .replace(/\n/g, '<br>');
-
-    // Wrap in paragraph
     html = '<p class="my-4">' + html + '</p>';
-
-    // Wrap tables
-    html = html.replace(/(<tr>[\s\S]*?<\/tr>)+/g, '<table class="w-full border-collapse my-4">$&</table>');
-
-    // Wrap lists
     html = html.replace(/(<li[\s\S]*?<\/li>)+/g, '<ul class="my-4">$&</ul>');
-
     return html;
 }
 
 function updatePreview() {
     preview.innerHTML = renderMarkdown(editor.value);
-    isDirty = editor.value !== originalContent;
-    updateTitle();
+    document.getElementById('displayTitle').textContent = fieldTitle.value || 'Untitled';
 }
 
-function updateTitle() {
-    document.title = (isDirty ? '• ' : '') + 'Edit {{ record_id }} - {{ site.title }}';
+function markDirty() {
+    isDirty = true;
+    document.title = '• Edit ' + recordId + ' - {{ site.title }}';
 }
 
 function updateCursorPosition() {
     const text = editor.value.substring(0, editor.selectionStart);
     const lines = text.split('\n');
-    const line = lines.length;
-    const col = lines[lines.length - 1].length + 1;
-    cursorPos.textContent = `Ln ${line}, Col ${col}`;
+    cursorPos.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
 }
 
 function showStatus(message, type = 'info') {
-    statusBar.className = 'mb-4 px-4 py-2 rounded-lg text-sm ' + {
-        'success': 'bg-green-900/50 border border-green-700 text-green-300',
-        'error': 'bg-red-900/50 border border-red-700 text-red-300',
-        'info': 'bg-blue-900/50 border border-blue-700 text-blue-300',
-        'warning': 'bg-yellow-900/50 border border-yellow-700 text-yellow-300'
-    }[type];
+    const colors = {
+        success: 'bg-green-900/50 border-green-700 text-green-300',
+        error: 'bg-red-900/50 border-red-700 text-red-300',
+        info: 'bg-blue-900/50 border-blue-700 text-blue-300',
+        warning: 'bg-yellow-900/50 border-yellow-700 text-yellow-300'
+    };
+    statusBar.className = `mb-4 px-4 py-2 rounded-lg text-sm border ${colors[type]}`;
     statusBar.textContent = message;
     statusBar.classList.remove('hidden');
-
-    if (type === 'success') {
-        setTimeout(() => statusBar.classList.add('hidden'), 3000);
-    }
+    if (type === 'success') setTimeout(() => statusBar.classList.add('hidden'), 3000);
 }
 
 async function save() {
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+    saveBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Saving...';
 
     try {
-        const response = await fetch(`/api/records/${recordId}`, {
+        const content = buildFullContent();
+        const res = await fetch(`/api/records/${recordId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: editor.value })
+            body: JSON.stringify({ content })
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
+        const data = await res.json();
+        if (res.ok) {
             showStatus('Saved successfully!', 'success');
-            originalContent = editor.value;
+            originalFull = content;
             isDirty = false;
-            updateTitle();
+            document.title = 'Edit ' + recordId + ' - {{ site.title }}';
         } else {
             showStatus(data.error || 'Failed to save', 'error');
         }
@@ -1115,55 +1368,41 @@ async function save() {
         showStatus('Network error: ' + err.message, 'error');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Save';
+        saveBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Save';
     }
 }
 
 // Event listeners
-editor.addEventListener('input', updatePreview);
+editor.addEventListener('input', () => { updatePreview(); markDirty(); });
 editor.addEventListener('keyup', updateCursorPosition);
 editor.addEventListener('click', updateCursorPosition);
+fieldTitle.addEventListener('input', () => { updatePreview(); markDirty(); });
+fieldStatus.addEventListener('change', markDirty);
+fieldFoundational.addEventListener('change', markDirty);
 saveBtn.addEventListener('click', save);
 
-// Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        save();
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); }
     if (e.key === 'Escape') {
-        if (isDirty) {
-            if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
-                window.location.href = '/records/' + recordId;
-            }
-        } else {
-            window.location.href = '/records/' + recordId;
-        }
+        if (isDirty && !confirm('Unsaved changes. Leave anyway?')) return;
+        window.location.href = '/records/' + recordId;
     }
 });
 
-// Tab key support
 editor.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
         e.preventDefault();
         const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(editor.selectionEnd);
         editor.selectionStart = editor.selectionEnd = start + 2;
         updatePreview();
     }
 });
 
-// Warn before leaving with unsaved changes
-window.addEventListener('beforeunload', (e) => {
-    if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
+window.addEventListener('beforeunload', (e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } });
 
-// Initial render
-updatePreview();
+// Initialize
+initFromRaw();
 updateCursorPosition();
 </script>
 {% endblock %}

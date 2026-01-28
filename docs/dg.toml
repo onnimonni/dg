@@ -10,30 +10,55 @@ footer = "Pied Piper Inc."
 quick_preview = true
 
 # Author profiles
-# Use GitHub usernames to automatically fetch avatars
-# Override name/email/avatar as needed
+# avatar_url overrides the GitHub avatar fallback
+# Local avatars are served from /assets/avatars/
 
 [authors.richard]
 name = "Richard Hendricks"
-github = "richard-hendricks"
 email = "richard@piedpiper.com"
+avatar_url = "/assets/avatars/richard.svg"
 
 [authors.jared]
 name = "Jared Dunn"
-github = "jared-dunn"
 email = "jared@piedpiper.com"
+avatar_url = "/assets/avatars/jared.svg"
 
 [authors.dinesh]
 name = "Dinesh Chugtai"
-github = "dinesh-chugtai"
 email = "dinesh@piedpiper.com"
+avatar_url = "/assets/avatars/dinesh.svg"
 
 [authors.gilfoyle]
 name = "Bertram Gilfoyle"
-github = "gilfoyle"
 email = "gilfoyle@piedpiper.com"
+avatar_url = "/assets/avatars/gilfoyle.svg"
 
 [authors.onni]
 name = "Onni Hakala"
 github = "onnimonni"
 email = "onni@flaky.build"
+
+[authors.marie]
+name = "Marie Dubois"
+email = "marie@piedpiper.com"
+avatar_url = "/assets/avatars/marie.svg"
+
+[authors.engineering]
+name = "Engineering Team"
+email = "eng@piedpiper.com"
+
+[authors.finance-team]
+name = "Finance Team"
+email = "finance@piedpiper.com"
+
+[authors.sales-team]
+name = "Sales Team"
+email = "sales@piedpiper.com"
+
+[authors.compliance]
+name = "Compliance"
+email = "compliance@piedpiper.com"
+
+[authors.legal]
+name = "Legal Team"
+email = "legal@piedpiper.com"
