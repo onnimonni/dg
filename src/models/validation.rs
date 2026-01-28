@@ -261,17 +261,26 @@ fn check_empty_sections(record: &Record) -> Vec<ValidationError> {
 
         // Check if this is a heading (starts with #)
         if line.starts_with('#') {
+            let heading_level = line.chars().take_while(|c| *c == '#').count();
             let heading = line.trim_start_matches('#').trim().to_string();
 
-            // Look for content between this heading and the next heading (or EOF)
+            // Look for content between this heading and the next heading of same or higher level
             let mut has_content = false;
+            let mut has_subheading = false;
             let mut j = i + 1;
 
             while j < lines.len() {
                 let next_line = lines[j].trim();
 
-                // Stop at next heading
+                // Check if this is a heading
                 if next_line.starts_with('#') {
+                    let next_level = next_line.chars().take_while(|c| *c == '#').count();
+                    // Stop at same level or higher (smaller number = higher level)
+                    if next_level <= heading_level {
+                        break;
+                    }
+                    // This is a subheading - parent section is not empty
+                    has_subheading = true;
                     break;
                 }
 
@@ -289,7 +298,8 @@ fn check_empty_sections(record: &Record) -> Vec<ValidationError> {
                 j += 1;
             }
 
-            if !has_content && !heading.is_empty() {
+            // Only report error if heading has no content AND no subheadings
+            if !has_content && !has_subheading && !heading.is_empty() {
                 errors.push(ValidationError::EmptySection {
                     id: id.clone(),
                     heading,
