@@ -41,6 +41,31 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .author-tooltip.show {
             display: block !important;
         }
+        /* Avatar initials fallback */
+        .avatar-initials {
+            display: none;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            border: 2px solid #1e293b;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .avatar-initials:hover {
+            border-color: var(--accent);
+        }
+        .avatar-initials.show {
+            display: flex;
+        }
+        .author-avatar.hidden {
+            display: none;
+        }
         {{ site.custom_css | default(value="") | safe }}
     </style>
     <script defer src="/static/katex.min.js"></script>
@@ -148,15 +173,35 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
 
     document.addEventListener('DOMContentLoaded', linkifyRecordIds);
 
-    // Author tooltip hover handling
+    // Author avatar handling: tooltips and image fallback
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.author-avatar').forEach(avatar => {
-            const tooltip = avatar.nextElementSibling;
+            const fallback = avatar.nextElementSibling;
+            const tooltip = fallback && fallback.classList.contains('avatar-initials')
+                ? fallback.nextElementSibling
+                : avatar.nextElementSibling;
+
+            // Image error fallback - show initials
+            avatar.addEventListener('error', function() {
+                this.classList.add('hidden');
+                if (fallback && fallback.classList.contains('avatar-initials')) {
+                    fallback.classList.add('show');
+                }
+            });
+
+            // Tooltip hover handling
             if (tooltip && tooltip.classList.contains('author-tooltip')) {
-                avatar.addEventListener('mouseenter', () => tooltip.classList.add('show'));
-                avatar.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
-                tooltip.addEventListener('mouseenter', () => tooltip.classList.add('show'));
-                tooltip.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+                const showTooltip = () => tooltip.classList.add('show');
+                const hideTooltip = () => tooltip.classList.remove('show');
+
+                avatar.addEventListener('mouseenter', showTooltip);
+                avatar.addEventListener('mouseleave', hideTooltip);
+                if (fallback && fallback.classList.contains('avatar-initials')) {
+                    fallback.addEventListener('mouseenter', showTooltip);
+                    fallback.addEventListener('mouseleave', hideTooltip);
+                }
+                tooltip.addEventListener('mouseenter', showTooltip);
+                tooltip.addEventListener('mouseleave', hideTooltip);
             }
         });
     });
@@ -371,7 +416,8 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <div class="flex -space-x-2">
                     {% for author in record.resolved_authors %}
                     <div class="relative">
-                        <img src="{{ author.avatar_url }}" alt="" class="author-avatar w-8 h-8 rounded-full border-2 border-slate-800 bg-piper-accent hover:border-piper-accent transition-colors cursor-pointer">
+                        <img src="{{ author.avatar_url }}" alt="" class="author-avatar w-8 h-8 rounded-full border-2 border-slate-800 bg-piper-accent hover:border-piper-accent transition-colors cursor-pointer" data-initials="{{ author.initials }}">
+                        <span class="avatar-initials" data-initials="{{ author.initials }}">{{ author.initials }}</span>
                         <div class="author-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 whitespace-nowrap z-50 shadow-lg">
                             <div class="font-medium">{{ author.name }}</div>
                             {% if author.email %}<div class="text-slate-400">{{ author.email }}</div>{% endif %}
