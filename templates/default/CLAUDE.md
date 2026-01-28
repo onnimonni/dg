@@ -1,38 +1,64 @@
 # Project Instructions
 
-This project uses Decision Graph (`dg`) to track decisions, architecture, and operational knowledge.
+**IMPORTANT: This project uses Decision Graph (`dg`) to track all decisions.**
 
-## Your Responsibilities
+## Mandatory: Use dg for Decisions
 
-1. **Check context before acting**: `dg search "<topic>"`
-2. **Capture decisions**: Use `/decision`, `/adr`, `/incident`, `/runbook`, `/meeting`
-3. **Ask when conflicts found**: If new work contradicts existing records, ask first
-4. **Link records**: `dg link ADR-XXX implements DEC-YYY`
+When ANY decision is made during this conversation, you MUST create a record:
+
+```bash
+# Technical decisions → ADR
+dg new adr "Decision title"
+
+# Business decisions → Decision
+dg new decision "Decision title"
+
+# After incidents → Incident
+dg new incident "Incident title"
+```
+
+## Before Making Changes
+
+Always search for existing decisions first:
+```bash
+dg search "topic"
+dg list --type adr
+```
+
+If you find conflicts with existing decisions, **ASK the user** before proceeding.
 
 ## Quick Reference
 
-```bash
-dg new decision "Title"     # Business decision
-dg new adr "Title"          # Technical decision
-dg new incident "Title"     # Post-mortem
-dg new runbook "Title"      # How-to guide
-dg new meeting "Title"      # Meeting notes
-
-dg list                     # List all
-dg search "query"           # Search
-dg show DEC-001             # View record
-dg graph                    # View relationships
-```
+| Situation | Command |
+|-----------|---------|
+| Tech decision | `dg new adr "Title"` |
+| Business decision | `dg new decision "Title"` |
+| Process defined | `dg new process "Title"` |
+| How-to written | `dg new runbook "Title"` |
+| Meeting notes | `dg new meeting "Title"` |
+| Link records | `dg link ADR-001 implements DEC-001` |
+| Update status | `dg status ADR-001 accepted` |
 
 ## Record Types
 
-| Type | Prefix | Use For |
-|------|--------|---------|
-| Decision | DEC | Business decisions |
-| ADR | ADR | Technical decisions |
-| Incident | INC | Post-mortems |
-| Runbook | RUN | Operational how-tos |
-| Meeting | MTG | Meeting notes |
-| Strategy | STR | Strategic direction |
-| Policy | POL | Internal policies |
-| Process | PRC | Workflows |
+| Prefix | Type | Use For |
+|--------|------|---------|
+| DEC | Decision | Business decisions |
+| ADR | ADR | Technical/architecture decisions |
+| INC | Incident | Post-mortems |
+| RUN | Runbook | Operational how-tos |
+| MTG | Meeting | Meeting notes |
+| STR | Strategy | Strategic direction |
+| POL | Policy | Internal policies |
+| PRC | Process | Workflows |
+
+## Example
+
+User: "Let's use PostgreSQL for the database"
+
+You should run:
+```bash
+dg new adr "Use PostgreSQL for database"
+```
+
+Then edit the created file to fill in context, alternatives, and consequences.
