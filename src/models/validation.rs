@@ -27,6 +27,10 @@ pub enum ValidationError {
     EmptyContent {
         id: String,
     },
+    EmptySection {
+        id: String,
+        heading: String,
+    },
     MissingRequiredLink {
         id: String,
         message: String,
@@ -64,6 +68,9 @@ impl std::fmt::Display for ValidationError {
             }
             ValidationError::EmptyContent { id } => {
                 write!(f, "{}: record has no meaningful content", id)
+            }
+            ValidationError::EmptySection { id, heading } => {
+                write!(f, "{}: section '{}' has no content", id, heading)
             }
             ValidationError::MissingRequiredLink { id, message } => {
                 write!(f, "{}: {}", id, message)
@@ -219,6 +226,10 @@ pub fn check_supersedes_inverse(record: &Record, graph: &Graph) -> Vec<Validatio
 
 /// Check for meaningful content
 fn check_content(record: &Record) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+
+    // Check overall content
     let content_lines: Vec<&str> = record
         .content
         .lines()
@@ -229,12 +240,83 @@ fn check_content(record: &Record) -> Vec<ValidationError> {
         .collect();
 
     if content_lines.len() < 3 {
-        vec![ValidationError::EmptyContent {
-            id: record.id().to_string(),
-        }]
-    } else {
-        vec![]
+        errors.push(ValidationError::EmptyContent { id: id.clone() });
     }
+
+    // Check for empty sections (headings without content)
+    errors.extend(check_empty_sections(record));
+
+    errors
+}
+
+/// Check for headings that have no content below them
+fn check_empty_sections(record: &Record) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+    let lines: Vec<&str> = record.content.lines().collect();
+
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i].trim();
+
+        // Check if this is a heading (starts with #)
+        if line.starts_with('#') {
+            let heading = line.trim_start_matches('#').trim().to_string();
+
+            // Look for content between this heading and the next heading (or EOF)
+            let mut has_content = false;
+            let mut j = i + 1;
+
+            while j < lines.len() {
+                let next_line = lines[j].trim();
+
+                // Stop at next heading
+                if next_line.starts_with('#') {
+                    break;
+                }
+
+                // Check if this line has meaningful content
+                // Skip: empty lines, HTML comments, placeholder text
+                if !next_line.is_empty()
+                    && !next_line.starts_with("<!--")
+                    && !next_line.ends_with("-->")
+                    && !is_placeholder_text(next_line)
+                {
+                    has_content = true;
+                    break;
+                }
+
+                j += 1;
+            }
+
+            if !has_content && !heading.is_empty() {
+                errors.push(ValidationError::EmptySection {
+                    id: id.clone(),
+                    heading,
+                });
+            }
+        }
+
+        i += 1;
+    }
+
+    errors
+}
+
+/// Check if text is placeholder/template text that shouldn't count as content
+fn is_placeholder_text(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    // Common placeholder patterns
+    lower.contains("[todo")
+        || lower.contains("[tbd")
+        || lower.contains("[placeholder")
+        || lower.contains("[insert")
+        || lower.contains("[add ")
+        || lower.contains("[describe")
+        || lower.contains("[explain")
+        || lower.starts_with("todo:")
+        || lower.starts_with("tbd:")
+        || (lower.starts_with('[') && lower.ends_with(']'))
 }
 
 /// Type-specific validation

@@ -4,6 +4,7 @@ use crate::serve::templates::create_environment;
 use anyhow::Result;
 use minijinja::context;
 use pulldown_cmark::{html, Options, Parser};
+use regex::Regex;
 use std::fs;
 use std::path::Path;
 
@@ -204,12 +205,16 @@ fn record_to_context(record: &crate::models::Record) -> serde_json::Map<String, 
 
 /// Convert markdown to HTML using pulldown-cmark
 pub fn markdown_to_html(md: &str) -> String {
+    // Strip HTML comments before rendering
+    let comment_re = Regex::new(r"<!--[\s\S]*?-->").unwrap();
+    let cleaned = comment_re.replace_all(md, "");
+
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TASKLISTS);
 
-    let parser = Parser::new_ext(md, options);
+    let parser = Parser::new_ext(&cleaned, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
     html_output
