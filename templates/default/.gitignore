@@ -1,0 +1,9 @@
+# Devenv
+.devenv/
+.devenv.flake.nix
+
+# Direnv
+.direnv/
+
+# Decision Graph index (auto-generated)
+docs/.index.json

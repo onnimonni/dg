@@ -5,9 +5,7 @@
   imports = [ "${inputs.dg}/devenv-module.nix" ];
 
   # Decision Graph is enabled by default
-  # Customize settings below:
-
-  # dg.enable = true;  # Enabled by default
+  # dg.enable = true;
 
   # Add your project-specific configuration:
   # languages.python.enable = true;
@@ -16,12 +14,7 @@
   enterShell = ''
     echo "Project with Decision Graph"
     echo ""
-    echo "Decision Graph commands:"
-    echo "  dg new <type> <title>  - Create record"
-    echo "  dg list                - List records"
-    echo "  dg search <query>      - Search"
-    echo "  dg graph               - View graph"
-    echo ""
+    echo "Run 'dg --help' for commands"
     echo "Claude skills: /decision, /adr, /incident, /runbook, /meeting"
   '';
 }
