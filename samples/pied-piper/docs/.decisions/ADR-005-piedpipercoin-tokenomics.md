@@ -3,8 +3,8 @@ type: adr
 id: ADR-005
 title: "PiedPiperCoin Tokenomics"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2018-09-01
+updated: 2018-10-15
 authors: []
 tags: [architecture]
 links:

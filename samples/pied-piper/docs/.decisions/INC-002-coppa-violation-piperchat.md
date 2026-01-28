@@ -3,8 +3,8 @@ type: incident
 id: INC-002
 title: "COPPA Violation PiperChat"
 status: open
-created: 2026-01-28
-updated: 2026-01-28
+created: 2016-04-25
+updated: 2016-05-10
 authors: []
 tags: []
 incident_meta:

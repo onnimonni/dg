@@ -3,8 +3,8 @@ type: decision
 id: DEC-004
 title: "Accept Russ Hanneman Bridge Funding"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2014-09-15
+updated: 2014-09-20
 authors: []
 tags: []
 links:

@@ -3,8 +3,8 @@ type: incident
 id: INC-004
 title: "AI Encryption Paradox Discovery"
 status: open
-created: 2026-01-28
-updated: 2026-01-28
+created: 2019-11-20
+updated: 2019-12-01
 authors: []
 tags: []
 incident_meta:

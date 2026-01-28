@@ -3,8 +3,8 @@ type: runbook
 id: RUN-002
 title: "PiperNet Node Operation"
 status: accepted
-created: 2026-01-28
-updated: 2026-01-28
+created: 2018-02-01
+updated: 2018-03-15
 authors: []
 tags: []
 runbook_meta:

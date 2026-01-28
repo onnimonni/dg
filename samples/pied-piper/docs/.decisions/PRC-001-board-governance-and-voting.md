@@ -3,8 +3,8 @@ type: process
 id: PRC-001
 title: "Board Governance and Voting"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2014-10-01
+updated: 2015-03-15
 authors: []
 tags: []
 process_meta:

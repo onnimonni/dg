@@ -40,9 +40,12 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             color: var(--text);
             text-decoration: none;
             margin-left: 1.5rem;
-            opacity: 0.8;
+            opacity: 0.7;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
         }
         header nav a:hover { opacity: 1; }
+        header nav a.active { opacity: 1; background: var(--primary); }
         main { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
         footer {
             text-align: center;
@@ -80,7 +83,11 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         }
         .badge.accepted { background: var(--success); }
         .badge.proposed { background: var(--warning); color: #000; }
+        .badge.open { background: #e74c3c; }
+        .badge.resolved { background: #3498db; }
         .badge.draft { background: #666; }
+        .badge.deprecated { background: #95a5a6; }
+        .badge.superseded { background: #7f8c8d; }
         .tag {
             display: inline-block;
             padding: 0.1rem 0.4rem;
@@ -128,18 +135,21 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .filter-btn.active { background: var(--primary); }
         {{ site.custom_css | default(value="") | safe }}
     </style>
+    <link rel="stylesheet" href="/static/katex.min.css">
+    <script defer src="/static/katex.min.js"></script>
+    <script defer src="/static/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
     {% block head %}{% endblock %}
 </head>
 <body>
     <header>
         <a href="/" class="brand">
-            {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}">{% endif %}
-            <h1>{{ site.title }}</h1>
+            {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}">
+            {% else %}<h1>{{ site.title }}</h1>{% endif %}
         </a>
         <nav>
-            <a href="/">Records</a>
-            <a href="/graph">Graph</a>
-            <a href="/stats">Stats</a>
+            <a href="/"{% if current_page == "records" %} class="active"{% endif %}>Records</a>
+            <a href="/graph"{% if current_page == "graph" %} class="active"{% endif %}>Graph</a>
+            <a href="/stats"{% if current_page == "stats" %} class="active"{% endif %}>Stats</a>
         </nav>
     </header>
     <main>
@@ -162,14 +172,15 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div class="filter-bar">
     <button class="filter-btn active" data-type="all">All</button>
-    {% for type in record_types %}
-    <button class="filter-btn" data-type="{{ type }}">{{ type }}</button>
+    {% for rt in record_types %}
+    <button class="filter-btn" data-type="{{ rt.code }}">{{ rt.display }}</button>
     {% endfor %}
+    <button id="sort" class="filter-btn" style="margin-left: auto;" title="Core First">&#9733;</button>
 </div>
 
 <div id="records">
 {% for record in records %}
-<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}" data-id="{{ record.id }}">
+<div class="card {% if record.foundational %}foundational{% endif %}" data-type="{{ record.type }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}">
     <div class="card-header">
         <div>
             <a href="/records/{{ record.id }}" class="card-id">{{ record.id }}</a>
@@ -177,9 +188,9 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
         </div>
         <span class="badge {{ record.status }}">{{ record.status }}</span>
     </div>
-    <div class="card-title">{{ record.title }}</div>
+    <a href="/records/{{ record.id }}" class="card-title">{{ record.title }}</a>
     <div class="card-meta">
-        {{ record.type }} | {{ record.created }}
+        {{ record.type_display }} | {{ record.created }}
         {% if record.tags %}
         | {% for tag in record.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
         {% endif %}
@@ -192,25 +203,62 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block scripts %}
 <script>
 const search = document.getElementById('search');
-const records = document.querySelectorAll('.card');
+const recordsContainer = document.getElementById('records');
 const filters = document.querySelectorAll('.filter-btn');
+const sortBtn = document.getElementById('sort');
 let activeType = 'all';
+let sortMode = 'default'; // default -> newest -> oldest -> default
+
+const sortModes = {
+    default: { next: 'newest', icon: '★', title: 'Core First' },
+    newest: { next: 'oldest', icon: '↓', title: 'Newest First' },
+    oldest: { next: 'default', icon: '↑', title: 'Oldest First' }
+};
 
 search.addEventListener('input', filterRecords);
-filters.forEach(btn => btn.addEventListener('click', () => {
-    filters.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeType = btn.dataset.type;
-    filterRecords();
-}));
+sortBtn.addEventListener('click', cycleSortMode);
+filters.forEach(btn => {
+    if (btn.id !== 'sort' && btn.tagName === 'BUTTON') {
+        btn.addEventListener('click', () => {
+            filters.forEach(b => { if (b.id !== 'sort' && b.tagName === 'BUTTON') b.classList.remove('active'); });
+            btn.classList.add('active');
+            activeType = btn.dataset.type;
+            filterRecords();
+        });
+    }
+});
+
+function cycleSortMode() {
+    sortMode = sortModes[sortMode].next;
+    sortBtn.innerHTML = sortModes[sortMode].icon;
+    sortBtn.title = sortModes[sortMode].title;
+    sortRecords();
+}
 
 function filterRecords() {
     const query = search.value.toLowerCase();
-    records.forEach(r => {
+    document.querySelectorAll('.card').forEach(r => {
         const matchesType = activeType === 'all' || r.dataset.type === activeType;
         const matchesQuery = !query || r.textContent.toLowerCase().includes(query);
         r.style.display = matchesType && matchesQuery ? 'block' : 'none';
     });
+}
+
+function sortRecords() {
+    const cards = Array.from(recordsContainer.querySelectorAll('.card'));
+    cards.sort((a, b) => {
+        if (sortMode === 'default') {
+            const aF = a.dataset.foundational === 'true';
+            const bF = b.dataset.foundational === 'true';
+            if (aF !== bF) return bF - aF;
+            return b.dataset.created.localeCompare(a.dataset.created);
+        } else if (sortMode === 'newest') {
+            return b.dataset.created.localeCompare(a.dataset.created);
+        } else {
+            return a.dataset.created.localeCompare(b.dataset.created);
+        }
+    });
+    cards.forEach(card => recordsContainer.appendChild(card));
 }
 </script>
 {% endblock %}
@@ -231,7 +279,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
     </div>
     <h2 class="card-title">{{ record.title }}</h2>
     <div class="card-meta">
-        {{ record.type }} | Created: {{ record.created }} | Updated: {{ record.updated }}
+        {{ record.type_display }} | Created: {{ record.created }} | Updated: {{ record.updated }}
         {% if record.authors %} | Authors: {{ record.authors | join(", ") }}{% endif %}
     </div>
     {% if record.tags %}
@@ -362,7 +410,7 @@ const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
     {% for item in stats.by_type %}
     <div class="stat-card">
         <div class="stat-value">{{ item.count }}</div>
-        <div class="stat-label">{{ item.type }}</div>
+        <div class="stat-label">{{ item.type_display }}</div>
     </div>
     {% endfor %}
 </div>

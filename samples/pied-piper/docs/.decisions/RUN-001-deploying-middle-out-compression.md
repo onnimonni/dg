@@ -3,8 +3,8 @@ type: runbook
 id: RUN-001
 title: "Deploying Middle-Out Compression"
 status: accepted
-created: 2026-01-28
-updated: 2026-01-28
+created: 2014-06-15
+updated: 2014-07-01
 authors: []
 tags: []
 runbook_meta:

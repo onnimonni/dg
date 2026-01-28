@@ -3,8 +3,8 @@ type: incident
 id: INC-003
 title: "51 Percent Attack on PiperNet"
 status: open
-created: 2026-01-28
-updated: 2026-01-28
+created: 2019-10-15
+updated: 2019-11-01
 authors: []
 tags: []
 incident_meta:

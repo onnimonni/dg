@@ -3,8 +3,8 @@ type: decision
 id: DEC-002
 title: "Data Privacy First - No Ad Mining"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2014-05-15
+updated: 2014-06-01
 authors: []
 tags: []
 links:

@@ -11,6 +11,13 @@
     python3   # For hooks
   ];
 
+  # Browser automation for testing
+  claude.code.mcpServers.playwright = {
+    type = "stdio";
+    command = "npx";
+    args = [ "@playwright/mcp@latest" ];
+  };
+
   # Environment variables
   env = {
     RUST_BACKTRACE = "1";

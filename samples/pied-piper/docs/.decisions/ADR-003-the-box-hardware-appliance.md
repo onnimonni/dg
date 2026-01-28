@@ -3,8 +3,8 @@ type: adr
 id: ADR-003
 title: "The Box Hardware Appliance"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2017-06-01
+updated: 2017-08-15
 authors: []
 tags: [architecture]
 links:

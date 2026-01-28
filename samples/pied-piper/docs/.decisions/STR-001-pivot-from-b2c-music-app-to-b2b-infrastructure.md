@@ -3,8 +3,8 @@ type: strategy
 id: STR-001
 title: "Pivot from B2C Music App to B2B Infrastructure"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2014-05-20
+updated: 2014-06-01
 authors: []
 tags: []
 links:

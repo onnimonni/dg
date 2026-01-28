@@ -5,11 +5,18 @@ use crate::serve::templates::create_environment;
 use anyhow::Result;
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{header, StatusCode},
     response::{Html, IntoResponse, Response},
     routing::get,
     Json, Router,
 };
+use rust_embed::Embed;
+use tower_http::services::ServeDir;
+
+// Embed static assets (KaTeX CSS, JS, fonts) for offline support
+#[derive(Embed)]
+#[folder = "src/serve/static/"]
+struct StaticAssets;
 use minijinja::context;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -37,6 +44,9 @@ pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Re
         site_config,
     });
 
+    // Serve static assets from docs/assets
+    let assets_path = docs_dir.join("assets");
+
     let app = Router::new()
         .route("/", get(index_handler))
         .route("/records/{id}", get(record_handler))
@@ -47,6 +57,9 @@ pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Re
         .route("/api/graph", get(api_graph))
         .route("/diagrams/{id}", get(diagram_handler))
         .route("/reload", get(reload_handler))
+        // Embedded static assets (KaTeX) for offline support
+        .route("/static/{*path}", get(static_handler))
+        .nest_service("/assets", ServeDir::new(assets_path))
         .with_state(state);
 
     let addr = format!("127.0.0.1:{}", port);
@@ -84,9 +97,22 @@ async fn index_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let graph = state.graph.read().await;
     let env = create_environment();
 
-    let records_data: Vec<_> = graph.all_records().map(|r| record_to_json(r)).collect();
+    // Sort records: foundational first, then by updated date (newest first)
+    let mut records: Vec<_> = graph.all_records().collect();
+    records.sort_by(|a, b| {
+        // Foundational records first
+        let a_foundational = a.frontmatter.foundational;
+        let b_foundational = b.frontmatter.foundational;
+        if a_foundational != b_foundational {
+            return b_foundational.cmp(&a_foundational);
+        }
+        // Then by updated date (newest first)
+        b.frontmatter.updated.cmp(&a.frontmatter.updated)
+    });
 
-    let mut record_types: Vec<_> = records_data
+    let records_data: Vec<_> = records.iter().map(|r| record_to_json(r)).collect();
+
+    let mut type_codes: Vec<_> = records_data
         .iter()
         .filter_map(|r| {
             r.get("type")
@@ -96,12 +122,23 @@ async fn index_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         .collect::<std::collections::HashSet<_>>()
         .into_iter()
         .collect();
-    record_types.sort();
+    type_codes.sort();
+
+    let record_types: Vec<_> = type_codes
+        .iter()
+        .map(|code| {
+            serde_json::json!({
+                "code": code,
+                "display": type_to_display_name(code),
+            })
+        })
+        .collect();
 
     match env.get_template("index.html") {
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                current_page => "records",
                 records => records_data,
                 record_types => record_types,
             }) {
@@ -159,7 +196,9 @@ async fn record_handler(
     ctx.insert("links".to_string(), serde_json::Value::Array(links));
 
     match env.get_template("record.html") {
-        Ok(tmpl) => match tmpl.render(context! { site => &state.site_config, record => ctx }) {
+        Ok(tmpl) => match tmpl.render(
+            context! { site => &state.site_config, current_page => "records", record => ctx },
+        ) {
             Ok(html) => Html(html).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -201,6 +240,7 @@ async fn graph_page_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                current_page => "graph",
                 graph_data => graph_data.to_string(),
             }) {
                 Ok(html) => Html(html).into_response(),
@@ -228,7 +268,13 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let by_type: Vec<_> = stats
         .by_type
         .iter()
-        .map(|(t, c)| serde_json::json!({ "type": t, "count": c }))
+        .map(|(t, c)| {
+            serde_json::json!({
+                "type": t,
+                "type_display": type_to_display_name(t),
+                "count": c
+            })
+        })
         .collect();
 
     let by_status: Vec<_> = stats
@@ -249,6 +295,7 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                current_page => "stats",
                 stats => stats_ctx,
             }) {
                 Ok(html) => Html(html).into_response(),
@@ -411,8 +458,52 @@ async fn reload_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse
     }
 }
 
+// Static asset handler using rust-embed for offline KaTeX support
+async fn static_handler(Path(path): Path<String>) -> Response {
+    let content_type = if path.ends_with(".css") {
+        "text/css"
+    } else if path.ends_with(".js") {
+        "application/javascript"
+    } else if path.ends_with(".woff2") {
+        "font/woff2"
+    } else if path.ends_with(".woff") {
+        "font/woff"
+    } else if path.ends_with(".ttf") {
+        "font/ttf"
+    } else {
+        "application/octet-stream"
+    };
+
+    match StaticAssets::get(&path) {
+        Some(content) => (
+            [(header::CONTENT_TYPE, content_type)],
+            content.data.into_owned(),
+        )
+            .into_response(),
+        None => (StatusCode::NOT_FOUND, "Not found").into_response(),
+    }
+}
+
+fn type_to_display_name(type_code: &str) -> String {
+    match type_code {
+        "DEC" => "Decision".to_string(),
+        "STR" => "Strategy".to_string(),
+        "POL" => "Policy".to_string(),
+        "CUS" => "Customer".to_string(),
+        "OPP" => "Opportunity".to_string(),
+        "PRC" => "Process".to_string(),
+        "HIR" => "Hiring".to_string(),
+        "ADR" => "Architecture Decision".to_string(),
+        "INC" => "Incident".to_string(),
+        "RUN" => "Runbook".to_string(),
+        "MTG" => "Meeting".to_string(),
+        other => other.to_string(),
+    }
+}
+
 fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
+    let type_code = record.record_type().to_string();
     map.insert(
         "id".to_string(),
         serde_json::Value::String(record.id().to_string()),
@@ -423,7 +514,11 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
     );
     map.insert(
         "type".to_string(),
-        serde_json::Value::String(record.record_type().to_string()),
+        serde_json::Value::String(type_code.clone()),
+    );
+    map.insert(
+        "type_display".to_string(),
+        serde_json::Value::String(type_to_display_name(&type_code).to_string()),
     );
     map.insert(
         "status".to_string(),

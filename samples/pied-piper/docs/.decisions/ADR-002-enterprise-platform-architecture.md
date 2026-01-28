@@ -3,8 +3,8 @@ type: adr
 id: ADR-002
 title: "Enterprise Platform Architecture"
 status: proposed
-created: 2026-01-28
-updated: 2026-01-28
+created: 2015-03-01
+updated: 2015-06-15
 authors: []
 tags: [architecture]
 links:
