@@ -27,3 +27,11 @@ devenv.local.yaml
 
 # pre-commit
 .pre-commit-config.yaml
+
+# Playwright
+.mcp.json
+.playwright-mcp/
+
+# Claude settings generated directly from devenv.nix
+.claude/commands/
+.claude/settings.json
