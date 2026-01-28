@@ -20,7 +20,7 @@ pub fn generate_site(graph: &Graph, output_dir: &Path, docs_dir: &Path) -> Resul
 
     // Generate index page
     let index_tmpl = env.get_template("index.html")?;
-    let records_data: Vec<_> = graph.all_records().map(|r| record_to_context(r)).collect();
+    let records_data: Vec<_> = graph.all_records().map(record_to_context).collect();
 
     let mut record_types: Vec<String> = records_data
         .iter()

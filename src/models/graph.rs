@@ -108,7 +108,7 @@ impl Graph {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "md") {
+            if path.extension().is_some_and(|ext| ext == "md") {
                 match Record::parse(path) {
                     Ok(record) => {
                         let id = record.id().to_string();

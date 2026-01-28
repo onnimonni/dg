@@ -1,7 +1,53 @@
+use crate::models::authors::{AuthorInfo, AuthorsConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+
+/// Root configuration loaded from dg.toml
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DgConfig {
+    /// Site branding settings
+    #[serde(default)]
+    pub site: SiteConfig,
+
+    /// Author profiles
+    #[serde(default)]
+    pub authors: HashMap<String, AuthorInfo>,
+}
+
+impl DgConfig {
+    /// Load config from docs/dg.toml or use defaults
+    pub fn load(docs_dir: &Path) -> Result<Self> {
+        let config_path = docs_dir.join("dg.toml");
+
+        if config_path.exists() {
+            let content = fs::read_to_string(&config_path)?;
+            let config: DgConfig = toml::from_str(&content)?;
+            Ok(config)
+        } else {
+            // Try legacy .site.yaml for backwards compatibility
+            let legacy_path = docs_dir.join(".site.yaml");
+            if legacy_path.exists() {
+                let content = fs::read_to_string(&legacy_path)?;
+                let site: SiteConfig = serde_yaml::from_str(&content)?;
+                return Ok(DgConfig {
+                    site,
+                    authors: HashMap::new(),
+                });
+            }
+            Ok(Self::default())
+        }
+    }
+
+    /// Get AuthorsConfig from the loaded authors map
+    pub fn authors_config(&self) -> AuthorsConfig {
+        AuthorsConfig {
+            authors: self.authors.clone(),
+        }
+    }
+}
 
 /// Site configuration for branding
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -56,17 +102,10 @@ fn default_accent_color() -> String {
 }
 
 impl SiteConfig {
-    /// Load config from docs/.site.yaml or use defaults
+    /// Load config from docs/.site.yaml or use defaults (legacy)
     pub fn load(docs_dir: &Path) -> Result<Self> {
-        let config_path = docs_dir.join(".site.yaml");
-
-        if config_path.exists() {
-            let content = fs::read_to_string(&config_path)?;
-            let config: SiteConfig = serde_yaml::from_str(&content)?;
-            Ok(config)
-        } else {
-            Ok(Self::default())
-        }
+        let config = DgConfig::load(docs_dir)?;
+        Ok(config.site)
     }
 
     /// Generate CSS variables from config

@@ -1,0 +1,39 @@
+# Decision Graph Configuration
+# All settings for the dg tool in one place
+
+[site]
+title = "Pied Piper Decisions"
+description = "Company decisions and knowledge graph"
+primary_color = "#007c43"
+accent_color = "#00a55a"
+footer = "Pied Piper Inc."
+quick_preview = true
+
+# Author profiles
+# Use GitHub usernames to automatically fetch avatars
+# Override name/email/avatar as needed
+
+[authors.richard]
+name = "Richard Hendricks"
+github = "richard-hendricks"
+email = "richard@piedpiper.com"
+
+[authors.jared]
+name = "Jared Dunn"
+github = "jared-dunn"
+email = "jared@piedpiper.com"
+
+[authors.dinesh]
+name = "Dinesh Chugtai"
+github = "dinesh-chugtai"
+email = "dinesh@piedpiper.com"
+
+[authors.gilfoyle]
+name = "Bertram Gilfoyle"
+github = "gilfoyle"
+email = "gilfoyle@piedpiper.com"
+
+[authors.onni]
+name = "Onni Hakala"
+github = "onnimonni"
+email = "onni@flaky.build"

@@ -4,7 +4,7 @@ mod graph;
 mod record;
 pub mod validation;
 
-pub use authors::{AuthorInfo, AuthorsConfig, ResolvedAuthor};
+pub use authors::AuthorsConfig;
 pub use d2::{graph_to_d2, D2Renderer};
 pub use graph::{DependencyPath, Graph};
 pub use record::{Record, RecordType, Status};

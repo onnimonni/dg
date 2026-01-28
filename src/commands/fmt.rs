@@ -24,7 +24,7 @@ pub fn run(docs_dir: &str, check: bool, files: Option<Vec<String>>, quiet: bool)
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "md"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "md"))
             .map(|e| e.path().to_path_buf())
             .collect()
     };
@@ -148,7 +148,7 @@ fn format_yaml(value: &serde_yaml::Value) -> Result<String> {
 
         // First, output keys in order
         for key in &key_order {
-            if let Some(val) = map.get(&serde_yaml::Value::String(key.to_string())) {
+            if let Some(val) = map.get(serde_yaml::Value::String(key.to_string())) {
                 lines.push(format_yaml_field(key, val));
             }
         }
@@ -261,7 +261,7 @@ fn format_body(body: &str) -> String {
     }
 
     // Ensure single newline at end
-    while result.last().map_or(false, |l| l.is_empty()) {
+    while result.last().is_some_and(|l| l.is_empty()) {
         result.pop();
     }
     result.push(String::new());

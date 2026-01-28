@@ -18,10 +18,10 @@ pub fn run(
 
     let mut records: Vec<_> = graph
         .all_records()
-        .filter(|r| type_filter.as_ref().map_or(true, |t| r.record_type() == t))
-        .filter(|r| status_filter.as_ref().map_or(true, |s| r.status() == s))
+        .filter(|r| type_filter.as_ref().is_none_or(|t| r.record_type() == t))
+        .filter(|r| status_filter.as_ref().is_none_or(|s| r.status() == s))
         .filter(|r| {
-            tag_filter.as_ref().map_or(true, |tag| {
+            tag_filter.as_ref().is_none_or(|tag| {
                 r.frontmatter
                     .tags
                     .iter()

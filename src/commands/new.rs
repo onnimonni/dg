@@ -50,7 +50,7 @@ pub fn run(docs_dir: &str, record_type: &str, title: &str) -> Result<()> {
         title.to_string()
     };
     let content = template
-        .replace("{{NUMBER}}", &new_id.split('-').nth(1).unwrap_or("001"))
+        .replace("{{NUMBER}}", new_id.split('-').nth(1).unwrap_or("001"))
         .replace("{{TITLE}}", &yaml_title)
         .replace("{{DATE}}", &today)
         .replace("{{CLIENT_NAME}}", &yaml_title)

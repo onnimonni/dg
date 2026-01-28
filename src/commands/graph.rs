@@ -47,7 +47,7 @@ pub fn run(
         "json" => {
             let nodes: Vec<_> = graph
                 .all_records()
-                .filter(|r| subset.as_ref().map_or(true, |s| s.contains(r.id())))
+                .filter(|r| subset.as_ref().is_none_or(|s| s.contains(r.id())))
                 .map(|r| {
                     serde_json::json!({
                         "id": r.id(),
@@ -63,7 +63,7 @@ pub fn run(
                 .filter(|e| {
                     subset
                         .as_ref()
-                        .map_or(true, |s| s.contains(&e.from) && s.contains(&e.to))
+                        .is_none_or(|s| s.contains(&e.from) && s.contains(&e.to))
                 })
                 .map(|e| {
                     serde_json::json!({
@@ -143,10 +143,9 @@ fn print_tree(graph: &Graph, id: &str, subset: &HashSet<String>, indent: usize) 
         for edge in outgoing {
             if subset.contains(&edge.to) {
                 println!(
-                    "{}  {} {}",
+                    "{}  {} ",
                     prefix,
-                    format!("--[{}]-->", edge.link_type).dimmed(),
-                    ""
+                    format!("--[{}]-->", edge.link_type).dimmed()
                 );
                 // Avoid infinite recursion for cycles
                 if indent < 5 {

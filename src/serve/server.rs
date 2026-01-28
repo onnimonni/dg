@@ -1,5 +1,5 @@
 use crate::models::{graph_to_d2, AuthorsConfig, D2Renderer, Graph};
-use crate::serve::config::SiteConfig;
+use crate::serve::config::{DgConfig, SiteConfig};
 use crate::serve::generator::markdown_to_html;
 use crate::serve::templates::create_environment;
 use anyhow::Result;
@@ -38,13 +38,12 @@ impl AppState {
 
 pub async fn run_server(docs_dir: &std::path::Path, port: u16, open: bool) -> Result<()> {
     let graph = Graph::load(docs_dir)?;
-    let site_config = SiteConfig::load(docs_dir)?;
-    let authors_config = AuthorsConfig::load(docs_dir).unwrap_or_default();
+    let dg_config = DgConfig::load(docs_dir)?;
     let state = Arc::new(AppState {
         docs_dir: docs_dir.to_path_buf(),
         graph: RwLock::new(graph),
-        site_config,
-        authors_config,
+        site_config: dg_config.site.clone(),
+        authors_config: dg_config.authors_config(),
     });
 
     // Serve static assets from docs/assets

@@ -1,10 +1,7 @@
 //! Author information management with GitHub integration
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
 
 /// Author information
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -64,19 +61,6 @@ pub struct AuthorsConfig {
 }
 
 impl AuthorsConfig {
-    /// Load authors config from docs/.authors.yaml
-    pub fn load(docs_dir: &Path) -> Result<Self> {
-        let config_path = docs_dir.join(".authors.yaml");
-
-        if config_path.exists() {
-            let content = fs::read_to_string(&config_path)?;
-            let config: AuthorsConfig = serde_yaml::from_str(&content)?;
-            Ok(config)
-        } else {
-            Ok(Self::default())
-        }
-    }
-
     /// Get author info, with defaults for unknown authors
     pub fn get(&self, username: &str) -> AuthorInfo {
         self.authors.get(username).cloned().unwrap_or_else(|| {
