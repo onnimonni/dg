@@ -18,16 +18,8 @@ pub fn run(
 
     let mut records: Vec<_> = graph
         .all_records()
-        .filter(|r| {
-            type_filter
-                .as_ref()
-                .map_or(true, |t| r.record_type() == t)
-        })
-        .filter(|r| {
-            status_filter
-                .as_ref()
-                .map_or(true, |s| r.status() == s)
-        })
+        .filter(|r| type_filter.as_ref().map_or(true, |t| r.record_type() == t))
+        .filter(|r| status_filter.as_ref().map_or(true, |s| r.status() == s))
         .filter(|r| {
             tag_filter.as_ref().map_or(true, |tag| {
                 r.frontmatter
@@ -45,14 +37,16 @@ pub fn run(
         "json" => {
             let json_records: Vec<_> = records
                 .iter()
-                .map(|r| serde_json::json!({
-                    "id": r.id(),
-                    "title": r.title(),
-                    "type": r.record_type().to_string(),
-                    "status": r.status().to_string(),
-                    "tags": r.frontmatter.tags,
-                    "created": r.frontmatter.created.to_string(),
-                }))
+                .map(|r| {
+                    serde_json::json!({
+                        "id": r.id(),
+                        "title": r.title(),
+                        "type": r.record_type().to_string(),
+                        "status": r.status().to_string(),
+                        "tags": r.frontmatter.tags,
+                        "created": r.frontmatter.created.to_string(),
+                    })
+                })
                 .collect();
             println!("{}", serde_json::to_string_pretty(&json_records)?);
         }

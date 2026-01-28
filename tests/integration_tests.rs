@@ -52,10 +52,7 @@ fn test_init_idempotent() {
     let temp = setup_test_env();
 
     // Running init again should not fail
-    dg_cmd(&temp)
-        .arg("init")
-        .assert()
-        .success();
+    dg_cmd(&temp).arg("init").assert().success();
 }
 
 // ============================================================================
@@ -91,7 +88,9 @@ fn test_new_adr() {
         .success()
         .stdout(predicate::str::contains("ADR-001"));
 
-    let file = temp.path().join("docs/.decisions/ADR-001-use-postgresql.md");
+    let file = temp
+        .path()
+        .join("docs/.decisions/ADR-001-use-postgresql.md");
     assert!(file.exists());
 }
 
@@ -128,7 +127,9 @@ fn test_new_with_special_characters_in_title() {
         .assert()
         .success();
 
-    let file = temp.path().join("docs/.decisions/ADR-001-adr-use-redis-for-caching.md");
+    let file = temp
+        .path()
+        .join("docs/.decisions/ADR-001-adr-use-redis-for-caching.md");
     assert!(file.exists());
 
     let content = fs::read_to_string(&file).unwrap();
@@ -154,7 +155,10 @@ fn test_list_empty() {
 fn test_list_with_records() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .arg("list")
@@ -168,7 +172,10 @@ fn test_list_with_records() {
 fn test_list_filter_by_type() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Dec"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Dec"])
+        .assert()
+        .success();
     dg_cmd(&temp).args(["new", "adr", "Adr"]).assert().success();
 
     dg_cmd(&temp)
@@ -190,7 +197,10 @@ fn test_list_filter_by_type() {
 fn test_list_json_format() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["list", "-f", "json"])
@@ -207,7 +217,10 @@ fn test_list_json_format() {
 fn test_show_record() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test Decision"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test Decision"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["show", "DEC-001"])
@@ -236,8 +249,14 @@ fn test_show_nonexistent() {
 fn test_link_records() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "strategy", "Strategy"]).assert().success();
-    dg_cmd(&temp).args(["new", "decision", "Decision"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "strategy", "Strategy"])
+        .assert()
+        .success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Decision"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["link", "DEC-001", "depends_on", "STR-001"])
@@ -255,8 +274,14 @@ fn test_link_records() {
 fn test_link_supersedes_creates_inverse() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Old"]).assert().success();
-    dg_cmd(&temp).args(["new", "decision", "New"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Old"])
+        .assert()
+        .success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "New"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["link", "DEC-002", "supersedes", "DEC-001"])
@@ -275,7 +300,10 @@ fn test_link_supersedes_creates_inverse() {
 fn test_link_nonexistent_source() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["link", "DEC-999", "relates_to", "DEC-001"])
@@ -288,7 +316,10 @@ fn test_link_nonexistent_source() {
 fn test_link_nonexistent_target() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["link", "DEC-001", "relates_to", "DEC-999"])
@@ -305,9 +336,18 @@ fn test_link_nonexistent_target() {
 fn test_unlink_records() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "A"]).assert().success();
-    dg_cmd(&temp).args(["new", "decision", "B"]).assert().success();
-    dg_cmd(&temp).args(["link", "DEC-001", "relates_to", "DEC-002"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "A"])
+        .assert()
+        .success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "B"])
+        .assert()
+        .success();
+    dg_cmd(&temp)
+        .args(["link", "DEC-001", "relates_to", "DEC-002"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["unlink", "DEC-001", "relates_to", "DEC-002"])
@@ -329,8 +369,14 @@ fn test_unlink_records() {
 fn test_search_by_title() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "PostgreSQL Database"]).assert().success();
-    dg_cmd(&temp).args(["new", "decision", "Redis Cache"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "PostgreSQL Database"])
+        .assert()
+        .success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Redis Cache"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["search", "postgres"])
@@ -344,7 +390,10 @@ fn test_search_by_title() {
 fn test_search_no_results() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["search", "nonexistent"])
@@ -361,7 +410,10 @@ fn test_search_no_results() {
 fn test_status_update() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["status", "DEC-001", "accepted"])
@@ -382,7 +434,10 @@ fn test_status_update() {
 fn test_validate_clean() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .arg("validate")
@@ -395,7 +450,10 @@ fn test_validate_clean() {
 fn test_validate_broken_link() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     // Manually add broken link
     let file = temp.path().join("docs/.decisions/DEC-001-test.md");
@@ -418,16 +476,16 @@ fn test_validate_broken_link() {
 fn test_fmt_check_clean() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     // Format first
     dg_cmd(&temp).arg("fmt").assert().success();
 
     // Check should pass
-    dg_cmd(&temp)
-        .args(["fmt", "--check"])
-        .assert()
-        .success();
+    dg_cmd(&temp).args(["fmt", "--check"]).assert().success();
 }
 
 // ============================================================================
@@ -438,7 +496,10 @@ fn test_fmt_check_clean() {
 fn test_lint_clean() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .arg("lint")
@@ -451,7 +512,10 @@ fn test_lint_clean() {
 fn test_lint_strict_missing_tags() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     // Strict mode should fail on missing tags
     dg_cmd(&temp)
@@ -469,7 +533,10 @@ fn test_lint_strict_missing_tags() {
 fn test_stats() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
     dg_cmd(&temp).args(["new", "adr", "ADR"]).assert().success();
 
     dg_cmd(&temp)
@@ -488,7 +555,10 @@ fn test_stats() {
 fn test_graph_text() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .arg("graph")
@@ -501,7 +571,10 @@ fn test_graph_text() {
 fn test_graph_dot() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["graph", "-f", "dot"])
@@ -515,7 +588,10 @@ fn test_graph_dot() {
 fn test_graph_json() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["graph", "-f", "json"])
@@ -533,7 +609,10 @@ fn test_graph_json() {
 fn test_export_json() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .args(["export", "-f", "json"])
@@ -550,7 +629,10 @@ fn test_export_json() {
 fn test_reindex() {
     let temp = setup_test_env();
 
-    dg_cmd(&temp).args(["new", "decision", "Test"]).assert().success();
+    dg_cmd(&temp)
+        .args(["new", "decision", "Test"])
+        .assert()
+        .success();
 
     dg_cmd(&temp)
         .arg("reindex")

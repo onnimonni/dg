@@ -90,7 +90,12 @@ pub fn run(docs_dir: &str, id: &str, show_links: bool, as_json: bool) -> Result<
                 .get(target)
                 .map(|r| r.title())
                 .unwrap_or("[not found]");
-            println!("  {} {} ({})", link_type.cyan(), target, target_title.dimmed());
+            println!(
+                "  {} {} ({})",
+                link_type.cyan(),
+                target,
+                target_title.dimmed()
+            );
         }
     }
 
@@ -100,7 +105,10 @@ pub fn run(docs_dir: &str, id: &str, show_links: bool, as_json: bool) -> Result<
         if !incoming.is_empty() {
             println!("\n{}", "Incoming links:".yellow());
             for edge in incoming {
-                let from_title = graph.get(&edge.from).map(|r| r.title()).unwrap_or("[not found]");
+                let from_title = graph
+                    .get(&edge.from)
+                    .map(|r| r.title())
+                    .unwrap_or("[not found]");
                 println!(
                     "  {} <- {} ({})",
                     edge.link_type.cyan(),
@@ -120,7 +128,10 @@ pub fn run(docs_dir: &str, id: &str, show_links: bool, as_json: bool) -> Result<
         println!("{}", preview);
         let total_lines = content.lines().count();
         if total_lines > 20 {
-            println!("\n{}", format!("... ({} more lines)", total_lines - 20).dimmed());
+            println!(
+                "\n{}",
+                format!("... ({} more lines)", total_lines - 20).dimmed()
+            );
         }
     }
 

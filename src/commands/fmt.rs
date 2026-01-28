@@ -140,15 +140,7 @@ fn format_markdown(content: &str) -> Result<String> {
 fn format_yaml(value: &serde_yaml::Value) -> Result<String> {
     // Define the desired key order for frontmatter
     let key_order = [
-        "type",
-        "id",
-        "title",
-        "status",
-        "created",
-        "updated",
-        "authors",
-        "tags",
-        "links",
+        "type", "id", "title", "status", "created", "updated", "authors", "tags", "links",
     ];
 
     if let serde_yaml::Value::Mapping(map) = value {
@@ -202,10 +194,7 @@ fn format_yaml_field(key: &str, value: &serde_yaml::Value) -> String {
                 } else {
                     let yaml = serde_yaml::to_string(&serde_yaml::Value::Mapping({
                         let mut m = serde_yaml::Mapping::new();
-                        m.insert(
-                            serde_yaml::Value::String(key.to_string()),
-                            value.clone(),
-                        );
+                        m.insert(serde_yaml::Value::String(key.to_string()), value.clone());
                         m
                     }))
                     .unwrap_or_default();

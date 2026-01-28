@@ -12,11 +12,7 @@ pub fn run(docs_dir: &str) -> Result<()> {
     println!("{}", "Decision Graph Statistics".bold());
     println!("{}", "=".repeat(40));
 
-    println!(
-        "\n{}: {}",
-        "Total records".cyan(),
-        stats.total_records
-    );
+    println!("\n{}: {}", "Total records".cyan(), stats.total_records);
     println!("{}: {}", "Total links".cyan(), stats.total_edges);
 
     println!("\n{}", "By type:".yellow());
@@ -42,11 +38,7 @@ pub fn run(docs_dir: &str) -> Result<()> {
     // Calculate some graph metrics
     if stats.total_records > 0 {
         let avg_links = stats.total_edges as f64 / stats.total_records as f64;
-        println!(
-            "\n{}: {:.1}",
-            "Avg links per record".dimmed(),
-            avg_links
-        );
+        println!("\n{}: {:.1}", "Avg links per record".dimmed(), avg_links);
     }
 
     // Find most connected records

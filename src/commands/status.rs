@@ -8,8 +8,8 @@ pub fn run(docs_dir: &str, id: &str, new_status: &str) -> Result<()> {
     let docs_path = Path::new(docs_dir);
     let mut graph = Graph::load(docs_path)?;
 
-    let status = Status::from_str(new_status)
-        .ok_or_else(|| anyhow!("Unknown status: {}", new_status))?;
+    let status =
+        Status::from_str(new_status).ok_or_else(|| anyhow!("Unknown status: {}", new_status))?;
 
     let record = graph
         .get_mut(id)
