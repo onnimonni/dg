@@ -224,7 +224,8 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block head %}
 <style>
-    .filter-btn.active { background: #007c43; border-color: #007c43; color: white; }
+    .filter-btn.active { background: rgba(0, 124, 67, 0.2); border-color: #007c43; color: #4ade80; }
+    .filter-btn:not(.active):hover { background: rgba(51, 65, 85, 0.5); }
 </style>
 {% endblock %}
 
@@ -246,25 +247,27 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
     </div>
 </div>
 
-<div id="records" class="space-y-3">
+<div id="records" class="space-y-4">
 {% for record in records %}
-<a href="/records/{{ record.id }}" class="card block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-yellow-500{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
-    <div class="flex justify-between items-start mb-2">
-        <div class="flex items-center gap-2">
-            <span class="font-mono text-sm font-medium text-piper-light">{{ record.id }}</span>
-            {% if record.foundational %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">CORE</span>{% endif %}
+<a href="/records/{{ record.id }}" class="card block rounded-xl p-5 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-emerald-500 bg-slate-800/60 hover:bg-slate-700/60{% else %}bg-piper-card border border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/50{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
+    <div class="flex justify-between items-start gap-4">
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="font-mono text-xs text-slate-500">{{ record.id }}</span>
+                {% if record.foundational %}<span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">CORE</span>{% endif %}
+            </div>
+            <h3 class="text-lg font-medium text-slate-100 mb-2 leading-snug">{{ record.title }}</h3>
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                <span class="text-slate-400">{{ record.type_display }}</span>
+                <span class="text-slate-600">·</span>
+                {% if record.status == 'deprecated' %}<span class="text-amber-500/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-red-400/70">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-blue-400/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
+                {% if record.tags %}
+                <span class="text-slate-700">·</span>
+                <div class="flex flex-wrap gap-1">{% for tag in record.tags %}<span class="tag-link rounded bg-slate-700/50 px-1.5 py-0.5 text-slate-500 font-mono hover:bg-slate-600 hover:text-slate-300 transition-colors" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}</div>
+                {% endif %}
+            </div>
         </div>
-        <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase {% if record.status == 'accepted' or record.status == 'active' %}bg-green-900/30 text-green-500{% elif record.status == 'proposed' or record.status == 'draft' %}bg-yellow-900/30 text-yellow-500{% elif record.status == 'open' %}bg-red-900/30 text-red-500{% elif record.status == 'resolved' %}bg-blue-900/30 text-blue-500{% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
-    </div>
-    <div class="text-lg font-semibold text-slate-200 hover:text-white mb-1">{{ record.title }}</div>
-    <div class="text-sm text-slate-500 flex items-center gap-2">
-        <span>{{ record.type_display }}</span>
-        <span class="text-slate-600">·</span>
-        {% if record.status == 'deprecated' %}<span class="text-amber-400/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-red-400/70">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-blue-400/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
-        {% if record.tags %}
-        <span class="text-slate-600">·</span>
-        {% for tag in record.tags %}<span class="tag-link px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400 font-mono hover:bg-piper-accent hover:text-white transition-colors" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}
-        {% endif %}
+        <span class="flex-shrink-0 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset {% if record.status == 'accepted' or record.status == 'active' %}bg-green-500/10 text-green-400 ring-green-500/20{% elif record.status == 'proposed' or record.status == 'draft' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'open' %}bg-red-500/10 text-red-400 ring-red-500/20{% elif record.status == 'resolved' %}bg-sky-500/10 text-sky-400 ring-sky-500/20{% elif record.status == 'deprecated' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'superseded' %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% else %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% endif %}">{{ record.status | upper }}</span>
     </div>
 </a>
 {% endfor %}
@@ -411,9 +414,9 @@ function loadFromUrl() {
 search.addEventListener('input', () => { filterRecords(); updateUrl(); });
 sortBtn.addEventListener('click', cycleSortMode);
 filters.forEach(btn => {
-    if (btn.id !== 'sort' && btn.tagName === 'BUTTON') {
+    if (btn.id !== 'sort' && btn.id !== 'viewToggle' && btn.tagName === 'BUTTON' && btn.dataset.type) {
         btn.addEventListener('click', () => {
-            filters.forEach(b => { if (b.id !== 'sort' && b.tagName === 'BUTTON') b.classList.remove('active'); });
+            filters.forEach(b => { if (b.id !== 'sort' && b.id !== 'viewToggle' && b.tagName === 'BUTTON' && b.dataset.type) b.classList.remove('active'); });
             btn.classList.add('active');
             activeType = btn.dataset.type;
             filterRecords();
