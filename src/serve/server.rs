@@ -1,3 +1,4 @@
+use crate::git::GitHistory;
 use crate::models::teams::TeamsConfig;
 use crate::models::users::UsersConfig;
 use crate::models::{graph_to_d2, AuthorsConfig, D2Renderer, Graph};
@@ -81,6 +82,7 @@ pub async fn run_server(
         .route("/users/{username}", get(user_handler))
         .route("/teams", get(teams_handler))
         .route("/teams/{id}", get(team_handler))
+        .route("/teams/{id}/history", get(team_history_handler))
         .route("/api/records", get(api_records))
         .route(
             "/api/records/{id}",
@@ -307,16 +309,32 @@ async fn record_handler(
         .collect();
     ctx.insert("backlinks".to_string(), serde_json::Value::Array(backlinks));
 
-    // Resolve author info
+    // Resolve author info with team memberships
     let resolved_authors: Vec<_> = record
         .frontmatter
         .authors
         .iter()
-        .map(|username| state.authors_config.resolve(username))
+        .map(|username| {
+            let base = state.authors_config.resolve(username);
+            // Check if we have user config with team info
+            let teams: Vec<String> = state
+                .users_config
+                .get(username)
+                .map(|u| u.teams.clone())
+                .unwrap_or_default();
+            serde_json::json!({
+                "username": username,
+                "name": base.name,
+                "email": base.email,
+                "avatar_url": base.avatar_url,
+                "initials": base.initials,
+                "teams": teams,
+            })
+        })
         .collect();
     ctx.insert(
         "resolved_authors".to_string(),
-        serde_json::to_value(&resolved_authors).unwrap_or_default(),
+        serde_json::Value::Array(resolved_authors),
     );
 
     match env.get_template("record.html") {
@@ -1082,6 +1100,77 @@ async fn team_handler(
     }
 }
 
+async fn team_history_handler(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let env = create_environment();
+
+    let team = match state.teams_config.get(&id) {
+        Some(t) => t,
+        None => return (StatusCode::NOT_FOUND, format!("Team not found: {}", id)).into_response(),
+    };
+
+    // Try to get git history
+    let history = match GitHistory::new(&state.docs_dir) {
+        Ok(h) => h,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Git history not available (not a git repository)",
+            )
+                .into_response()
+        }
+    };
+
+    let snapshots = match history.team_history(&id) {
+        Ok(s) => s,
+        Err(_) => vec![],
+    };
+
+    let history_data: Vec<_> = snapshots
+        .iter()
+        .map(|s| {
+            serde_json::json!({
+                "commit": s.commit,
+                "date": s.date.format("%Y-%m-%d").to_string(),
+                "message": s.message,
+                "members": s.members,
+                "joined": s.joined,
+                "left": s.left,
+            })
+        })
+        .collect();
+
+    // Get all-time members
+    let all_time_members = history.all_time_members(&id).unwrap_or_default();
+
+    match env.get_template("team_history.html") {
+        Ok(tmpl) => {
+            match tmpl.render(context! {
+                site => &state.site_config,
+                current_page => "teams",
+                team_id => &id,
+                team_name => &team.name,
+                history => history_data,
+                all_time_members => all_time_members,
+            }) {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Render error: {}", e),
+                )
+                    .into_response(),
+            }
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
 // Static asset handler using rust-embed for offline KaTeX support
 async fn static_handler(Path(path): Path<String>) -> Response {
     let content_type = if path.ends_with(".css") {
@@ -1183,6 +1272,11 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
     map.insert(
         "foundational".to_string(),
         serde_json::Value::Bool(record.frontmatter.foundational),
+    );
+    // Check if this is a draft record (ID contains -NEW-)
+    map.insert(
+        "is_draft".to_string(),
+        serde_json::Value::Bool(record.id().contains("-NEW-")),
     );
     map.insert(
         "tags".to_string(),

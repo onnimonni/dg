@@ -254,6 +254,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-2">
                 <span class="font-mono text-xs text-slate-500">{{ record.id }}</span>
+                {% if record.is_draft %}<span class="inline-flex items-center rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20">DRAFT</span>{% endif %}
                 {% if record.foundational %}<span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">CORE</span>{% endif %}
             </div>
             <h3 class="text-lg font-medium text-slate-100 mb-2 leading-snug">{{ record.title }}</h3>
@@ -275,8 +276,8 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div id="recordsTable" class="hidden overflow-x-auto">
     <table class="w-full text-left">
-        <thead class="border-b border-slate-700">
-            <tr class="text-slate-400 text-sm">
+        <thead class="border-b border-slate-700/50">
+            <tr class="text-slate-500 text-xs uppercase tracking-wider">
                 <th class="py-3 px-4 font-medium">ID</th>
                 <th class="py-3 px-4 font-medium">Title</th>
                 <th class="py-3 px-4 font-medium">Type</th>
@@ -284,16 +285,18 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <th class="py-3 px-4 font-medium">Date</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800">
+        <tbody class="divide-y divide-slate-800/50">
             {% for record in records %}
-            <tr class="table-row hover:bg-slate-800/50 transition-colors cursor-pointer" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
-                <td class="py-3 px-4 font-mono text-sm text-piper-light whitespace-nowrap">
-                    {{ record.id }}{% if record.foundational %} <span class="text-yellow-500">★</span>{% endif %}
+            <tr class="table-row hover:bg-slate-800/30 transition-colors cursor-pointer {% if record.foundational %}bg-slate-800/20{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
+                <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
+                    <span class="text-slate-500">{{ record.id }}</span>
+                    {% if record.is_draft %}<span class="ml-1 inline-flex items-center rounded-md bg-violet-500/10 px-1.5 py-0.5 text-xs font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20">D</span>{% endif %}
+                    {% if record.foundational %}<span class="ml-1 inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">★</span>{% endif %}
                 </td>
-                <td class="py-3 px-4 text-slate-200">{{ record.title }}</td>
-                <td class="py-3 px-4 text-slate-400 text-sm">{{ record.type_display }}</td>
+                <td class="py-3 px-4 text-slate-200 font-medium">{{ record.title }}</td>
+                <td class="py-3 px-4 text-slate-500 text-sm">{{ record.type_display }}</td>
                 <td class="py-3 px-4">
-                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase {% if record.status == 'accepted' or record.status == 'active' %}bg-green-900/30 text-green-500{% elif record.status == 'proposed' or record.status == 'draft' %}bg-yellow-900/30 text-yellow-500{% elif record.status == 'open' %}bg-red-900/30 text-red-500{% elif record.status == 'resolved' %}bg-blue-900/30 text-blue-500{% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
+                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset {% if record.status == 'accepted' or record.status == 'active' %}bg-green-500/10 text-green-400 ring-green-500/20{% elif record.status == 'proposed' or record.status == 'draft' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'open' %}bg-red-500/10 text-red-400 ring-red-500/20{% elif record.status == 'resolved' %}bg-sky-500/10 text-sky-400 ring-sky-500/20{% elif record.status == 'deprecated' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'superseded' %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% else %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% endif %}">{{ record.status }}</span>
                 </td>
                 <td class="py-3 px-4 text-slate-500 text-sm whitespace-nowrap">{{ record.created }}</td>
             </tr>
@@ -496,6 +499,95 @@ loadFromUrl();
 setViewMode(viewMode);
 filterRecords();
 sortRecords();
+
+// Keyboard navigation
+let selectedIndex = -1;
+
+function getVisibleRecords() {
+    if (viewMode === 'cards') {
+        return Array.from(recordsContainer.querySelectorAll('.card')).filter(r => r.style.display !== 'none');
+    } else {
+        return Array.from(recordsTable.querySelectorAll('.table-row')).filter(r => r.style.display !== 'none');
+    }
+}
+
+function updateSelection(newIndex) {
+    const records = getVisibleRecords();
+    if (records.length === 0) return;
+
+    // Remove previous selection
+    records.forEach(r => r.classList.remove('ring-2', 'ring-piper-accent', 'ring-offset-2', 'ring-offset-piper-bg'));
+
+    // Clamp index
+    selectedIndex = Math.max(0, Math.min(newIndex, records.length - 1));
+
+    // Add selection to new item
+    const selected = records[selectedIndex];
+    if (selected) {
+        selected.classList.add('ring-2', 'ring-piper-accent', 'ring-offset-2', 'ring-offset-piper-bg');
+        selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
+
+function openSelected() {
+    const records = getVisibleRecords();
+    if (selectedIndex >= 0 && selectedIndex < records.length) {
+        const selected = records[selectedIndex];
+        const href = selected.href || selected.dataset.href;
+        if (href) window.location.href = href;
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    // Don't interfere with input fields
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        if (e.key === 'Escape') {
+            e.target.blur();
+            e.preventDefault();
+        }
+        return;
+    }
+
+    switch(e.key) {
+        case 'j':
+        case 'ArrowDown':
+            e.preventDefault();
+            updateSelection(selectedIndex + 1);
+            break;
+        case 'k':
+        case 'ArrowUp':
+            e.preventDefault();
+            updateSelection(selectedIndex - 1);
+            break;
+        case 'Enter':
+            if (selectedIndex >= 0) {
+                e.preventDefault();
+                openSelected();
+            }
+            break;
+        case '/':
+            e.preventDefault();
+            search.focus();
+            break;
+        case 'g':
+            // gg = go to top
+            if (e.timeStamp - (window.lastG || 0) < 500) {
+                e.preventDefault();
+                updateSelection(0);
+            }
+            window.lastG = e.timeStamp;
+            break;
+        case 'G':
+            // G = go to bottom
+            e.preventDefault();
+            updateSelection(getVisibleRecords().length - 1);
+            break;
+        case 'Escape':
+            selectedIndex = -1;
+            getVisibleRecords().forEach(r => r.classList.remove('ring-2', 'ring-piper-accent', 'ring-offset-2', 'ring-offset-piper-bg'));
+            break;
+    }
+});
 </script>
 {% endblock %}
 "##;
@@ -555,11 +647,14 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <div class="flex -space-x-3">
                     {% for author in record.resolved_authors %}
                     <div class="author-wrapper">
-                        <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar bg-piper-accent" data-initials="{{ author.initials }}">
-                        <span class="avatar-initials" data-initials="{{ author.initials }}">{{ author.initials }}</span>
+                        <a href="/users/{{ author.username }}">
+                            <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar bg-piper-accent" data-initials="{{ author.initials }}">
+                            <span class="avatar-initials" data-initials="{{ author.initials }}">{{ author.initials }}</span>
+                        </a>
                         <div class="author-tooltip">
                             <div class="font-medium">{{ author.name }}</div>
                             {% if author.email %}<div class="text-slate-400 text-[11px]">{{ author.email }}</div>{% endif %}
+                            {% if author.teams %}<div class="text-slate-500 text-[10px] mt-1">{% for t in author.teams %}<a href="/teams/{{ t }}" class="hover:text-piper-light">{{ t }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -2195,6 +2290,13 @@ const TEAM_TEMPLATE: &str = r##"{% extends "base.html" %}
                         Parent: <a href="/teams/{{ team.parent }}" class="text-piper-light hover:underline">{{ team.parent }}</a>
                     </div>
                     {% endif %}
+
+                    <div class="mt-4">
+                        <a href="/teams/{{ team.id }}/history" class="inline-flex items-center gap-2 text-sm text-piper-light hover:text-piper-accent transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            View History
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2236,6 +2338,88 @@ const TEAM_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% endblock %}
 "##;
 
+const TEAM_HISTORY_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}{{ team_name }} History - {{ site.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="/teams/{{ team_id }}" class="text-piper-light hover:underline text-sm">← Back to {{ team_name }}</a>
+    </div>
+
+    <div class="bg-piper-card border border-slate-700 rounded-2xl overflow-hidden">
+        <div class="h-1.5 w-full bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+
+        <div class="p-8">
+            <h1 class="text-2xl font-bold text-white mb-2">{{ team_name }} History</h1>
+            <p class="text-slate-400 mb-6">Team membership changes over time from git history</p>
+
+            {% if history %}
+            <div class="space-y-6">
+                {% for snapshot in history %}
+                <div class="relative pl-6 border-l-2 border-slate-700 {% if loop.first %}border-l-emerald-500{% endif %}">
+                    <div class="absolute -left-2 top-0 w-4 h-4 rounded-full {% if loop.first %}bg-emerald-500{% else %}bg-slate-600{% endif %}"></div>
+
+                    <div class="mb-2">
+                        <span class="text-slate-300 font-medium">{{ snapshot.date }}</span>
+                        <span class="text-slate-600 mx-2">·</span>
+                        <span class="font-mono text-xs text-slate-500">{{ snapshot.commit }}</span>
+                    </div>
+
+                    <p class="text-sm text-slate-400 mb-3">{{ snapshot.message }}</p>
+
+                    {% if snapshot.joined %}
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        {% for user in snapshot.joined %}
+                        <span class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                            + @{{ user }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if snapshot.left %}
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        {% for user in snapshot.left %}
+                        <span class="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
+                            − @{{ user }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="text-xs text-slate-500">
+                        Members: {% for user in snapshot.members %}<a href="/users/{{ user }}" class="text-slate-400 hover:text-piper-light">@{{ user }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 text-slate-500">
+                <p>No history found for this team.</p>
+                <p class="text-sm mt-2">Team membership changes are tracked when dg.toml is committed to git.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if all_time_members %}
+    <div class="mt-8 bg-piper-card border border-slate-700 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">All-Time Members ({{ all_time_members | length }})</h3>
+        <div class="flex flex-wrap gap-2">
+            {% for user in all_time_members %}
+            <a href="/users/{{ user }}" class="inline-flex items-center rounded-md bg-slate-700/50 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-600 transition-colors">
+                @{{ user }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+"##;
+
 pub fn create_environment() -> Environment<'static> {
     let mut env = Environment::new();
     env.add_template("base.html", BASE_TEMPLATE).unwrap();
@@ -2250,5 +2434,7 @@ pub fn create_environment() -> Environment<'static> {
     env.add_template("user.html", USER_TEMPLATE).unwrap();
     env.add_template("teams.html", TEAMS_TEMPLATE).unwrap();
     env.add_template("team.html", TEAM_TEMPLATE).unwrap();
+    env.add_template("team_history.html", TEAM_HISTORY_TEMPLATE)
+        .unwrap();
     env
 }
