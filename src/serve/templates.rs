@@ -1956,6 +1956,10 @@ async function updatePreview() {
     renderPending = true;
     const html = await renderMarkdown(editor.value);
     preview.innerHTML = html;
+    // Render KaTeX math in preview
+    if (typeof renderMathInElement === 'function') {
+        renderMathInElement(preview, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});
+    }
     renderPending = false;
 
     // Process queued render
