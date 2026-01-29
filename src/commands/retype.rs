@@ -567,50 +567,91 @@ fn update_record_type_and_id_only(
 
 /// Replace IDs only in the links section (not the id: field)
 fn replace_ids_in_links(content: &str, id_mapping: &HashMap<String, String>) -> String {
-    // Find the links section and only replace within it
-    // This avoids accidentally changing the record's own ID
-    let mut result = content.to_string();
-
-    // Sort by length descending to replace longer IDs first
-    let mut pairs: Vec<_> = id_mapping.iter().collect();
-    pairs.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-
-    // Replace IDs in link arrays (e.g., depends_on: [DEC-002, ADR-001])
-    for (old_id, new_id) in &pairs {
-        // Match IDs in YAML arrays: [ID, ID] or - ID
-        let patterns = [
-            // In arrays: [OLD_ID or , OLD_ID or OLD_ID]
-            format!(r"\[{}", regex::escape(old_id)),
-            format!(r",\s*{}", regex::escape(old_id)),
-            format!(r"{}\]", regex::escape(old_id)),
-            format!(r"{},", regex::escape(old_id)),
-            // In YAML list items: - OLD_ID
-            format!(r"- {}", regex::escape(old_id)),
-        ];
-
-        for pattern in patterns {
-            let re = Regex::new(&pattern).unwrap();
-            result = re
-                .replace_all(&result, |caps: &regex::Captures| {
-                    caps.get(0).unwrap().as_str().replace(*old_id, new_id)
-                })
-                .to_string();
-        }
+    if id_mapping.is_empty() {
+        return content.to_string();
     }
 
-    result
+    // Find the links: section and only replace within it
+    // This avoids accidentally changing the record's own ID in frontmatter
+    if let Some(links_start) = content.find("\nlinks:") {
+        let before_links = &content[..links_start + 1];
+        let links_section = &content[links_start + 1..];
+
+        // Find where links section ends (next non-indented line or end of frontmatter)
+        let links_end = links_section
+            .find("\n---")
+            .or_else(|| {
+                links_section
+                    .lines()
+                    .skip(1) // Skip "links:" line
+                    .position(|line| {
+                        !line.is_empty() && !line.starts_with(' ') && !line.starts_with('\t')
+                    })
+                    .map(|pos| {
+                        links_section
+                            .lines()
+                            .take(pos + 1)
+                            .map(|l| l.len() + 1)
+                            .sum::<usize>()
+                    })
+            })
+            .unwrap_or(links_section.len());
+
+        let links_content = &links_section[..links_end];
+        let after_links = &links_section[links_end..];
+
+        // Replace IDs only in the links section using single-pass replacement
+        let pattern = format!(
+            r"\b({})\b",
+            id_mapping
+                .keys()
+                .map(|id| regex::escape(id))
+                .collect::<Vec<_>>()
+                .join("|")
+        );
+
+        let re = Regex::new(&pattern).unwrap();
+        let updated_links = re
+            .replace_all(links_content, |caps: &regex::Captures| {
+                let matched = caps.get(0).unwrap().as_str();
+                id_mapping
+                    .get(matched)
+                    .cloned()
+                    .unwrap_or_else(|| matched.to_string())
+            })
+            .to_string();
+
+        format!("{}{}{}", before_links, updated_links, after_links)
+    } else {
+        content.to_string()
+    }
 }
 
 fn replace_ids_in_content(content: &str, id_mapping: &HashMap<String, String>) -> String {
-    let mut result = content.to_string();
-
-    // Sort by length descending to replace longer IDs first (avoids partial matches)
-    let mut pairs: Vec<_> = id_mapping.iter().collect();
-    pairs.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-
-    for (old_id, new_id) in pairs {
-        result = result.replace(old_id, new_id);
+    if id_mapping.is_empty() {
+        return content.to_string();
     }
 
-    result
+    // Build a single regex that matches any of the IDs
+    // This ensures we don't chain replacements (e.g., DEC-002 → ADR-001 → ADR-002)
+    let pattern = format!(
+        r"\b({})\b",
+        id_mapping
+            .keys()
+            .map(|id| regex::escape(id))
+            .collect::<Vec<_>>()
+            .join("|")
+    );
+
+    let re = Regex::new(&pattern).unwrap();
+
+    // Replace all matches in a single pass using a callback
+    re.replace_all(content, |caps: &regex::Captures| {
+        let matched = caps.get(0).unwrap().as_str();
+        id_mapping
+            .get(matched)
+            .cloned()
+            .unwrap_or_else(|| matched.to_string())
+    })
+    .to_string()
 }
