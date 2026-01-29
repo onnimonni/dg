@@ -89,6 +89,7 @@ pub async fn run_server(
             get(api_record).put(save_record_handler),
         )
         .route("/api/records/{id}/raw", get(api_record_raw))
+        .route("/api/render", axum::routing::post(api_render))
         .route("/api/graph", get(api_graph))
         .route("/diagrams/{id}", get(diagram_handler))
         .route("/reload", get(reload_handler))
@@ -563,6 +564,26 @@ async fn api_record(State(state): State<Arc<AppState>>, Path(id): Path<String>) 
         )
             .into_response(),
     }
+}
+
+// Server-side markdown rendering endpoint (prevents XSS from client-side regex parsing)
+async fn api_render(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Response {
+    let markdown = match payload.get("markdown").and_then(|m| m.as_str()) {
+        Some(m) => m,
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Missing 'markdown' field"})),
+            )
+                .into_response()
+        }
+    };
+
+    let html = markdown_to_html_with_mentions(markdown, &state.valid_mentions);
+    Json(serde_json::json!({ "html": html })).into_response()
 }
 
 async fn api_graph(State(state): State<Arc<AppState>>) -> impl IntoResponse {

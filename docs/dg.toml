@@ -10,38 +10,30 @@ footer = "Sample Company Inc."
 quick_preview = true
 
 # Author profiles
-# avatar_url overrides the GitHub avatar fallback
-# Local avatars are served from /assets/avatars/
 
 [authors.richard]
 name = "John Doe"
 email = "[EMAIL_ADDRESS]"
-avatar_url = "/assets/avatars/richard.svg"
 
 [authors.jared]
 name = "Jane Smith"
 email = "[EMAIL_ADDRESS]"
-avatar_url = "/assets/avatars/jared.svg"
 
 [authors.dinesh]
 name = "Bob Johnson"
 email = "[EMAIL_ADDRESS]"
-avatar_url = "/assets/avatars/dinesh.svg"
 
 [authors.gilfoyle]
 name = "Charlie Brown"
 email = "[EMAIL_ADDRESS]"
-avatar_url = "/assets/avatars/gilfoyle.svg"
 
 [authors.onni]
 name = "Onni Hakala"
-github = "onnimonni"
 email = "onni@flaky.build"
 
 [authors.marie]
 name = "Marie Dubois"
 email = "[EMAIL_ADDRESS]"
-avatar_url = "/assets/avatars/marie.svg"
 
 [authors.engineering]
 name = "Engineering Team"
@@ -67,29 +59,24 @@ email = "[EMAIL_ADDRESS]"
 [users.richard]
 name = "Richard Hendricks"
 email = "richard@piedpiper.com"
-github = "richardhendricks"
-avatar_url = "/assets/avatars/richard.svg"
 teams = ["engineering", "founders"]
 roles = ["engineer", "ceo"]
 
 [users.jared]
 name = "Jared Dunn"
 email = "jared@piedpiper.com"
-avatar_url = "/assets/avatars/jared.svg"
 teams = ["founders"]
 roles = ["coo"]
 
 [users.dinesh]
 name = "Dinesh Chugtai"
 email = "dinesh@piedpiper.com"
-avatar_url = "/assets/avatars/dinesh.svg"
 teams = ["engineering", "platform"]
 roles = ["engineer"]
 
 [users.gilfoyle]
 name = "Bertram Gilfoyle"
 email = "gilfoyle@piedpiper.com"
-avatar_url = "/assets/avatars/gilfoyle.svg"
 teams = ["engineering", "platform"]
 roles = ["engineer", "security"]
 
@@ -110,28 +97,24 @@ teams = ["founders"]
 [users.claude]
 name = "Claude"
 email = "claude@anthropic.com"
-avatar_url = "https://www.anthropic.com/images/icons/apple-touch-icon.png"
 teams = ["llms"]
 roles = ["llm", "assistant"]
 
 [users.gemini]
 name = "Gemini"
 email = "gemini@google.com"
-avatar_url = "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg"
 teams = ["llms"]
 roles = ["llm", "assistant"]
 
 [users.grok]
 name = "Grok"
 email = "grok@x.com"
-avatar_url = "https://x.ai/favicon.ico"
 teams = ["llms"]
 roles = ["llm", "assistant"]
 
 [users.copilot]
 name = "GitHub Copilot"
 email = "copilot@github.com"
-avatar_url = "https://github.githubassets.com/assets/copilot-logo-8cddb06ee4d2.svg"
 teams = ["llms"]
 roles = ["llm", "assistant"]
 

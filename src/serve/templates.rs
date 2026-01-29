@@ -1889,30 +1889,44 @@ function buildFullContent() {
     return yaml + editor.value;
 }
 
-function renderMarkdown(md) {
-    let html = md
-        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-slate-800 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-1.5 py-0.5 rounded text-piper-light">$1</code>')
-        .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-white mt-6 mb-2">$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-8 mb-3 pb-2 border-b border-slate-700">$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-white mt-6 mb-4">$1</h1>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-piper-light hover:underline">$1</a>')
-        .replace(/^- \[x\] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" checked disabled> <span class="line-through text-slate-500">$1</span></li>')
-        .replace(/^- \[ \] (.+)$/gm, '<li class="ml-4 flex items-center gap-2"><input type="checkbox" disabled> $1</li>')
-        .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
-        .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-piper-accent pl-4 my-4 text-slate-400 italic">$1</blockquote>')
-        .replace(/\n\n/g, '</p><p class="my-4">')
-        .replace(/\n/g, '<br>');
-    html = '<p class="my-4">' + html + '</p>';
-    html = html.replace(/(<li[\s\S]*?<\/li>)+/g, '<ul class="my-4">$&</ul>');
-    return html;
+// Server-side markdown rendering to prevent XSS (no client-side regex parsing)
+let renderPending = false;
+let renderQueued = false;
+
+async function renderMarkdown(md) {
+    try {
+        const res = await fetch('/api/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown: md })
+        });
+        if (!res.ok) return '<p class="text-red-400">Preview unavailable</p>';
+        const data = await res.json();
+        return data.html || '';
+    } catch {
+        return '<p class="text-red-400">Preview unavailable</p>';
+    }
 }
 
-function updatePreview() {
-    preview.innerHTML = renderMarkdown(editor.value);
+async function updatePreview() {
     document.getElementById('displayTitle').textContent = fieldTitle.value || 'Untitled';
+
+    // Debounce: if render in progress, queue another
+    if (renderPending) {
+        renderQueued = true;
+        return;
+    }
+
+    renderPending = true;
+    const html = await renderMarkdown(editor.value);
+    preview.innerHTML = html;
+    renderPending = false;
+
+    // Process queued render
+    if (renderQueued) {
+        renderQueued = false;
+        updatePreview();
+    }
 }
 
 function markDirty() {

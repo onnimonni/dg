@@ -15,10 +15,8 @@ quick_preview = true
 [users.billg]
 name = "Bill Gates"
 email = "billg@microsoft.com"
-github = "billgates"
 teams = ["founders", "board"]
 roles = ["co-founder", "chairman"]
-avatar_url = "https://pbs.twimg.com/profile_images/1674815862879178752/nTGMV1Eo_400x400.jpg"
 
 [users.paul]
 name = "Paul Allen"
@@ -32,17 +30,14 @@ deprecated_note = "Left day-to-day operations (remained on board until 2000)"
 [users.steveb]
 name = "Steve Ballmer"
 email = "steveb@microsoft.com"
-github = "steveballmer"
 teams = ["executive", "board"]
 roles = ["ceo"]
-avatar_url = "https://pbs.twimg.com/profile_images/1255577663261773825/25t0tWj9_400x400.jpg"
 
 [users.satya]
 name = "Satya Nadella"
 email = "satyan@microsoft.com"
 teams = ["executive", "board"]
 roles = ["ceo"]
-avatar_url = "https://pbs.twimg.com/profile_images/1221837516816306177/_Ld4un5A_400x400.jpg"
 
 [users.cutler]
 name = "Dave Cutler"

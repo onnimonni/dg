@@ -1,10 +1,10 @@
 ---
 type: decision
 id: DEC-001
-title: Drop Out of Harvard to Start MicroSoft
+title: Drop Out of Harvard to Start Microsoft
 status: accepted
 created: 1975-01-01
-updated: 2026-01-28
+updated: 2026-01-29
 authors: [billg, paul]
 tags: [founding, strategy]
 links:
@@ -18,7 +18,7 @@ links:
   implements: []
 ---
 
-# Drop Out of Harvard to Start Micro-Soft
+# Drop Out of Harvard to Start Microsoft
 
 ## Setting
 It is January 1975. Paul Allen has seen the cover of Popular Electronics featuring the Altair 8800, the first personal computer kit. He rushed to show Bill Gates. The realization is that the "computer on every desk" revolution is starting *now*. If they don't act immediately to provide the software layer (BASIC) for these machines, someone else will, and the opportunity to set the standard will be lost. Bill is currently a student at Harvard; Paul is working at Honeywell.
