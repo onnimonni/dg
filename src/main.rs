@@ -316,6 +316,20 @@ enum Commands {
         format: String,
     },
 
+    /// Change a record's type while preserving chronological order
+    Retype {
+        /// Record ID to change (e.g., DEC-002)
+        id: String,
+
+        /// New type: decision, strategy, policy, customer, adr, incident, etc.
+        #[arg(value_name = "NEW_TYPE")]
+        new_type: String,
+
+        /// Apply changes without confirmation
+        #[arg(short, long)]
+        force: bool,
+    },
+
     /// Generate shell completions
     Completions {
         /// Shell to generate completions for
@@ -418,6 +432,11 @@ fn main() -> Result<()> {
             sort,
             format,
         } => commands::timeline::run(&cli.docs_dir, limit, &sort, &format),
+        Commands::Retype {
+            id,
+            new_type,
+            force,
+        } => commands::retype::run(&cli.docs_dir, &id, &new_type, force),
         Commands::Completions { shell } => {
             generate(shell, &mut Cli::command(), "dg", &mut std::io::stdout());
             Ok(())

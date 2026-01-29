@@ -15,6 +15,7 @@ pub mod orphans;
 pub mod principles;
 pub mod reindex;
 pub mod resolve;
+pub mod retype;
 pub mod search;
 pub mod serve;
 pub mod show;
