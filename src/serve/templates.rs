@@ -811,6 +811,10 @@ const GRAPH_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block head %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+#graph { width: 100%; height: 600px; }
+#graph svg { width: 100%; height: 100%; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -820,8 +824,9 @@ const GRAPH_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block scripts %}
 <script>
 const data = {{ graph_data | safe }};
-const width = document.getElementById('graph').clientWidth;
-const height = 500;
+const container = document.getElementById('graph');
+const width = container.clientWidth;
+const height = container.clientHeight || 600;
 
 const color = d3.scaleOrdinal()
     .domain(['DEC', 'STR', 'POL', 'CUS', 'OPP', 'PRC', 'HIR', 'ADR', 'INC', 'RUN', 'MTG'])
@@ -829,22 +834,28 @@ const color = d3.scaleOrdinal()
 
 const svg = d3.select('#graph')
     .append('svg')
-    .attr('width', width)
-    .attr('height', height);
+    .attr('viewBox', [0, 0, width, height]);
+
+// Add zoom behavior
+const g = svg.append('g');
+const zoom = d3.zoom()
+    .scaleExtent([0.1, 4])
+    .on('zoom', (e) => g.attr('transform', e.transform));
+svg.call(zoom);
 
 const simulation = d3.forceSimulation(data.nodes)
     .force('link', d3.forceLink(data.edges).id(d => d.id).distance(100))
     .force('charge', d3.forceManyBody().strength(-300))
     .force('center', d3.forceCenter(width / 2, height / 2));
 
-const link = svg.append('g')
+const link = g.append('g')
     .selectAll('line')
     .data(data.edges)
     .join('line')
     .attr('stroke', '#666')
     .attr('stroke-width', 1);
 
-const node = svg.append('g')
+const node = g.append('g')
     .selectAll('g')
     .data(data.nodes)
     .join('g')
@@ -875,6 +886,27 @@ simulation.on('tick', () => {
         .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
     node.attr('transform', d => `translate(${d.x},${d.y})`);
 });
+
+// Fit all nodes in view after simulation settles
+simulation.on('end', fitToView);
+
+function fitToView() {
+    if (data.nodes.length === 0) return;
+    const padding = 40;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    data.nodes.forEach(d => {
+        minX = Math.min(minX, d.x - 20);
+        maxX = Math.max(maxX, d.x + 20);
+        minY = Math.min(minY, d.y - 20);
+        maxY = Math.max(maxY, d.y + 20);
+    });
+    const bw = maxX - minX + padding * 2;
+    const bh = maxY - minY + padding * 2;
+    const scale = Math.min(width / bw, height / bh, 1);
+    const tx = (width - bw * scale) / 2 - (minX - padding) * scale;
+    const ty = (height - bh * scale) / 2 - (minY - padding) * scale;
+    svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+}
 
 function dragstarted(e) { if (!e.active) simulation.alphaTarget(0.3).restart(); e.subject.fx = e.subject.x; e.subject.fy = e.subject.y; }
 function dragged(e) { e.subject.fx = e.x; e.subject.fy = e.y; }
