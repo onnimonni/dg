@@ -42,6 +42,10 @@ impl AppState {
     fn reload_graph(&self) -> Result<Graph> {
         Graph::load(&self.docs_dir)
     }
+
+    fn has_users(&self) -> bool {
+        !self.users_config.users.is_empty()
+    }
 }
 
 pub async fn run_server(
@@ -233,6 +237,7 @@ async fn index_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "records",
                 records => records_data,
                 record_types => record_types,
@@ -340,7 +345,7 @@ async fn record_handler(
 
     match env.get_template("record.html") {
         Ok(tmpl) => match tmpl.render(
-            context! { site => &state.site_config, current_page => "records", record => ctx },
+            context! { site => &state.site_config, has_users => state.has_users(), current_page => "records", record => ctx },
         ) {
             Ok(html) => Html(html).into_response(),
             Err(e) => (
@@ -383,6 +388,7 @@ async fn graph_page_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "graph",
                 graph_data => graph_data.to_string(),
             }) {
@@ -429,6 +435,7 @@ async fn timeline_handler(State(state): State<Arc<AppState>>) -> impl IntoRespon
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "timeline",
                 timeline_data => timeline_data.to_string(),
             }) {
@@ -484,6 +491,7 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "stats",
                 stats => stats_ctx,
             }) {
@@ -698,6 +706,7 @@ async fn edit_handler(
     match env.get_template("edit.html") {
         Ok(tmpl) => match tmpl.render(context! {
             site => &state.site_config,
+            has_users => state.has_users(),
             current_page => "records",
             record_id => &id,
             record_title => record.title(),
@@ -882,6 +891,7 @@ async fn users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "users",
                 users => users,
             }) {
@@ -969,6 +979,7 @@ async fn user_handler(
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "users",
                 user => user_data,
                 authored_records => authored,
@@ -1027,6 +1038,7 @@ async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "teams",
                 teams => teams,
             }) {
@@ -1100,6 +1112,7 @@ async fn team_handler(
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "teams",
                 team => team_data,
                 members => members,
@@ -1170,6 +1183,7 @@ async fn team_history_handler(
         Ok(tmpl) => {
             match tmpl.render(context! {
                 site => &state.site_config,
+                has_users => state.has_users(),
                 current_page => "teams",
                 team_id => &id,
                 team_name => &team.name,
