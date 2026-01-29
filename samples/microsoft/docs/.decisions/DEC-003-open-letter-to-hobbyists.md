@@ -10,7 +10,7 @@ tags: [business-model, strategy]
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-002]
+  depends_on: [ADR-001]
   enables: []
   relates_to: []
   conflicts_with: []

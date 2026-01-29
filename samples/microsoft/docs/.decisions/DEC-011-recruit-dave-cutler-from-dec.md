@@ -11,7 +11,7 @@ links:
   supersedes: []
   superseded_by: []
   depends_on: []
-  enables: [ADR-001]
+  enables: [ADR-002]
   relates_to: []
   conflicts_with: []
   refines: []

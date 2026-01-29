@@ -1,59 +1,380 @@
 {
-  "generated": "2026-01-28T19:46:41.039429+02:00",
+  "generated": "2026-01-29T12:24:13.508739+02:00",
   "records": [
     {
-      "id": "STR-003",
-      "title": "Cloud-First Mobile-First",
-      "type": "STR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/STR-003-cloud-first-mobile-first.md"
+      "id": "DEC-001",
+      "title": "Drop Out of Harvard to Start MicroSoft",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "founding",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "ADR-001"
+        }
+      ],
+      "path": ".decisions/DEC-001-drop-out-and-found-microsoft.md"
     },
     {
-      "id": "POL-001",
-      "title": "Non-Exclusive OS Licensing",
-      "type": "POL",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/POL-001-non-exclusive-os-licensing.md"
-    },
-    {
-      "id": "STR-001",
-      "title": "Success Reinforces Success",
-      "type": "STR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/STR-001-success-reinforces-success.md"
+      "id": "INC-001",
+      "title": "DOJ Antitrust Case: United States v. Microsoft Corp",
+      "type": "INC",
+      "status": "resolved",
+      "tags": [
+        "antitrust",
+        "browser-wars",
+        "doj",
+        "legal",
+        "regulatory"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-009"
+        },
+        {
+          "type": "depends_on",
+          "target": "DEC-012"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-013"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-014"
+        },
+        {
+          "type": "enables",
+          "target": "INC-002"
+        }
+      ],
+      "path": ".decisions/INC-001-doj-antitrust-case.md"
     },
     {
       "id": "DEC-015",
       "title": "Appoint Satya Nadella as CEO",
       "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
+      "status": "accepted",
+      "tags": [
+        "cloud",
+        "leadership",
+        "succession",
+        "transformation"
+      ],
+      "links": [
+        {
+          "type": "supersedes",
+          "target": "DEC-014"
+        },
+        {
+          "type": "enables",
+          "target": "STR-003"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-003"
+        }
+      ],
       "path": ".decisions/DEC-015-appoint-satya-nadella-as-ceo.md"
     },
     {
-      "id": "DEC-014",
-      "title": "Bill Gates Steps Down as CEO",
+      "id": "DEC-012",
+      "title": "Enter the Console Market with Xbox",
       "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-014-bill-gates-steps-down-as-ceo.md"
+      "status": "accepted",
+      "tags": [
+        "hardware",
+        "risk",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "conflicts_with",
+          "target": "ADR-001"
+        },
+        {
+          "type": "conflicts_with",
+          "target": "DEC-003"
+        }
+      ],
+      "path": ".decisions/DEC-012-xbox-console.md"
     },
     {
-      "id": "DEC-012",
-      "title": "Bundle IE Free with Windows",
+      "id": "ADR-001",
+      "title": "Develop BASIC for the Altair 8800",
+      "type": "ADR",
+      "status": "accepted",
+      "tags": [
+        "product",
+        "technical"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-001"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-003"
+        }
+      ],
+      "path": ".decisions/ADR-001-develop-basic-for-the-altair-8800.md"
+    },
+    {
+      "id": "DEC-017",
+      "title": "License BASIC to 1977 Trinity",
       "type": "DEC",
-      "status": "proposed",
-      "tags": [],
+      "status": "accepted",
+      "tags": [
+        "licensing",
+        "platform",
+        "pricing",
+        "standards"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-016"
+        },
+        {
+          "type": "enables",
+          "target": "STR-001"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "relates_to",
+          "target": "POL-001"
+        }
+      ],
+      "path": ".decisions/DEC-017-license-basic-to-1977-trinity.md"
+    },
+    {
+      "id": "DEC-004",
+      "title": "Relocate from Albuquerque to Seattle",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "operations",
+        "recruiting"
+      ],
       "links": [],
-      "path": ".decisions/DEC-012-bundle-ie-free-with-windows.md"
+      "path": ".decisions/DEC-004-relocate-to-seattle.md"
+    },
+    {
+      "id": "DEC-006",
+      "title": "Buy QDOS (Tim Paterson's 86-DOS) instead of building from scratch",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "acquisition",
+        "technical"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-005"
+        }
+      ],
+      "path": ".decisions/DEC-006-buy-qdos.md"
+    },
+    {
+      "id": "STR-001",
+      "title": "Success Reinforces Success: The Platform Standard Strategy",
+      "type": "STR",
+      "status": "accepted",
+      "tags": [
+        "moat",
+        "network-effects",
+        "platform",
+        "standards"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "ADR-001"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-017"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-008"
+        },
+        {
+          "type": "enables",
+          "target": "PRC-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "POL-001"
+        }
+      ],
+      "path": ".decisions/STR-001-success-reinforces-success.md"
+    },
+    {
+      "id": "ADR-003",
+      "title": "Azure: Platform-as-a-Service First",
+      "type": "ADR",
+      "status": "accepted",
+      "tags": [
+        "architecture",
+        "azure",
+        "cloud",
+        "paas",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "ADR-002"
+        },
+        {
+          "type": "depends_on",
+          "target": "STR-002"
+        },
+        {
+          "type": "enables",
+          "target": "STR-003"
+        }
+      ],
+      "path": ".decisions/ADR-003-azure-platform-as-a-service-first.md"
+    },
+    {
+      "id": "DEC-013",
+      "title": "Settle Antitrust Case",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "antitrust",
+        "legal",
+        "regulatory",
+        "settlement"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "INC-001"
+        },
+        {
+          "type": "enables",
+          "target": "STR-002"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-012"
+        }
+      ],
+      "path": ".decisions/DEC-013-settle-antitrust-case.md"
+    },
+    {
+      "id": "PRC-002",
+      "title": "Enterprise Agreement Model",
+      "type": "PRC",
+      "status": "active",
+      "tags": [
+        "b2b",
+        "enterprise",
+        "licensing",
+        "recurring-revenue"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "STR-002"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-008"
+        }
+      ],
+      "path": ".decisions/PRC-002-enterprise-agreement-model.md"
+    },
+    {
+      "id": "STR-003",
+      "title": "Cloud-First, Mobile-First",
+      "type": "STR",
+      "status": "accepted",
+      "tags": [
+        "azure",
+        "cloud",
+        "culture-change",
+        "transformation"
+      ],
+      "links": [
+        {
+          "type": "supersedes",
+          "target": "STR-002"
+        },
+        {
+          "type": "depends_on",
+          "target": "DEC-015"
+        },
+        {
+          "type": "depends_on",
+          "target": "ADR-003"
+        }
+      ],
+      "path": ".decisions/STR-003-cloud-first-mobile-first.md"
+    },
+    {
+      "id": "PRC-001",
+      "title": "OEM Licensing Program",
+      "type": "PRC",
+      "status": "active",
+      "tags": [
+        "business-model",
+        "distribution",
+        "licensing",
+        "oem"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "POL-001"
+        },
+        {
+          "type": "depends_on",
+          "target": "DEC-006"
+        },
+        {
+          "type": "enables",
+          "target": "STR-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "CUS-001"
+        }
+      ],
+      "path": ".decisions/PRC-001-oem-licensing-program.md"
+    },
+    {
+      "id": "DEC-008",
+      "title": "Bundle Applications into 'Microsoft Office'",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "pricing",
+        "strategy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-007"
+        }
+      ],
+      "path": ".decisions/DEC-008-bundle-office.md"
     },
     {
       "id": "DEC-005",
@@ -77,42 +398,39 @@
       "path": ".decisions/DEC-005-partner-with-ibm.md"
     },
     {
-      "id": "ADR-001",
-      "title": "Windows NT Microkernel Architecture",
-      "type": "ADR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/ADR-001-windows-nt-microkernel-architecture.md"
-    },
-    {
-      "id": "DEC-002",
-      "title": "Develop BASIC for the Altair 8800",
+      "id": "DEC-003",
+      "title": "Publish 'Open Letter to Hobbyists'",
       "type": "DEC",
       "status": "accepted",
       "tags": [
-        "product",
-        "technical"
+        "business-model",
+        "strategy"
       ],
       "links": [
         {
           "type": "depends_on",
-          "target": "DEC-001"
-        },
-        {
-          "type": "enables",
-          "target": "DEC-003"
+          "target": "ADR-001"
         }
       ],
-      "path": ".decisions/DEC-002-develop-basic-for-altair.md"
+      "path": ".decisions/DEC-003-open-letter-to-hobbyists.md"
     },
     {
       "id": "DEC-011",
       "title": "Recruit Dave Cutler from DEC",
       "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
+      "status": "accepted",
+      "tags": [
+        "engineering",
+        "hiring",
+        "talent",
+        "windows-nt"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "ADR-002"
+        }
+      ],
       "path": ".decisions/DEC-011-recruit-dave-cutler-from-dec.md"
     },
     {
@@ -140,171 +458,185 @@
       "id": "CUS-001",
       "title": "IBM Personal Computer Division",
       "type": "CUS",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
+      "status": "deprecated",
+      "tags": [
+        "dos",
+        "ibm",
+        "oem",
+        "partnership",
+        "pc"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-006"
+        },
+        {
+          "type": "enables",
+          "target": "POL-001"
+        },
+        {
+          "type": "enables",
+          "target": "PRC-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "STR-001"
+        }
+      ],
       "path": ".decisions/CUS-001-ibm-personal-computer-division.md"
-    },
-    {
-      "id": "INC-002",
-      "title": "Bill Gates Deposition Video",
-      "type": "INC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/INC-002-bill-gates-deposition-video.md"
-    },
-    {
-      "id": "INC-001",
-      "title": "DOJ Antitrust Case",
-      "type": "INC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/INC-001-doj-antitrust-case.md"
     },
     {
       "id": "STR-002",
       "title": "Enterprise Systems Flywheel",
       "type": "STR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
+      "status": "accepted",
+      "tags": [
+        "b2b",
+        "enterprise",
+        "integration",
+        "recurring-revenue"
+      ],
+      "links": [
+        {
+          "type": "superseded_by",
+          "target": "STR-003"
+        },
+        {
+          "type": "depends_on",
+          "target": "DEC-014"
+        },
+        {
+          "type": "depends_on",
+          "target": "ADR-002"
+        },
+        {
+          "type": "enables",
+          "target": "PRC-002"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-003"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-008"
+        },
+        {
+          "type": "refines",
+          "target": "STR-001"
+        }
+      ],
       "path": ".decisions/STR-002-enterprise-systems-flywheel.md"
-    },
-    {
-      "id": "ADR-002",
-      "title": "Azure Platform-as-a-Service",
-      "type": "ADR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/ADR-002-azure-platform-as-a-service.md"
     },
     {
       "id": "DEC-016",
       "title": "Win MITS Arbitration",
       "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-016-win-mits-arbitration.md"
-    },
-    {
-      "id": "DEC-008",
-      "title": "Bundle Applications into 'Microsoft Office'",
-      "type": "DEC",
       "status": "accepted",
       "tags": [
-        "pricing",
-        "strategy"
+        "independence",
+        "legal",
+        "licensing",
+        "mits"
       ],
       "links": [
         {
           "type": "depends_on",
-          "target": "DEC-007"
+          "target": "ADR-001"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-017"
+        },
+        {
+          "type": "enables",
+          "target": "STR-001"
         }
       ],
-      "path": ".decisions/DEC-008-bundle-office.md"
+      "path": ".decisions/DEC-016-win-mits-arbitration.md"
     },
     {
-      "id": "DEC-017",
-      "title": "License BASIC to 1977 Trinity",
-      "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-017-license-basic-to-1977-trinity.md"
-    },
-    {
-      "id": "DEC-004",
-      "title": "Relocate from Albuquerque to Seattle",
-      "type": "DEC",
-      "status": "accepted",
+      "id": "INC-002",
+      "title": "Bill Gates Deposition Video Disaster",
+      "type": "INC",
+      "status": "resolved",
       "tags": [
-        "operations",
-        "recruiting"
-      ],
-      "links": [],
-      "path": ".decisions/DEC-004-relocate-to-seattle.md"
-    },
-    {
-      "id": "DEC-001",
-      "title": "Drop Out of Harvard to Start MicroSoft",
-      "type": "DEC",
-      "status": "accepted",
-      "tags": [
-        "founding",
-        "strategy"
+        "antitrust",
+        "deposition",
+        "legal",
+        "pr-crisis"
       ],
       "links": [
         {
-          "type": "enables",
-          "target": "DEC-002"
+          "type": "depends_on",
+          "target": "INC-001"
         }
       ],
-      "path": ".decisions/DEC-001-drop-out-and-found-microsoft.md"
+      "path": ".decisions/INC-002-bill-gates-deposition-video.md"
     },
     {
-      "id": "PRC-001",
-      "title": "OEM Licensing Program",
-      "type": "PRC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/PRC-001-oem-licensing-program.md"
-    },
-    {
-      "id": "PRC-002",
-      "title": "Enterprise Agreement Model",
-      "type": "PRC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/PRC-002-enterprise-agreement-model.md"
-    },
-    {
-      "id": "DEC-006",
-      "title": "Buy QDOS (Tim Paterson's 86-DOS) instead of building from scratch",
-      "type": "DEC",
+      "id": "POL-001",
+      "title": "Non-Exclusive OS Licensing",
+      "type": "POL",
       "status": "accepted",
       "tags": [
-        "acquisition",
-        "technical"
+        "licensing",
+        "oem",
+        "platform",
+        "strategy"
       ],
       "links": [
         {
           "type": "depends_on",
           "target": "DEC-005"
+        },
+        {
+          "type": "enables",
+          "target": "PRC-001"
+        },
+        {
+          "type": "enables",
+          "target": "STR-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "CUS-001"
         }
       ],
-      "path": ".decisions/DEC-006-buy-qdos.md"
+      "path": ".decisions/POL-001-non-exclusive-os-licensing.md"
     },
     {
-      "id": "DEC-003",
-      "title": "Publish 'Open Letter to Hobbyists'",
-      "type": "DEC",
+      "id": "ADR-002",
+      "title": "Windows NT: Hardware Abstraction Layer Architecture",
+      "type": "ADR",
       "status": "accepted",
       "tags": [
-        "business-model",
-        "strategy"
+        "architecture",
+        "enterprise",
+        "hal",
+        "portability",
+        "windows-nt"
       ],
       "links": [
         {
           "type": "depends_on",
-          "target": "DEC-002"
+          "target": "DEC-011"
+        },
+        {
+          "type": "enables",
+          "target": "STR-002"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-003"
         }
       ],
-      "path": ".decisions/DEC-003-open-letter-to-hobbyists.md"
-    },
-    {
-      "id": "DEC-010",
-      "title": "Hire Steve Ballmer",
-      "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-010-hire-steve-ballmer.md"
+      "path": ".decisions/ADR-002-windows-nt-hardware-abstraction-layer-architecture.md"
     },
     {
       "id": "DEC-007",
@@ -328,17 +660,60 @@
       "path": ".decisions/DEC-007-commit-to-windows.md"
     },
     {
-      "id": "DEC-013",
-      "title": "Settle Antitrust Case",
+      "id": "DEC-014",
+      "title": "Bill Gates Steps Down as CEO",
       "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-013-settle-antitrust-case.md"
+      "status": "accepted",
+      "tags": [
+        "leadership",
+        "succession",
+        "transition"
+      ],
+      "links": [
+        {
+          "type": "superseded_by",
+          "target": "DEC-015"
+        },
+        {
+          "type": "depends_on",
+          "target": "INC-001"
+        },
+        {
+          "type": "enables",
+          "target": "STR-002"
+        }
+      ],
+      "path": ".decisions/DEC-014-bill-gates-steps-down-as-ceo.md"
+    },
+    {
+      "id": "DEC-010",
+      "title": "Hire Steve Ballmer as First Business Manager",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "founding-team",
+        "hiring",
+        "leadership"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-004"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "enables",
+          "target": "STR-002"
+        }
+      ],
+      "path": ".decisions/DEC-010-hire-steve-ballmer.md"
     }
   ],
   "stats": {
     "total": 28,
-    "edges": 12
+    "edges": 82
   }
 }

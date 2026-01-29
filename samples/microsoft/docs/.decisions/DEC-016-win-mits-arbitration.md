@@ -10,7 +10,7 @@ tags: [independence, legal, licensing, mits]
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-002]
+  depends_on: [ADR-001]
   enables: [DEC-017, STR-001]
   relates_to: []
   conflicts_with: []

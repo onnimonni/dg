@@ -12,7 +12,7 @@ links:
   superseded_by: []
   depends_on: []
   enables: [STR-003]
-  relates_to: [ADR-002]
+  relates_to: [ADR-003]
   conflicts_with: []
   refines: []
   implements: []

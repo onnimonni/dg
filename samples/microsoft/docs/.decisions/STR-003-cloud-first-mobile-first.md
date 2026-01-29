@@ -10,7 +10,7 @@ tags: [azure, cloud, culture-change, transformation]
 links:
   supersedes: [STR-002]
   superseded_by: []
-  depends_on: [DEC-015, ADR-002]
+  depends_on: [DEC-015, ADR-003]
   enables: []
   relates_to: []
   conflicts_with: []

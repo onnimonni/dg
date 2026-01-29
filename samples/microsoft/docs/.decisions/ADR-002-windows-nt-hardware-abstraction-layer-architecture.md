@@ -1,6 +1,6 @@
 ---
 type: adr
-id: ADR-001
+id: ADR-002
 title: "Windows NT: Hardware Abstraction Layer Architecture"
 status: accepted
 created: 1988-10-31
@@ -11,7 +11,7 @@ links:
   supersedes: []
   superseded_by: []
   depends_on: [DEC-011]
-  enables: [STR-002, ADR-002]
+  enables: [STR-002, ADR-003]
   relates_to: []
   conflicts_with: []
   refines: []

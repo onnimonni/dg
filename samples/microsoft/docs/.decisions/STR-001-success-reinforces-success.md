@@ -10,7 +10,7 @@ tags: [moat, network-effects, platform, standards]
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [DEC-002]
+  depends_on: [ADR-001]
   enables: [DEC-017, DEC-005, DEC-008, PRC-001]
   relates_to: [POL-001]
   conflicts_with: []

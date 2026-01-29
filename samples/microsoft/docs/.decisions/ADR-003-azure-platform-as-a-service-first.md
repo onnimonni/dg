@@ -1,6 +1,6 @@
 ---
 type: adr
-id: ADR-002
+id: ADR-003
 title: "Azure: Platform-as-a-Service First"
 status: accepted
 created: 2006-11-01
@@ -10,7 +10,7 @@ tags: [architecture, azure, cloud, paas, strategy]
 links:
   supersedes: []
   superseded_by: []
-  depends_on: [ADR-001, STR-002]
+  depends_on: [ADR-002, STR-002]
   enables: [STR-003]
   relates_to: []
   conflicts_with: []

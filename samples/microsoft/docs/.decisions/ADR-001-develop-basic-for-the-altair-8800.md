@@ -1,6 +1,6 @@
 ---
-type: decision
-id: DEC-002
+type: adr
+id: ADR-001
 title: Develop BASIC for the Altair 8800
 status: accepted
 created: 1975-02-01

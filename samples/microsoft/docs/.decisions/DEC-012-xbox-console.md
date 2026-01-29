@@ -13,7 +13,7 @@ links:
   depends_on: []
   enables: []
   relates_to: []
-  conflicts_with: [DEC-002, DEC-003] # Conflicts with "Software company" identity
+  conflicts_with: [ADR-001, DEC-003] # Conflicts with "Software company" identity
   refines: []
   implements: []
 ---
