@@ -2,15 +2,19 @@
 type: adr
 id: ADR-002
 title: Enterprise Platform Architecture
-status: proposed
+status: superseded
 created: 2015-03-01
-updated: 2026-01-28
-authors: []
+updated: 2017-12-01
+authors: [richard, gilfoyle, dinesh]
 tags:
 - architecture
+- b2b
+- enterprise
+- scalability
 links:
-  implements:
-  - STR-001
+  superseded_by: [ADR-004]
+  depends_on: [ADR-001]
+  implements: [STR-001]
 foundational: false
 ---
 
@@ -18,66 +22,84 @@ foundational: false
 
 ## Context
 
-<!-- What is the issue that we're seeing that motivates this decision or change? -->
+After winning TechCrunch Disrupt and securing funding from Raviga Capital, Pied Piper needed to transform from a demo into a production-ready enterprise platform. The middle-out compression algorithm had been proven, but the infrastructure to deliver it as a service to enterprise customers did not exist. Companies like Hooli, EndFrame, and potential enterprise clients demanded SLAs, security guarantees, and scalable architecture.
+
+The initial prototype was a single-server application that could demonstrate compression but couldn't handle concurrent users or provide the reliability enterprises required.
 
 ## Decision
 
-<!-- What is the change that we're proposing and/or doing? -->
+We will build a cloud-based platform architecture with the following components:
+
+1. **API Gateway**: RESTful API for compression/decompression requests
+2. **Microservices Architecture**: Separate services for encoding, decoding, and job management
+3. **Horizontal Scaling**: Auto-scaling worker nodes for compression jobs
+4. **Multi-tenant Isolation**: Separate data and processing for each enterprise client
+5. **AWS Infrastructure**: Leverage EC2, S3, and SQS for reliable cloud hosting
+
+The architecture follows a producer-consumer pattern where compression jobs are queued and processed by available workers.
 
 ## Consequences
 
 ### Positive
 
-<!-- What becomes easier or possible as a result of this change? -->
-
--
+- Enables serving multiple enterprise clients simultaneously
+- Provides 99.9% uptime SLA capability
+- Allows incremental scaling as customer base grows
+- Establishes foundation for SOC 2 compliance
 
 ### Negative
 
-<!-- What becomes more difficult or impossible as a result of this change? -->
-
--
+- Significant infrastructure costs compared to single-server approach
+- Increased operational complexity requiring DevOps expertise
+- Latency overhead from distributed architecture
+- Dependency on AWS limits negotiating leverage
 
 ### Neutral
 
-<!-- What other effects does this change have? -->
-
--
+- Requires hiring dedicated infrastructure engineers
+- Sets precedent for cloud-first deployment strategy
 
 ## Alternatives Considered
 
-### Alternative 1: Option
+### Alternative 1: On-Premises Appliance
 
-**Description:**
-
-**Pros:**
--
-
-**Cons:**
--
-
-**Why not chosen:**
-
-### Alternative 2: Option
-
-**Description:**
+**Description:** Ship physical hardware appliances to enterprise customers with pre-installed compression software.
 
 **Pros:**
--
+- No ongoing cloud infrastructure costs
+- Data never leaves customer premises
+- One-time sale model
 
 **Cons:**
--
+- High upfront manufacturing costs
+- Difficult to update and maintain
+- Requires hardware support team
 
-**Why not chosen:**
+**Why not chosen:** Lack of capital for hardware manufacturing and desire for recurring revenue model.
+
+### Alternative 2: Peer-to-Peer Distribution
+
+**Description:** Leverage user devices to form a distributed compression network.
+
+**Pros:**
+- Near-zero infrastructure costs
+- Massive potential scale
+- Decentralized and resilient
+
+**Cons:**
+- Complex coordination challenges
+- Unpredictable performance
+- Privacy and security concerns
+
+**Why not chosen:** Enterprise customers require guaranteed performance and data isolation. This approach was later revisited as PiperNet (ADR-004).
 
 ## References
 
-<!-- Links to relevant documentation, RFCs, prior art, etc. -->
-
--
+- Raviga Capital term sheet requirements
+- Hooli enterprise RFP specifications
+- AWS Well-Architected Framework
 
 ## Notes
 
-<!-- Any additional information, implementation notes, or follow-up items -->
-
--
+- This architecture served Pied Piper through Series A but was eventually superseded by the decentralized PiperNet architecture (ADR-004) when the team pivoted away from centralized cloud hosting.
+- The "Tres Commas" tequila incident occurred during the architecture planning phase.

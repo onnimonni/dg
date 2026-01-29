@@ -2,82 +2,112 @@
 type: incident
 id: INC-003
 title: "51 Percent Attack on PiperNet"
-status: open
+status: resolved
 created: 2019-10-15
 updated: 2019-11-01
-authors: []
-tags: []
+authors: [gilfoyle, richard]
+tags:
+- attack
+- blockchain
+- pipernet
+- security
 incident_meta:
-  severity: sev1|sev2|sev3|sev4
-  started: null
-  detected: null
-  resolved: null
-  duration_minutes: null
+  severity: sev1
+  started: 2019-10-15T14:30:00Z
+  detected: 2019-10-15T15:45:00Z
+  resolved: 2019-10-16T03:00:00Z
+  duration_minutes: 735
 links:
-  supersedes: []
-  superseded_by: []
-  depends_on: []
-  enables: []
-  relates_to: []
-  conflicts_with: []
-  refines: []
-  implements: []
+  enables: [DEC-005]
+  relates_to: [ADR-004, ADR-005]
 ---
 
 # 51 Percent Attack on PiperNet
 
-<!-- Post-Mortem / Incident Report (Blameless format) -->
-
 ## Summary
-<!-- 2-3 sentence summary of what happened -->
+
+A coordinated attack by a malicious actor gained majority control (51%) of PiperNet's distributed computing network, allowing them to manipulate file storage assignments and redirect PiedPiperCoin transactions. The attacker exploited the network's reliance on a single whale node operator who was secretly working with competitors.
 
 ## Timeline
 
 | Time | Event |
 |------|-------|
-| | Incident started |
-| | Incident detected |
-| | Response began |
-| | Mitigated |
-| | Resolved |
+| 2019-10-15 14:30 | Unusual node concentration detected in Asia-Pacific region |
+| 2019-10-15 15:45 | Gilfoyle confirms 51% threshold breached |
+| 2019-10-15 16:00 | Emergency response team assembled |
+| 2019-10-15 18:30 | Attacker begins double-spending PiedPiperCoin |
+| 2019-10-15 20:00 | Network traffic rerouting to attacker-controlled nodes |
+| 2019-10-16 01:00 | Emergency hard fork deployed |
+| 2019-10-16 03:00 | Network restored to legitimate operators |
 
 ## Impact
 
-- **Users affected**:
-- **Duration**:
-- **Revenue impact**:
-- **Data loss**:
+- **Users affected**: All 412,000 PiperNet users
+- **Duration**: 12 hours 30 minutes of degraded service
+- **Revenue impact**: ~$2.3M in fraudulent PiedPiperCoin transactions
+- **Data loss**: 847 files temporarily inaccessible during attack
 
 ## Root Cause
 
-<!-- What was the underlying cause? Use 5 Whys if helpful -->
+The attack succeeded because PiperNet's proof-of-stake consensus mechanism had insufficient penalties for concentration. A single node operator ("YaoNet") had accumulated 35% of network capacity by offering below-market-rate storage. When YaoNet colluded with two other operators, they achieved majority control.
+
+**5 Whys Analysis:**
+1. Why did the attacker gain 51%? YaoNet colluded with other operators.
+2. Why could YaoNet accumulate 35%? No caps on single-operator concentration.
+3. Why were there no concentration caps? We prioritized growth over decentralization.
+4. Why was growth prioritized? Needed critical mass to achieve network effects.
+5. Why didn't we anticipate this? Underestimated economic incentives for attack.
 
 ## Contributing Factors
 
--
+- Insufficient node diversity requirements
+- PiedPiperCoin incentives encouraged whale accumulation
+- Inadequate real-time monitoring of network topology
+- Geographic concentration in regions with cheap electricity
+- No KYC for node operators
 
 ## What Went Well
 
--
+- Attack detected within 75 minutes of threshold breach
+- Emergency hard fork procedure worked as designed
+- Community rallied to support legitimate nodes
+- No permanent data loss
 
 ## What Went Poorly
 
--
+- $2.3M in fraudulent transactions could not be reversed
+- 12+ hours of service degradation
+- Significant reputation damage to PiperNet
+- YaoNet identity still unknown (no KYC)
 
 ## Action Items
 
 | Action | Owner | Due Date | Status |
 |--------|-------|----------|--------|
-| | | | |
+| Implement 10% node concentration cap | Gilfoyle | 2019-10-20 | Complete |
+| Deploy network topology monitoring | Dinesh | 2019-10-25 | Complete |
+| Add slashing penalties for collusion | Richard | 2019-11-01 | Complete |
+| Conduct security audit | External | 2019-11-15 | Complete |
+| Re-evaluate decentralization model | Richard | 2019-12-01 | See DEC-005 |
 
 ## Lessons Learned
 
--
+- Decentralization is hard to maintain when economic incentives favor concentration
+- Proof-of-stake systems need robust slashing mechanisms
+- Real-time monitoring of network topology is essential
+- "Trustless" systems still require trust in the protocol design
+- This attack contributed to the decision to sabotage PiperNet (DEC-005)
 
 ## Detection
 
-<!-- How was this detected? How can we detect it faster? -->
+Detected by Gilfoyle's custom node monitoring dashboard showing unusual concentration patterns. Alert triggered when single-operator share exceeded 30%.
+
+**Improvements:** Lowered alert threshold to 15%, added geographic diversity monitoring, implemented automated circuit breakers.
 
 ## Prevention
 
-<!-- What changes will prevent this from happening again? -->
+- Hard cap of 10% network share per operator identity
+- Proof-of-personhood requirements for large node operators
+- Quadratic voting for protocol changes
+- Enhanced slashing penalties for coordinated behavior
+- Geographic diversity requirements in consensus rules
