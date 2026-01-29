@@ -1227,7 +1227,7 @@ fn type_to_display_name(type_code: &str) -> String {
         "OPP" => "Opportunity".to_string(),
         "PRC" => "Process".to_string(),
         "HIR" => "Hiring".to_string(),
-        "ADR" => "Architecture Decision".to_string(),
+        "ADR" => "Architecture".to_string(),
         "INC" => "Incident".to_string(),
         "RUN" => "Runbook".to_string(),
         "MTG" => "Meeting".to_string(),
