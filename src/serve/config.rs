@@ -1,4 +1,6 @@
 use crate::models::authors::{AuthorInfo, AuthorsConfig};
+use crate::models::teams::{Team, TeamsConfig};
+use crate::models::users::{User, UsersConfig};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,9 +14,17 @@ pub struct DgConfig {
     #[serde(default)]
     pub site: SiteConfig,
 
-    /// Author profiles
+    /// Author profiles (legacy, prefer users)
     #[serde(default)]
     pub authors: HashMap<String, AuthorInfo>,
+
+    /// User profiles
+    #[serde(default)]
+    pub users: HashMap<String, User>,
+
+    /// Team definitions
+    #[serde(default)]
+    pub teams: HashMap<String, Team>,
 }
 
 impl DgConfig {
@@ -35,6 +45,8 @@ impl DgConfig {
                 return Ok(DgConfig {
                     site,
                     authors: HashMap::new(),
+                    users: HashMap::new(),
+                    teams: HashMap::new(),
                 });
             }
             Ok(Self::default())
@@ -46,6 +58,33 @@ impl DgConfig {
         AuthorsConfig {
             authors: self.authors.clone(),
         }
+    }
+
+    /// Get UsersConfig from the loaded users map
+    pub fn users_config(&self) -> UsersConfig {
+        UsersConfig {
+            users: self.users.clone(),
+        }
+    }
+
+    /// Get TeamsConfig from the loaded teams map
+    pub fn teams_config(&self) -> TeamsConfig {
+        TeamsConfig {
+            teams: self.teams.clone(),
+        }
+    }
+
+    /// Get the path to the config file
+    pub fn config_path(docs_dir: &Path) -> std::path::PathBuf {
+        docs_dir.join("dg.toml")
+    }
+
+    /// Save config back to dg.toml
+    pub fn save(&self, docs_dir: &Path) -> Result<()> {
+        let config_path = Self::config_path(docs_dir);
+        let content = toml::to_string_pretty(self)?;
+        fs::write(&config_path, content)?;
+        Ok(())
     }
 }
 

@@ -643,3 +643,79 @@ fn test_reindex() {
     let index = temp.path().join("docs/.index.json");
     assert!(index.exists());
 }
+
+// ============================================================================
+// Sample Project Validation Tests
+// ============================================================================
+
+/// Helper to run dg command in a sample directory
+fn dg_sample_cmd(sample_dir: &str) -> Command {
+    let mut cmd = Command::cargo_bin("dg").unwrap();
+    let docs_path = format!("samples/{}/docs", sample_dir);
+    cmd.args(["-D", &docs_path]);
+    cmd
+}
+
+#[test]
+fn test_sample_microsoft_validates() {
+    dg_sample_cmd("microsoft")
+        .arg("validate")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_sample_microsoft_lint() {
+    // Basic lint should pass
+    dg_sample_cmd("microsoft").arg("lint").assert().success();
+}
+
+#[test]
+fn test_sample_microsoft_list() {
+    dg_sample_cmd("microsoft")
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("records"));
+}
+
+#[test]
+fn test_sample_pied_piper_validates() {
+    dg_sample_cmd("pied-piper")
+        .arg("validate")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_sample_pied_piper_lint() {
+    // Basic lint should pass
+    dg_sample_cmd("pied-piper").arg("lint").assert().success();
+}
+
+#[test]
+fn test_sample_pied_piper_list() {
+    dg_sample_cmd("pied-piper")
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("records"));
+}
+
+#[test]
+fn test_sample_pied_piper_stats() {
+    dg_sample_cmd("pied-piper")
+        .arg("stats")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Total records"));
+}
+
+#[test]
+fn test_sample_microsoft_stats() {
+    dg_sample_cmd("microsoft")
+        .arg("stats")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Total records"));
+}

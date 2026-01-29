@@ -1,4 +1,4 @@
-mod config;
+pub mod config;
 mod generator;
 mod server;
 mod templates;

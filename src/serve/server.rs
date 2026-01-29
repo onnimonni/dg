@@ -1,6 +1,8 @@
+use crate::models::teams::TeamsConfig;
+use crate::models::users::UsersConfig;
 use crate::models::{graph_to_d2, AuthorsConfig, D2Renderer, Graph};
 use crate::serve::config::{DgConfig, SiteConfig};
-use crate::serve::generator::markdown_to_html;
+use crate::serve::generator::markdown_to_html_with_mentions;
 use crate::serve::templates::create_environment;
 use anyhow::Result;
 use axum::{
@@ -30,6 +32,9 @@ pub struct AppState {
     graph: RwLock<Graph>,
     site_config: SiteConfig,
     authors_config: AuthorsConfig,
+    users_config: UsersConfig,
+    teams_config: TeamsConfig,
+    valid_mentions: std::collections::HashSet<String>,
 }
 
 impl AppState {
@@ -46,11 +51,20 @@ pub async fn run_server(
 ) -> Result<()> {
     let graph = Graph::load(docs_dir)?;
     let dg_config = DgConfig::load(docs_dir)?;
+    let valid_mentions: std::collections::HashSet<String> = dg_config
+        .users
+        .keys()
+        .chain(dg_config.teams.keys())
+        .cloned()
+        .collect();
     let state = Arc::new(AppState {
         docs_dir: docs_dir.to_path_buf(),
         graph: RwLock::new(graph),
         site_config: dg_config.site.clone(),
         authors_config: dg_config.authors_config(),
+        users_config: dg_config.users_config(),
+        teams_config: dg_config.teams_config(),
+        valid_mentions,
     });
 
     // Serve static assets from docs/assets
@@ -63,6 +77,10 @@ pub async fn run_server(
         .route("/timeline", get(timeline_handler))
         .route("/graph", get(graph_page_handler))
         .route("/stats", get(stats_handler))
+        .route("/users", get(users_handler))
+        .route("/users/{username}", get(user_handler))
+        .route("/teams", get(teams_handler))
+        .route("/teams/{id}", get(team_handler))
         .route("/api/records", get(api_records))
         .route(
             "/api/records/{id}",
@@ -251,7 +269,10 @@ async fn record_handler(
     // Add content as HTML
     ctx.insert(
         "content_html".to_string(),
-        serde_json::Value::String(markdown_to_html(&record.content)),
+        serde_json::Value::String(markdown_to_html_with_mentions(
+            &record.content,
+            &state.valid_mentions,
+        )),
     );
 
     // Add links (outgoing)
@@ -789,6 +810,278 @@ async fn save_record_handler(
     }
 }
 
+// Users list handler
+async fn users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let env = create_environment();
+
+    let mut users: Vec<_> = state
+        .users_config
+        .users
+        .iter()
+        .map(|(username, user)| {
+            serde_json::json!({
+                "username": username,
+                "name": user.display_name(username),
+                "initials": user.initials(username),
+                "avatar_url": user.avatar(username),
+                "email": user.email,
+                "teams": user.teams,
+                "roles": user.roles,
+                "is_deprecated": user.is_deprecated(),
+                "is_llm": user.roles.contains(&"llm".to_string()),
+            })
+        })
+        .collect();
+
+    users.sort_by(|a, b| {
+        let a_name = a["name"].as_str().unwrap_or("");
+        let b_name = b["name"].as_str().unwrap_or("");
+        a_name.cmp(b_name)
+    });
+
+    match env.get_template("users.html") {
+        Ok(tmpl) => {
+            match tmpl.render(context! {
+                site => &state.site_config,
+                current_page => "users",
+                users => users,
+            }) {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Render error: {}", e),
+                )
+                    .into_response(),
+            }
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
+// Single user handler
+async fn user_handler(
+    State(state): State<Arc<AppState>>,
+    Path(username): Path<String>,
+) -> impl IntoResponse {
+    let env = create_environment();
+
+    let user = match state.users_config.get(&username) {
+        Some(u) => u,
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                format!("User not found: {}", username),
+            )
+                .into_response()
+        }
+    };
+
+    let user_data = serde_json::json!({
+        "username": &username,
+        "name": user.display_name(&username),
+        "initials": user.initials(&username),
+        "avatar_url": user.avatar(&username),
+        "email": user.email,
+        "github": user.github,
+        "teams": user.teams,
+        "roles": user.roles,
+        "is_deprecated": user.is_deprecated(),
+        "is_llm": user.roles.contains(&"llm".to_string()),
+        "deprecated_date": user.deprecated_date,
+        "deprecated_note": user.deprecated_note,
+    });
+
+    // Find records authored by this user
+    let graph = state.graph.read().await;
+    let mention_pattern = format!("@{}", username);
+
+    let authored: Vec<_> = graph
+        .all_records()
+        .filter(|r| r.frontmatter.authors.contains(&username))
+        .map(|r| {
+            serde_json::json!({
+                "id": r.id(),
+                "title": r.title(),
+                "status": r.status().to_string(),
+            })
+        })
+        .collect();
+
+    // Find records that mention this user (but not authored by them)
+    let mentioned_in: Vec<_> = graph
+        .all_records()
+        .filter(|r| {
+            r.content.contains(&mention_pattern) && !r.frontmatter.authors.contains(&username)
+        })
+        .map(|r| {
+            serde_json::json!({
+                "id": r.id(),
+                "title": r.title(),
+                "status": r.status().to_string(),
+            })
+        })
+        .collect();
+
+    match env.get_template("user.html") {
+        Ok(tmpl) => {
+            match tmpl.render(context! {
+                site => &state.site_config,
+                current_page => "users",
+                user => user_data,
+                authored_records => authored,
+                mentioned_in => mentioned_in,
+            }) {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Render error: {}", e),
+                )
+                    .into_response(),
+            }
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
+// Teams list handler
+async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let env = create_environment();
+
+    let mut teams: Vec<_> = state
+        .teams_config
+        .teams
+        .iter()
+        .map(|(id, team)| {
+            // Count members
+            let member_count = state
+                .users_config
+                .users
+                .values()
+                .filter(|u| u.teams.contains(id))
+                .count();
+
+            serde_json::json!({
+                "id": id,
+                "name": team.name,
+                "lead": team.lead,
+                "parent": team.parent,
+                "member_count": member_count,
+            })
+        })
+        .collect();
+
+    teams.sort_by(|a, b| {
+        let a_name = a["name"].as_str().unwrap_or("");
+        let b_name = b["name"].as_str().unwrap_or("");
+        a_name.cmp(b_name)
+    });
+
+    match env.get_template("teams.html") {
+        Ok(tmpl) => {
+            match tmpl.render(context! {
+                site => &state.site_config,
+                current_page => "teams",
+                teams => teams,
+            }) {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Render error: {}", e),
+                )
+                    .into_response(),
+            }
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
+// Single team handler
+async fn team_handler(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let env = create_environment();
+
+    let team = match state.teams_config.get(&id) {
+        Some(t) => t,
+        None => return (StatusCode::NOT_FOUND, format!("Team not found: {}", id)).into_response(),
+    };
+
+    let team_data = serde_json::json!({
+        "id": &id,
+        "name": team.name,
+        "lead": team.lead,
+        "parent": team.parent,
+        "description": team.description,
+        "email": team.email,
+    });
+
+    // Find team members
+    let members: Vec<_> = state
+        .users_config
+        .users
+        .iter()
+        .filter(|(_, u)| u.teams.contains(&id))
+        .map(|(username, user)| {
+            serde_json::json!({
+                "username": username,
+                "name": user.display_name(username),
+                "avatar_url": user.avatar(username),
+            })
+        })
+        .collect();
+
+    // Find sub-teams
+    let sub_teams: Vec<_> = state
+        .teams_config
+        .children(&id)
+        .iter()
+        .map(|(child_id, child)| {
+            serde_json::json!({
+                "id": child_id,
+                "name": child.name,
+                "lead": child.lead,
+            })
+        })
+        .collect();
+
+    match env.get_template("team.html") {
+        Ok(tmpl) => {
+            match tmpl.render(context! {
+                site => &state.site_config,
+                current_page => "teams",
+                team => team_data,
+                members => members,
+                sub_teams => sub_teams,
+            }) {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Render error: {}", e),
+                )
+                    .into_response(),
+            }
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Template error: {}", e),
+        )
+            .into_response(),
+    }
+}
+
 // Static asset handler using rust-embed for offline KaTeX support
 async fn static_handler(Path(path): Path<String>) -> Response {
     let content_type = if path.ends_with(".css") {
@@ -828,6 +1121,7 @@ fn type_to_display_name(type_code: &str) -> String {
         "INC" => "Incident".to_string(),
         "RUN" => "Runbook".to_string(),
         "MTG" => "Meeting".to_string(),
+        "FBK" => "Feedback".to_string(),
         other => other.to_string(),
     }
 }

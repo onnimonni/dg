@@ -1,16 +1,29 @@
 # Decision Graph (dg)
 
-A text-based knowledge graph for company-level decision making. Captures and interconnects decisions, strategies, policies, architecture decisions, incidents, runbooks, and more.
+**The knowledge graph that lives with your code.** Capture decisions, strategies, and institutional knowledge in markdown files that version control alongside your codebase.
 
-## Why?
+> *"Why did we choose PostgreSQL?" "Who decided on the France expansion?" "What's our caching strategy?"*
+>
+> Stop losing decisions in Slack threads and forgotten meetings.
 
-Companies make thousands of decisions but rarely document them. When asked "Why did we expand to France?" or "What's our caching strategy?", the answer is often lost in Slack threads or forgotten meetings.
+## For Humans and AI
 
-Decision Graph solves this by:
-- **Structured formats** - proven frameworks (SPADE, Six-Pager, ADR, DACI)
-- **Interconnectivity** - decisions link to strategies, incidents, runbooks
-- **Text-based** - version controlled, searchable, AI-friendly
-- **Claude integration** - automatic decision capture during conversations
+Decision Graph is built for the async-first, AI-augmented workplace:
+
+- **Colocated with code** - decisions live in git, reviewed in PRs, deployed with releases
+- **AI-native** - structured formats that LLMs can read, query, and update
+- **Framework-driven** - proven templates (SPADE, Six-Pager, 7 Powers, RICE)
+- **Graph-connected** - decisions link to strategies, incidents, customers, feedback
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-player mode** | Draft IDs prevent conflicts, GitHub Actions auto-finalize |
+| **User & Team management** | @mentions, profiles, team hierarchies |
+| **Strategic frameworks** | 7 Powers analysis, RICE scoring, OST |
+| **Web UI** | Browse, search, edit with live preview |
+| **Claude Code integration** | Auto-capture decisions during coding sessions |
 
 ## Installation
 
@@ -85,16 +98,17 @@ dg graph
 | Type | Prefix | Use Case |
 |------|--------|----------|
 | Decision | DEC | Business decisions (SPADE framework) |
-| Strategy | STR | Strategic direction (Six-Pager) |
+| Strategy | STR | Strategic direction (Six-Pager + 7 Powers) |
 | Policy | POL | Internal policies, compliance |
 | Customer | CUS | Architecture-impacting customer needs |
-| Opportunity | OPP | Market opportunities (OST) |
+| Opportunity | OPP | Market opportunities (OST + RICE scoring) |
 | Process | PRC | Workflows, governance (DACI) |
 | Hiring | HIR | Role definitions |
 | ADR | ADR | Architecture decisions |
 | Incident | INC | Post-mortems, outages |
 | Runbook | RUN | Operational how-tos |
 | Meeting | MTG | Meeting notes |
+| Feedback | FBK | Customer feedback and feature requests |
 
 ## Commands
 
@@ -217,8 +231,12 @@ cargo install --path . # Install locally
 
 ## Frameworks
 
+Decision Graph includes templates for proven decision-making frameworks:
+
 - **SPADE** (Square): Setting, People, Alternatives, Decide, Explain
 - **Six-Pager** (Amazon): Narrative memos for strategy
+- **7 Powers** (Hamilton Helmer): Competitive moat analysis
+- **RICE** (Intercom): Reach, Impact, Confidence, Effort prioritization
 - **ADR** (Michael Nygard): Architecture Decision Records
 - **DACI** (Atlassian): Driver, Approver, Contributors, Informed
 - **OST** (Teresa Torres): Opportunity Solution Trees

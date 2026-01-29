@@ -62,3 +62,97 @@ email = "[EMAIL_ADDRESS]"
 [authors.legal]
 name = "Legal Team"
 email = "[EMAIL_ADDRESS]"
+
+# User profiles (new format - replaces authors)
+[users.richard]
+name = "Richard Hendricks"
+email = "richard@piedpiper.com"
+github = "richardhendricks"
+avatar_url = "/assets/avatars/richard.svg"
+teams = ["engineering", "founders"]
+roles = ["engineer", "ceo"]
+
+[users.jared]
+name = "Jared Dunn"
+email = "jared@piedpiper.com"
+avatar_url = "/assets/avatars/jared.svg"
+teams = ["founders"]
+roles = ["coo"]
+
+[users.dinesh]
+name = "Dinesh Chugtai"
+email = "dinesh@piedpiper.com"
+avatar_url = "/assets/avatars/dinesh.svg"
+teams = ["engineering", "platform"]
+roles = ["engineer"]
+
+[users.gilfoyle]
+name = "Bertram Gilfoyle"
+email = "gilfoyle@piedpiper.com"
+avatar_url = "/assets/avatars/gilfoyle.svg"
+teams = ["engineering", "platform"]
+roles = ["engineer", "security"]
+
+[users.monica]
+name = "Monica Hall"
+email = "monica@piedpiper.com"
+teams = ["founders"]
+roles = ["cfo"]
+
+[users.erlich]
+name = "Erlich Bachman"
+status = "deprecated"
+deprecated_date = "1983-06-01"
+deprecated_note = "Left company, sold stake"
+teams = ["founders"]
+
+# LLM users (AI assistants that can author/assist with documents)
+[users.claude]
+name = "Claude"
+email = "claude@anthropic.com"
+avatar_url = "https://www.anthropic.com/images/icons/apple-touch-icon.png"
+teams = ["llms"]
+roles = ["llm", "assistant"]
+
+[users.gemini]
+name = "Gemini"
+email = "gemini@google.com"
+avatar_url = "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg"
+teams = ["llms"]
+roles = ["llm", "assistant"]
+
+[users.grok]
+name = "Grok"
+email = "grok@x.com"
+avatar_url = "https://x.ai/favicon.ico"
+teams = ["llms"]
+roles = ["llm", "assistant"]
+
+[users.copilot]
+name = "GitHub Copilot"
+email = "copilot@github.com"
+avatar_url = "https://github.githubassets.com/assets/copilot-logo-8cddb06ee4d2.svg"
+teams = ["llms"]
+roles = ["llm", "assistant"]
+
+# Team definitions
+[teams.engineering]
+name = "Engineering"
+lead = "richard"
+description = "Core engineering team"
+email = "engineering@piedpiper.com"
+
+[teams.platform]
+name = "Platform Team"
+lead = "gilfoyle"
+parent = "engineering"
+description = "Infrastructure and platform services"
+
+[teams.founders]
+name = "Founders"
+lead = "richard"
+description = "Original founding team"
+
+[teams.llms]
+name = "AI Assistants"
+description = "LLM-powered assistants that can author and collaborate on documents"

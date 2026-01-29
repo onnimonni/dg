@@ -1,6 +1,7 @@
 //! Shared validation logic for records and graphs
 
-use super::{Graph, Record, RecordType};
+use super::{Graph, Record, RecordType, TeamsConfig, UsersConfig};
+use regex::Regex;
 use std::collections::HashSet;
 
 /// Core validation error types (without file paths)
@@ -39,6 +40,19 @@ pub enum ValidationError {
         id: String,
         conflicts_with: String,
         message: String,
+    },
+    InvalidUserMention {
+        id: String,
+        username: String,
+        line: usize,
+    },
+    InvalidActionItemOwner {
+        id: String,
+        owner: String,
+        line: usize,
+    },
+    DraftRecord {
+        id: String,
     },
 }
 
@@ -86,6 +100,23 @@ impl std::fmt::Display for ValidationError {
                     id, conflicts_with, message
                 )
             }
+            ValidationError::InvalidUserMention { id, username, line } => {
+                write!(
+                    f,
+                    "{}: line {}: unknown user mention @{}",
+                    id, line, username
+                )
+            }
+            ValidationError::InvalidActionItemOwner { id, owner, line } => {
+                write!(
+                    f,
+                    "{}: line {}: unknown action item owner '{}'",
+                    id, line, owner
+                )
+            }
+            ValidationError::DraftRecord { id } => {
+                write!(f, "{}: draft record (use 'dg finalize' before merging)", id)
+            }
         }
     }
 }
@@ -103,6 +134,14 @@ pub struct ValidationOptions {
     pub type_specific: bool,
     /// Check for principle conflicts
     pub check_principle_conflicts: bool,
+    /// Check for valid @username mentions
+    pub check_user_mentions: bool,
+    /// Check for valid action item owners
+    pub check_action_items: bool,
+    /// Users config for validation
+    pub users_config: Option<UsersConfig>,
+    /// Teams config for validation (teams can be action item owners)
+    pub teams_config: Option<TeamsConfig>,
 }
 
 impl ValidationOptions {
@@ -118,6 +157,10 @@ impl ValidationOptions {
             check_orphans: false,
             type_specific: true,
             check_principle_conflicts: true,
+            check_user_mentions: false,
+            check_action_items: false,
+            users_config: None,
+            teams_config: None,
         }
     }
 }
@@ -141,6 +184,11 @@ pub fn validate_record(
             id: id.clone(),
             field: "title".to_string(),
         });
+    }
+
+    // Check for draft records (should be finalized before merging)
+    if crate::commands::new::is_draft_id(&id) {
+        errors.push(ValidationError::DraftRecord { id: id.clone() });
     }
 
     // Check for missing tags (strict)
@@ -177,6 +225,20 @@ pub fn validate_record(
     // Check for conflicts with foundational records
     if opts.check_principle_conflicts {
         errors.extend(check_principle_conflicts(record, graph));
+    }
+
+    // Check for valid @username mentions
+    if opts.check_user_mentions {
+        if let (Some(users), Some(teams)) = (&opts.users_config, &opts.teams_config) {
+            errors.extend(check_user_mentions(record, users, teams));
+        }
+    }
+
+    // Check for valid action item owners
+    if opts.check_action_items {
+        if let (Some(users), Some(teams)) = (&opts.users_config, &opts.teams_config) {
+            errors.extend(check_action_items(record, users, teams));
+        }
     }
 
     errors
@@ -404,4 +466,283 @@ pub fn validate_graph(graph: &Graph, opts: &ValidationOptions) -> Vec<Validation
         .all_records()
         .flat_map(|record| validate_record(record, graph, opts))
         .collect()
+}
+
+/// Check for invalid @username mentions in content
+pub fn check_user_mentions(
+    record: &Record,
+    users_config: &UsersConfig,
+    teams_config: &TeamsConfig,
+) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+
+    // Regex to match @username (letters, numbers, underscores, hyphens)
+    let mention_re = Regex::new(r"@([a-zA-Z][a-zA-Z0-9_-]*)").unwrap();
+
+    for (line_num, line) in record.content.lines().enumerate() {
+        for cap in mention_re.captures_iter(line) {
+            let username = &cap[1];
+            // Check if it's a valid user OR team
+            if !users_config.exists(username) && !teams_config.exists(username) {
+                errors.push(ValidationError::InvalidUserMention {
+                    id: id.clone(),
+                    username: username.to_string(),
+                    line: line_num + 1,
+                });
+            }
+        }
+    }
+
+    errors
+}
+
+/// Check for invalid action item owners in INC/RUN records
+pub fn check_action_items(
+    record: &Record,
+    users_config: &UsersConfig,
+    teams_config: &TeamsConfig,
+) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+
+    // Only check INC and RUN records
+    let record_type = record.record_type();
+    if *record_type != RecordType::Incident && *record_type != RecordType::Runbook {
+        return errors;
+    }
+
+    let mention_re = Regex::new(r"@([a-zA-Z][a-zA-Z0-9_-]*)").unwrap();
+
+    // Track if we're in an action items section
+    let mut in_action_items = false;
+
+    for (line_num, line) in record.content.lines().enumerate() {
+        let trimmed = line.trim();
+
+        // Check for action items heading
+        if trimmed.starts_with('#') && trimmed.to_lowercase().contains("action") {
+            in_action_items = true;
+            continue;
+        }
+
+        // Exit action items section on next heading
+        if trimmed.starts_with('#') && in_action_items {
+            in_action_items = false;
+            continue;
+        }
+
+        if !in_action_items {
+            continue;
+        }
+
+        // Parse table rows: | Action | Owner | Due | Status |
+        if trimmed.starts_with('|') && !trimmed.contains("---") {
+            // Split by | and look for owner column (usually 2nd after Action)
+            let cells: Vec<&str> = trimmed.split('|').map(|s| s.trim()).collect();
+            // cells[0] is empty (before first |), cells[1] is Action, cells[2] is Owner
+            if cells.len() > 2 {
+                let owner_cell = cells[2];
+                for cap in mention_re.captures_iter(owner_cell) {
+                    let username = &cap[1];
+                    if !users_config.exists(username) && !teams_config.exists(username) {
+                        errors.push(ValidationError::InvalidActionItemOwner {
+                            id: id.clone(),
+                            owner: username.to_string(),
+                            line: line_num + 1,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Parse bullet list items: - [ ] Task @owner or - [x] Task @owner
+        if trimmed.starts_with("- [ ]")
+            || trimmed.starts_with("- [x]")
+            || trimmed.starts_with("- [X]")
+        {
+            for cap in mention_re.captures_iter(line) {
+                let username = &cap[1];
+                if !users_config.exists(username) && !teams_config.exists(username) {
+                    errors.push(ValidationError::InvalidActionItemOwner {
+                        id: id.clone(),
+                        owner: username.to_string(),
+                        line: line_num + 1,
+                    });
+                }
+            }
+        }
+    }
+
+    errors
+}
+
+#[cfg(test)]
+mod mention_tests {
+    use super::*;
+    use crate::models::record::{Frontmatter, Links, Status};
+    use crate::models::teams::Team;
+    use crate::models::users::User;
+    use chrono::NaiveDate;
+    use std::collections::HashMap;
+
+    fn make_test_record(content: &str) -> Record {
+        Record {
+            path: std::path::PathBuf::from("test.md"),
+            frontmatter: Frontmatter {
+                r#type: RecordType::Decision,
+                id: "DEC-001".to_string(),
+                title: "Test Record".to_string(),
+                status: Status::Proposed,
+                created: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                updated: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                authors: vec![],
+                tags: vec![],
+                links: Links::default(),
+                foundational: false,
+                extra: HashMap::new(),
+            },
+            content: content.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_valid_mention() {
+        let mut users = UsersConfig::default();
+        users.users.insert("richard".to_string(), User::default());
+        let teams = TeamsConfig::default();
+
+        let record = make_test_record("Hello @richard, how are you?");
+        let errors = check_user_mentions(&record, &users, &teams);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn test_invalid_mention() {
+        let users = UsersConfig::default();
+        let teams = TeamsConfig::default();
+
+        let record = make_test_record("Hello @unknown, how are you?");
+        let errors = check_user_mentions(&record, &users, &teams);
+        assert_eq!(errors.len(), 1);
+        match &errors[0] {
+            ValidationError::InvalidUserMention { username, .. } => {
+                assert_eq!(username, "unknown");
+            }
+            _ => panic!("Expected InvalidUserMention"),
+        }
+    }
+
+    #[test]
+    fn test_team_mention_valid() {
+        let users = UsersConfig::default();
+        let mut teams = TeamsConfig::default();
+        teams.teams.insert(
+            "platform".to_string(),
+            Team {
+                name: "Platform".to_string(),
+                ..Default::default()
+            },
+        );
+
+        let record = make_test_record("Assigned to @platform team");
+        let errors = check_user_mentions(&record, &users, &teams);
+        assert!(errors.is_empty());
+    }
+
+    fn make_incident_record(content: &str) -> Record {
+        Record {
+            path: std::path::PathBuf::from("test.md"),
+            frontmatter: Frontmatter {
+                r#type: RecordType::Incident,
+                id: "INC-001".to_string(),
+                title: "Test Incident".to_string(),
+                status: Status::Open,
+                created: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                updated: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                authors: vec![],
+                tags: vec![],
+                links: Links::default(),
+                foundational: false,
+                extra: HashMap::new(),
+            },
+            content: content.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_action_item_table_valid() {
+        let mut users = UsersConfig::default();
+        users.users.insert("richard".to_string(), User::default());
+        let teams = TeamsConfig::default();
+
+        let content = "## Action Items\n| Action | Owner | Due | Status |\n|--------|-------|-----|--------|\n| Fix bug | @richard | 2024-01-15 | Open |";
+        let record = make_incident_record(content);
+        let errors = check_action_items(&record, &users, &teams);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn test_action_item_table_invalid() {
+        let users = UsersConfig::default();
+        let teams = TeamsConfig::default();
+
+        let content = "## Action Items\n| Action | Owner | Due | Status |\n|--------|-------|-----|--------|\n| Fix bug | @unknown | 2024-01-15 | Open |";
+        let record = make_incident_record(content);
+        let errors = check_action_items(&record, &users, &teams);
+        assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn test_action_item_bullet_valid() {
+        let mut users = UsersConfig::default();
+        users.users.insert("gilfoyle".to_string(), User::default());
+        let teams = TeamsConfig::default();
+
+        let content = "## Action Items\n- [ ] Review PR @gilfoyle\n- [x] Deploy fix @gilfoyle";
+        let record = make_incident_record(content);
+        let errors = check_action_items(&record, &users, &teams);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn test_action_item_bullet_invalid() {
+        let users = UsersConfig::default();
+        let teams = TeamsConfig::default();
+
+        let content = "## Action Items\n- [ ] Review PR @nobody";
+        let record = make_incident_record(content);
+        let errors = check_action_items(&record, &users, &teams);
+        assert_eq!(errors.len(), 1);
+    }
+
+    #[test]
+    fn test_action_item_team_owner() {
+        let users = UsersConfig::default();
+        let mut teams = TeamsConfig::default();
+        teams.teams.insert(
+            "platform".to_string(),
+            Team {
+                name: "Platform".to_string(),
+                ..Default::default()
+            },
+        );
+
+        let content = "## Action Items\n- [ ] Deploy to prod @platform";
+        let record = make_incident_record(content);
+        let errors = check_action_items(&record, &users, &teams);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn test_action_item_decision_ignored() {
+        let users = UsersConfig::default();
+        let teams = TeamsConfig::default();
+
+        // Decision records should not check action items
+        let content = "## Action Items\n- [ ] Something @unknown";
+        let record = make_test_record(content); // DEC type
+        let errors = check_action_items(&record, &users, &teams);
+        assert!(errors.is_empty());
+    }
 }

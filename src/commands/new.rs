@@ -5,7 +5,19 @@ use colored::Colorize;
 use std::fs;
 use std::path::Path;
 
-pub fn run(docs_dir: &str, record_type: &str, title: &str) -> Result<()> {
+/// Generate a draft ID with timestamp (for multi-player mode)
+pub fn draft_id(record_type: &RecordType) -> String {
+    let prefix = record_type.prefix();
+    let timestamp = Local::now().format("%Y%m%d%H%M%S");
+    format!("{}-NEW-{}", prefix, timestamp)
+}
+
+/// Check if an ID is a draft ID
+pub fn is_draft_id(id: &str) -> bool {
+    id.contains("-NEW-")
+}
+
+pub fn run(docs_dir: &str, record_type: &str, title: &str, draft: bool) -> Result<()> {
     let docs_path = Path::new(docs_dir);
     let decisions_path = docs_path.join(".decisions");
     let templates_path = docs_path.join(".templates");
@@ -21,7 +33,11 @@ pub fn run(docs_dir: &str, record_type: &str, title: &str) -> Result<()> {
 
     // Load graph to get next ID
     let graph = Graph::load(docs_path)?;
-    let new_id = graph.next_id(&rt);
+    let new_id = if draft {
+        draft_id(&rt)
+    } else {
+        graph.next_id(&rt)
+    };
 
     // Load template
     let template_path = templates_path.join(format!("{}.md", rt.template_name()));
@@ -49,24 +65,38 @@ pub fn run(docs_dir: &str, record_type: &str, title: &str) -> Result<()> {
     } else {
         title.to_string()
     };
-    let content = template
-        .replace("{{NUMBER}}", new_id.split('-').nth(1).unwrap_or("001"))
+    // Fix the ID in frontmatter FIRST (before NUMBER replacement)
+    let content = template.replace(
+        &format!("id: {}-{{{{NUMBER}}}}", rt.prefix()),
+        &format!("id: {}", new_id),
+    );
+
+    // Extract number for non-draft IDs (for other template placeholders)
+    let number_str = if draft {
+        "NEW".to_string()
+    } else {
+        new_id.split('-').nth(1).unwrap_or("001").to_string()
+    };
+
+    let content = content
+        .replace("{{NUMBER}}", &number_str)
         .replace("{{TITLE}}", &yaml_title)
         .replace("{{DATE}}", &today)
         .replace("{{CLIENT_NAME}}", &yaml_title)
         .replace("{{ROLE_TITLE}}", &yaml_title)
         .replace("{{NAME}}", "Option");
 
-    // Fix the ID in frontmatter
-    let content = content.replace(
-        &format!("id: {}-{{{{NUMBER}}}}", rt.prefix()),
-        &format!("id: {}", new_id),
-    );
-
     fs::write(&file_path, content)?;
 
     println!("{} {}", "Created".green().bold(), file_path.display());
-    println!("ID: {}", new_id.cyan());
+    if draft {
+        println!(
+            "Draft ID: {} (use 'dg finalize' before merging)",
+            new_id.yellow()
+        );
+    } else {
+        println!("ID: {}", new_id.cyan());
+    }
 
     // Reload and update index
     let graph = Graph::load(docs_path)?;

@@ -54,6 +54,20 @@ links:
 **Cons:**
 -
 
+## Strategic Impact
+<!-- Optional: How do the options affect our competitive moats? (7 Powers) -->
+<!-- Mark with + (strengthens), - (weakens), or = (neutral) -->
+
+| Power | Option A | Option B | Option C |
+|-------|----------|----------|----------|
+| Scale Economies | | | |
+| Network Effects | | | |
+| Counter-Positioning | | | |
+| Switching Costs | | | |
+| Branding | | | |
+| Cornered Resource | | | |
+| Process Power | | | |
+
 ## Decision
 <!-- Which option was chosen and why? -->
 

@@ -70,12 +70,36 @@ links:
 
 **Expected Impact**:
 
+## Prioritization (RICE Score)
+<!-- Reach × Impact × Confidence ÷ Effort -->
+
+| Factor | Value | Notes |
+|--------|-------|-------|
+| **Reach** | /10 | How many users affected per quarter? |
+| **Impact** | /3 | 3=Massive, 2=High, 1=Medium, 0.5=Low, 0.25=Minimal |
+| **Confidence** | % | How certain are we? 100%/80%/50% |
+| **Effort** | person-weeks | Engineering effort estimate |
+| **RICE Score** | = R×I×C÷E | |
+
 ## Experiments
 <!-- How we tested/will test solutions -->
 
 | Experiment | Hypothesis | Result | Learning |
 |------------|-----------|--------|----------|
 | | | | |
+
+## Strategic Alignment
+<!-- Does this opportunity contribute to our competitive moats? (7 Powers) -->
+
+- [ ] Builds **Scale Economies** (lower unit costs at volume)
+- [ ] Strengthens **Network Effects** (more users = more value)
+- [ ] Enables **Counter-Positioning** (competitors can't copy)
+- [ ] Increases **Switching Costs** (customers stay)
+- [ ] Enhances **Brand** (premium perception)
+- [ ] Secures **Cornered Resource** (exclusive access)
+- [ ] Develops **Process Power** (operational superiority)
+
+**Strategic Value**: <!-- How does this fit the bigger picture? -->
 
 ## Decision
 <!-- Which solution are we pursuing? Why? -->

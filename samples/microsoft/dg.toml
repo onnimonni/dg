@@ -1,4 +1,5 @@
 # Decision Graph Configuration for Microsoft Sample
+# This showcases historical team structures
 
 [site]
 title = "Microsoft Decision Archive"
@@ -8,66 +9,153 @@ accent_color = "#7FBA00"   # Microsoft Green
 footer = "Microsoft Corporation (Sample)"
 quick_preview = true
 
-# Author profiles
-[authors.billg]
+# Users with historical context
+# Note: In real usage, deprecated users would be added via git history
+
+[users.billg]
 name = "Bill Gates"
 email = "billg@microsoft.com"
+github = "billgates"
+teams = ["founders", "board"]
+roles = ["co-founder", "chairman"]
 avatar_url = "https://pbs.twimg.com/profile_images/1674815862879178752/nTGMV1Eo_400x400.jpg"
 
-[authors.steveb]
-name = "Steve Ballmer"
-email = "steveb@microsoft.com"
-avatar_url = "https://pbs.twimg.com/profile_images/1255577663261773825/25t0tWj9_400x400.jpg"
-
-[authors.paul]
+[users.paul]
 name = "Paul Allen"
 email = "paul@microsoft.com"
+teams = ["founders"]
+roles = ["co-founder"]
+status = "deprecated"
+deprecated_date = "1983-02-18"
+deprecated_note = "Left day-to-day operations (remained on board until 2000)"
 
-[authors.satya]
+[users.steveb]
+name = "Steve Ballmer"
+email = "steveb@microsoft.com"
+github = "steveballmer"
+teams = ["executive", "board"]
+roles = ["ceo"]
+avatar_url = "https://pbs.twimg.com/profile_images/1255577663261773825/25t0tWj9_400x400.jpg"
+
+[users.satya]
 name = "Satya Nadella"
 email = "satyan@microsoft.com"
+teams = ["executive", "board"]
+roles = ["ceo"]
 avatar_url = "https://pbs.twimg.com/profile_images/1221837516816306177/_Ld4un5A_400x400.jpg"
 
-[authors.cutler]
+[users.cutler]
 name = "Dave Cutler"
 email = "davec@microsoft.com"
+teams = ["engineering", "nt-team"]
+roles = ["architect"]
 
-[authors.simonyi]
+[users.simonyi]
 name = "Charles Simonyi"
 email = "charles@microsoft.com"
+teams = ["engineering", "office-team"]
+roles = ["architect"]
+status = "deprecated"
+deprecated_date = "2002-03-01"
+deprecated_note = "Left to found Intentional Software"
 
-[authors.sinofsky]
+[users.sinofsky]
 name = "Steven Sinofsky"
 email = "stevesi@microsoft.com"
+teams = ["windows-team", "office-team"]
+roles = ["president"]
+status = "deprecated"
+deprecated_date = "2012-11-12"
+deprecated_note = "Departed after Windows 8 launch"
 
-[authors.allard]
+[users.allard]
 name = "Jay Allard"
 email = "jallard@microsoft.com"
+teams = ["xbox-team"]
+roles = ["vp"]
+status = "deprecated"
+deprecated_date = "2010-05-25"
+deprecated_note = "Left Microsoft"
 
-[authors.bradsmith]
+[users.bradsmith]
 name = "Brad Smith"
 email = "bsmith@microsoft.com"
+teams = ["executive", "legal"]
+roles = ["president", "general-counsel"]
 
-[authors.rayozzie]
+[users.rayozzie]
 name = "Ray Ozzie"
 email = "rayozzie@microsoft.com"
+teams = ["executive"]
+roles = ["cto", "chief-software-architect"]
+status = "deprecated"
+deprecated_date = "2010-10-18"
+deprecated_note = "Stepped down as Chief Software Architect"
 
-[authors.myhrvold]
+[users.myhrvold]
 name = "Nathan Myhrvold"
 email = "nathanm@microsoft.com"
+teams = ["research"]
+roles = ["cto"]
+status = "deprecated"
+deprecated_date = "1999-01-01"
+deprecated_note = "Left to found Intellectual Ventures"
 
-[authors.maples]
+[users.maples]
 name = "Mike Maples"
 email = "mikem@microsoft.com"
+teams = ["executive"]
+roles = ["evp"]
+status = "deprecated"
+deprecated_date = "1995-07-01"
+deprecated_note = "Retired from Microsoft"
 
-[authors.ibm]
-name = "IBM Project Chess Team"
-email = "chess@ibm.com"
+# Teams with hierarchy
 
-[authors.board]
-name = "Microsoft Board"
-email = "board@microsoft.com"
+[teams.founders]
+name = "Founders"
+description = "Original founders of Microsoft"
 
-[authors.legal]
-name = "Microsoft Legal"
-email = "legal@microsoft.com"
+[teams.board]
+name = "Board of Directors"
+lead = "billg"
+description = "Microsoft Board of Directors"
+
+[teams.executive]
+name = "Executive Team"
+lead = "satya"
+description = "Senior executive leadership"
+
+[teams.engineering]
+name = "Engineering"
+description = "Core engineering organization"
+
+[teams.nt-team]
+name = "Windows NT Team"
+parent = "engineering"
+lead = "cutler"
+description = "Windows NT kernel and systems development"
+
+[teams.windows-team]
+name = "Windows Division"
+parent = "engineering"
+description = "Windows client development"
+
+[teams.office-team]
+name = "Office Division"
+parent = "engineering"
+description = "Office productivity suite development"
+
+[teams.xbox-team]
+name = "Xbox Division"
+parent = "engineering"
+description = "Xbox gaming platform"
+
+[teams.research]
+name = "Microsoft Research"
+description = "Research and advanced development"
+
+[teams.legal]
+name = "Legal & Corporate Affairs"
+lead = "bradsmith"
+description = "Legal, regulatory, and policy affairs"

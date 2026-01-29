@@ -251,16 +251,35 @@ impl Graph {
     }
 
     pub fn next_id(&self, record_type: &RecordType) -> String {
+        self.next_id_excluding(record_type, &Vec::new())
+    }
+
+    /// Get next available ID, excluding already-reserved IDs
+    pub fn next_id_excluding(&self, record_type: &RecordType, exclude: &Vec<String>) -> String {
         let prefix = record_type.prefix();
-        let max_num = self
+
+        // Get all existing numeric IDs
+        let existing: std::collections::HashSet<u32> = self
             .records
             .keys()
             .filter(|id| id.starts_with(prefix))
             .filter_map(|id| id.split('-').nth(1).and_then(|s| s.parse::<u32>().ok()))
-            .max()
-            .unwrap_or(0);
+            .collect();
 
-        format!("{}-{:03}", prefix, max_num + 1)
+        // Also consider excluded IDs
+        let excluded: std::collections::HashSet<u32> = exclude
+            .iter()
+            .filter(|id| id.starts_with(prefix))
+            .filter_map(|id| id.split('-').nth(1).and_then(|s| s.parse::<u32>().ok()))
+            .collect();
+
+        // Find the next available number
+        let mut next_num = 1;
+        while existing.contains(&next_num) || excluded.contains(&next_num) {
+            next_num += 1;
+        }
+
+        format!("{}-{:03}", prefix, next_num)
     }
 
     pub fn search(&self, query: &str, include_content: bool) -> Vec<&Record> {

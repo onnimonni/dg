@@ -1,4 +1,5 @@
 use crate::models::{validation, Graph, Record, ValidationError, ValidationOptions};
+use crate::serve::config::DgConfig;
 use anyhow::Result;
 use colored::Colorize;
 use std::path::Path;
@@ -38,10 +39,19 @@ pub fn run(
     strict: bool,
     warn_orphans: bool,
     check_principles: bool,
+    check_users: bool,
     quiet: bool,
 ) -> Result<()> {
     let docs_path = Path::new(docs_dir);
     let graph = Graph::load(docs_path)?;
+
+    // Load user/team config if checking users
+    let (users_config, teams_config) = if check_users {
+        let config = DgConfig::load(docs_path)?;
+        (Some(config.users_config()), Some(config.teams_config()))
+    } else {
+        (None, None)
+    };
 
     let opts = if strict {
         ValidationOptions {
@@ -50,11 +60,19 @@ pub fn run(
             check_orphans: warn_orphans,
             type_specific: true,
             check_principle_conflicts: true,
+            check_user_mentions: check_users,
+            check_action_items: check_users,
+            users_config: users_config.clone(),
+            teams_config: teams_config.clone(),
         }
     } else {
         ValidationOptions {
             check_orphans: warn_orphans,
             check_principle_conflicts: check_principles,
+            check_user_mentions: check_users,
+            check_action_items: check_users,
+            users_config,
+            teams_config,
             ..ValidationOptions::basic()
         }
     };

@@ -51,6 +51,24 @@ links:
 ### Competitive Position
 
 
+## 7 Powers Analysis
+<!-- Hamilton Helmer's framework: Which powers does this strategy build or leverage? -->
+<!-- Rate each: ✗ Not applicable, ◐ Partial, ✓ Strong -->
+
+| Power | Rating | Notes |
+|-------|--------|-------|
+| **Scale Economies** - Unit costs decline as volume increases | | |
+| **Network Effects** - Value increases with each user | | |
+| **Counter-Positioning** - Model that incumbents can't adopt | | |
+| **Switching Costs** - Customers sticky due to switching costs | | |
+| **Branding** - Premium attributed to brand perception | | |
+| **Cornered Resource** - Exclusive access to valuable asset | | |
+| **Process Power** - Embedded capabilities enabling superiority | | |
+
+### Power Development Plan
+<!-- How will we build/strengthen our powers? -->
+
+
 ## Strategic Priorities
 <!-- The actual plan. What will we do? In what order? -->
 

@@ -108,6 +108,8 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             <a href="/" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "records" %} bg-piper-accent text-white{% endif %}">Records</a>
             <a href="/timeline" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "timeline" %} bg-piper-accent text-white{% endif %}">Timeline</a>
             <a href="/graph" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "graph" %} bg-piper-accent text-white{% endif %}">Graph</a>
+            <a href="/users" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "users" %} bg-piper-accent text-white{% endif %}">Users</a>
+            <a href="/teams" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "teams" %} bg-piper-accent text-white{% endif %}">Teams</a>
             <a href="/stats" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "stats" %} bg-piper-accent text-white{% endif %}">Stats</a>
         </nav>
     </header>
@@ -235,7 +237,13 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
     <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" data-type="{{ rt.code }}">{{ rt.display }}</button>
     {% endfor %}
     <div id="tagFilter" class="hidden"></div>
-    <button id="sort" class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors ml-auto" title="Core First">★</button>
+    <div class="ml-auto flex gap-2">
+        <button id="viewToggle" class="filter-btn px-3 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" title="Toggle view">
+            <svg id="viewIconCards" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <svg id="viewIconTable" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        </button>
+        <button id="sort" class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" title="Core First">★</button>
+    </div>
 </div>
 
 <div id="records" class="space-y-3">
@@ -261,19 +269,81 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 </a>
 {% endfor %}
 </div>
+
+<div id="recordsTable" class="hidden overflow-x-auto">
+    <table class="w-full text-left">
+        <thead class="border-b border-slate-700">
+            <tr class="text-slate-400 text-sm">
+                <th class="py-3 px-4 font-medium">ID</th>
+                <th class="py-3 px-4 font-medium">Title</th>
+                <th class="py-3 px-4 font-medium">Type</th>
+                <th class="py-3 px-4 font-medium">Status</th>
+                <th class="py-3 px-4 font-medium">Date</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+            {% for record in records %}
+            <tr class="table-row hover:bg-slate-800/50 transition-colors cursor-pointer" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
+                <td class="py-3 px-4 font-mono text-sm text-piper-light whitespace-nowrap">
+                    {{ record.id }}{% if record.foundational %} <span class="text-yellow-500">★</span>{% endif %}
+                </td>
+                <td class="py-3 px-4 text-slate-200">{{ record.title }}</td>
+                <td class="py-3 px-4 text-slate-400 text-sm">{{ record.type_display }}</td>
+                <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase {% if record.status == 'accepted' or record.status == 'active' %}bg-green-900/30 text-green-500{% elif record.status == 'proposed' or record.status == 'draft' %}bg-yellow-900/30 text-yellow-500{% elif record.status == 'open' %}bg-red-900/30 text-red-500{% elif record.status == 'resolved' %}bg-blue-900/30 text-blue-500{% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
+                </td>
+                <td class="py-3 px-4 text-slate-500 text-sm whitespace-nowrap">{{ record.created }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 const search = document.getElementById('search');
 const recordsContainer = document.getElementById('records');
+const recordsTable = document.getElementById('recordsTable');
 const filters = document.querySelectorAll('.filter-btn');
 const sortBtn = document.getElementById('sort');
 const tagFilterEl = document.getElementById('tagFilter');
+const viewToggle = document.getElementById('viewToggle');
+const viewIconCards = document.getElementById('viewIconCards');
+const viewIconTable = document.getElementById('viewIconTable');
 let activeType = 'all';
 let activeStatus = 'all';
 let activeTag = '';
 let sortMode = 'default'; // default -> newest -> oldest -> default
+let viewMode = localStorage.getItem('dg-view-mode') || 'cards';
+
+// View toggle
+function setViewMode(mode) {
+    viewMode = mode;
+    localStorage.setItem('dg-view-mode', mode);
+    if (mode === 'table') {
+        recordsContainer.classList.add('hidden');
+        recordsTable.classList.remove('hidden');
+        viewIconCards.classList.add('hidden');
+        viewIconTable.classList.remove('hidden');
+    } else {
+        recordsContainer.classList.remove('hidden');
+        recordsTable.classList.add('hidden');
+        viewIconCards.classList.remove('hidden');
+        viewIconTable.classList.add('hidden');
+    }
+}
+
+viewToggle.addEventListener('click', () => {
+    setViewMode(viewMode === 'cards' ? 'table' : 'cards');
+});
+
+// Make table rows clickable
+document.querySelectorAll('.table-row').forEach(row => {
+    row.addEventListener('click', () => {
+        window.location.href = row.dataset.href;
+    });
+});
 
 const sortModes = {
     default: { next: 'newest', icon: '★', title: 'Core First' },
@@ -362,6 +432,7 @@ function cycleSortMode() {
 
 function filterRecords() {
     const query = search.value.toLowerCase();
+    // Filter cards
     document.querySelectorAll('.card').forEach(r => {
         const matchesType = activeType === 'all' || r.dataset.type === activeType;
         const matchesStatus = activeStatus === 'all' || r.dataset.status === activeStatus;
@@ -370,11 +441,19 @@ function filterRecords() {
         const matchesTag = !activeTag || tags.includes(activeTag);
         r.style.display = matchesType && matchesStatus && matchesQuery && matchesTag ? 'block' : 'none';
     });
+    // Filter table rows
+    document.querySelectorAll('.table-row').forEach(r => {
+        const matchesType = activeType === 'all' || r.dataset.type === activeType;
+        const matchesStatus = activeStatus === 'all' || r.dataset.status === activeStatus;
+        const matchesQuery = !query || r.textContent.toLowerCase().includes(query);
+        const tags = r.dataset.tags ? r.dataset.tags.split(',') : [];
+        const matchesTag = !activeTag || tags.includes(activeTag);
+        r.style.display = matchesType && matchesStatus && matchesQuery && matchesTag ? 'table-row' : 'none';
+    });
 }
 
 function sortRecords() {
-    const cards = Array.from(recordsContainer.querySelectorAll('.card'));
-    cards.sort((a, b) => {
+    const sortFn = (a, b) => {
         if (sortMode === 'default') {
             const aF = a.dataset.foundational === 'true';
             const bF = b.dataset.foundational === 'true';
@@ -385,8 +464,16 @@ function sortRecords() {
         } else {
             return a.dataset.created.localeCompare(b.dataset.created);
         }
-    });
+    };
+    // Sort cards
+    const cards = Array.from(recordsContainer.querySelectorAll('.card'));
+    cards.sort(sortFn);
     cards.forEach(card => recordsContainer.appendChild(card));
+    // Sort table rows
+    const tbody = recordsTable.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('.table-row'));
+    rows.sort(sortFn);
+    rows.forEach(row => tbody.appendChild(row));
 }
 
 // Handle tag clicks
@@ -403,6 +490,7 @@ document.querySelectorAll('.tag-link').forEach(tag => {
 
 // Initialize from URL on page load
 loadFromUrl();
+setViewMode(viewMode);
 filterRecords();
 sortRecords();
 </script>
@@ -489,9 +577,17 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             {% endif %}
         </div>
 
-        <!-- Content preview -->
-        <div class="mt-6 text-slate-300 leading-relaxed max-w-3xl content">
-            {{ record.content_html | safe }}
+        <!-- Content with ToC -->
+        <div class="mt-6 flex gap-8">
+            <div class="flex-1 text-slate-300 leading-relaxed max-w-3xl content" id="content">
+                {{ record.content_html | safe }}
+            </div>
+            <nav id="toc" class="hidden lg:block w-56 shrink-0">
+                <div class="sticky top-6">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono">On This Page</h4>
+                    <ul id="toc-list" class="space-y-1 text-sm border-l border-slate-700"></ul>
+                </div>
+            </nav>
         </div>
     </div>
 
@@ -540,6 +636,74 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         {% if record.resolved_authors %}<span>Authors: {% for a in record.resolved_authors %}{{ a.initials }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% elif record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const content = document.getElementById('content');
+    const tocList = document.getElementById('toc-list');
+    const toc = document.getElementById('toc');
+
+    // Find all h2 and h3 headings
+    const headings = content.querySelectorAll('h2, h3');
+    if (headings.length < 2) {
+        toc.style.display = 'none';
+        return;
+    }
+
+    // Generate ToC items
+    const tocItems = [];
+    headings.forEach((heading, index) => {
+        // Add ID to heading if it doesn't have one
+        if (!heading.id) {
+            heading.id = 'heading-' + index;
+        }
+
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#' + heading.id;
+        a.textContent = heading.textContent;
+        a.className = 'block py-1.5 pl-3 text-slate-400 hover:text-piper-light transition-colors border-l-2 border-transparent -ml-px';
+        if (heading.tagName === 'H3') {
+            a.classList.add('pl-6', 'text-xs');
+        }
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', '#' + heading.id);
+        });
+        li.appendChild(a);
+        tocList.appendChild(li);
+        tocItems.push({ heading, link: a });
+    });
+
+    // Highlight current section on scroll
+    function updateActiveSection() {
+        const scrollPos = window.scrollY + 100;
+        let activeIndex = 0;
+
+        for (let i = 0; i < tocItems.length; i++) {
+            if (tocItems[i].heading.offsetTop <= scrollPos) {
+                activeIndex = i;
+            }
+        }
+
+        tocItems.forEach((item, index) => {
+            if (index === activeIndex) {
+                item.link.classList.remove('text-slate-400', 'border-transparent');
+                item.link.classList.add('text-piper-light', 'border-piper-accent');
+            } else {
+                item.link.classList.add('text-slate-400', 'border-transparent');
+                item.link.classList.remove('text-piper-light', 'border-piper-accent');
+            }
+        });
+    }
+
+    window.addEventListener('scroll', updateActiveSection, { passive: true });
+    updateActiveSection();
+})();
+</script>
 {% endblock %}
 "##;
 
@@ -1102,6 +1266,18 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
     .view-btn.active { background: var(--primary); color: white; }
     .view-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     #saveBtn:focus-visible, .cancel-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .toolbar-btn {
+        padding: 0.375rem;
+        border-radius: 0.25rem;
+        color: #94a3b8;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.125rem;
+    }
+    .toolbar-btn:hover { background: #334155; color: #e2e8f0; }
+    .toolbar-btn:active { background: var(--primary); color: white; }
+    .toolbar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 </style>
 {% endblock %}
 
@@ -1182,6 +1358,67 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
             <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Content</span>
                 <span id="cursorPos" class="text-xs text-slate-500 font-mono">Ln 1, Col 1</span>
+            </div>
+            <!-- Formatting Toolbar -->
+            <div class="px-2 py-1.5 bg-slate-800/30 border-b border-slate-700/50 flex flex-wrap gap-1 flex-shrink-0">
+                <div class="flex gap-0.5 border-r border-slate-700 pr-2 mr-1">
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('heading')" title="Heading (Ctrl+H)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                        <span class="text-xs">H</span>
+                    </button>
+                </div>
+                <div class="flex gap-0.5 border-r border-slate-700 pr-2 mr-1">
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('bold')" title="Bold (Ctrl+B)">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('italic')" title="Italic (Ctrl+I)">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('strikethrough')" title="Strikethrough">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 19h4v-3h-4v3zM5 4v3h5v3h4V7h5V4H5zM3 14h18v-2H3v2z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('code')" title="Inline Code">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    </button>
+                </div>
+                <div class="flex gap-0.5 border-r border-slate-700 pr-2 mr-1">
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('link')" title="Link (Ctrl+K)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('image')" title="Image">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </button>
+                </div>
+                <div class="flex gap-0.5 border-r border-slate-700 pr-2 mr-1">
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('ul')" title="Bullet List">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('ol')" title="Numbered List">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('task')" title="Task List">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    </button>
+                </div>
+                <div class="flex gap-0.5 border-r border-slate-700 pr-2 mr-1">
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('quote')" title="Quote">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('codeblock')" title="Code Block">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('hr')" title="Horizontal Rule">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                    </button>
+                </div>
+                <div class="flex gap-0.5">
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('table')" title="Table">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertFormat('mention')" title="Mention @user">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
+                    </button>
+                </div>
             </div>
             <textarea id="editor" class="w-full p-4 bg-transparent text-slate-200 border-none outline-none" spellcheck="false" placeholder="Write your content here..."></textarea>
         </div>
@@ -1399,6 +1636,114 @@ function toggleMetadata() {
     toggle.setAttribute('aria-expanded', !isExpanded);
 }
 
+// Formatting toolbar
+function insertFormat(type) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selected = editor.value.substring(start, end);
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(end);
+
+    let insert = '';
+    let cursorOffset = 0;
+
+    switch(type) {
+        case 'bold':
+            insert = `**${selected || 'bold text'}**`;
+            cursorOffset = selected ? insert.length : 2;
+            break;
+        case 'italic':
+            insert = `*${selected || 'italic text'}*`;
+            cursorOffset = selected ? insert.length : 1;
+            break;
+        case 'strikethrough':
+            insert = `~~${selected || 'strikethrough'}~~`;
+            cursorOffset = selected ? insert.length : 2;
+            break;
+        case 'code':
+            insert = `\`${selected || 'code'}\``;
+            cursorOffset = selected ? insert.length : 1;
+            break;
+        case 'heading':
+            const lineStart = before.lastIndexOf('\n') + 1;
+            const prefix = before.substring(lineStart);
+            if (prefix.startsWith('### ')) {
+                editor.value = before.substring(0, lineStart) + prefix.substring(4) + selected + after;
+                editor.selectionStart = editor.selectionEnd = start - 4;
+            } else if (prefix.startsWith('## ')) {
+                editor.value = before.substring(0, lineStart) + '### ' + prefix.substring(3) + selected + after;
+                editor.selectionStart = editor.selectionEnd = start + 1;
+            } else if (prefix.startsWith('# ')) {
+                editor.value = before.substring(0, lineStart) + '## ' + prefix.substring(2) + selected + after;
+                editor.selectionStart = editor.selectionEnd = start;
+            } else {
+                insert = '# ';
+                cursorOffset = 2;
+            }
+            if (!insert) { updatePreview(); markDirty(); editor.focus(); return; }
+            break;
+        case 'link':
+            insert = selected ? `[${selected}](url)` : '[link text](url)';
+            cursorOffset = selected ? insert.length - 4 : 1;
+            break;
+        case 'image':
+            insert = selected ? `![${selected}](image-url)` : '![alt text](image-url)';
+            cursorOffset = selected ? insert.length - 10 : 2;
+            break;
+        case 'ul':
+            insert = (before.endsWith('\n') || !before) ? '- ' : '\n- ';
+            cursorOffset = insert.length;
+            break;
+        case 'ol':
+            insert = (before.endsWith('\n') || !before) ? '1. ' : '\n1. ';
+            cursorOffset = insert.length;
+            break;
+        case 'task':
+            insert = (before.endsWith('\n') || !before) ? '- [ ] ' : '\n- [ ] ';
+            cursorOffset = insert.length;
+            break;
+        case 'quote':
+            insert = (before.endsWith('\n') || !before) ? '> ' : '\n> ';
+            cursorOffset = insert.length;
+            break;
+        case 'codeblock':
+            insert = (before.endsWith('\n') || !before) ? '```\n' + (selected || 'code') + '\n```' : '\n```\n' + (selected || 'code') + '\n```';
+            cursorOffset = selected ? insert.length : 4;
+            break;
+        case 'hr':
+            insert = (before.endsWith('\n') || !before) ? '---\n' : '\n---\n';
+            cursorOffset = insert.length;
+            break;
+        case 'table':
+            insert = (before.endsWith('\n') || !before) ? '' : '\n';
+            insert += '| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n';
+            cursorOffset = (before.endsWith('\n') || !before) ? 2 : 3;
+            break;
+        case 'mention':
+            insert = '@';
+            cursorOffset = 1;
+            break;
+    }
+
+    editor.value = before + insert + after;
+    editor.selectionStart = editor.selectionEnd = start + cursorOffset;
+    editor.focus();
+    updatePreview();
+    markDirty();
+}
+
+// Keyboard shortcuts for formatting
+editor.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.key.toLowerCase()) {
+            case 'b': e.preventDefault(); insertFormat('bold'); break;
+            case 'i': e.preventDefault(); insertFormat('italic'); break;
+            case 'k': e.preventDefault(); insertFormat('link'); break;
+            case 'h': e.preventDefault(); insertFormat('heading'); break;
+        }
+    }
+});
+
 // View switcher
 let currentView = 'split';
 function setView(view) {
@@ -1583,6 +1928,311 @@ updateCursorPosition();
 {% endblock %}
 "##;
 
+const USERS_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}Users - {{ site.title }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-white">Users</h2>
+    <label class="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+        <input type="checkbox" id="showDeprecated" class="rounded bg-slate-800 border-slate-600 text-piper-accent focus:ring-piper-accent">
+        Show deprecated
+    </label>
+</div>
+
+<div id="users" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+{% for user in users %}
+<a href="/users/{{ user.username }}" class="user-card block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5{% if user.is_deprecated %} opacity-50{% endif %}" data-deprecated="{{ user.is_deprecated }}">
+    <div class="flex items-center gap-4">
+        <img src="{{ user.avatar_url }}" alt="{{ user.name }}" class="w-12 h-12 rounded-full border-2 border-slate-700" onerror="this.src='https://ui-avatars.com/api/?name={{ user.initials }}&background=007c43&color=fff&size=64'">
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-white truncate">{{ user.name }}</span>
+                {% if user.is_llm %}
+                <span class="px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-900/50 border border-purple-700 text-purple-300">🤖</span>
+                {% endif %}
+                {% if user.is_deprecated %}
+                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-700 text-slate-400">LEFT</span>
+                {% endif %}
+            </div>
+            <div class="text-sm text-slate-400">@{{ user.username }}</div>
+            {% if user.teams %}
+            <div class="flex flex-wrap gap-1 mt-1">
+                {% for team in user.teams %}
+                <span class="px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400">{{ team }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</a>
+{% endfor %}
+</div>
+
+{% if users | length == 0 %}
+<div class="text-center text-slate-500 py-12">
+    No users configured. Add users to <code class="bg-slate-800 px-2 py-1 rounded">dg.toml</code>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const showDeprecated = document.getElementById('showDeprecated');
+showDeprecated.addEventListener('change', () => {
+    document.querySelectorAll('.user-card').forEach(card => {
+        if (card.dataset.deprecated === 'true') {
+            card.style.display = showDeprecated.checked ? 'block' : 'none';
+        }
+    });
+});
+// Hide deprecated by default
+document.querySelectorAll('.user-card[data-deprecated="true"]').forEach(c => c.style.display = 'none');
+</script>
+{% endblock %}
+"##;
+
+const USER_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}{{ user.name }} - {{ site.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-piper-card border border-slate-700 rounded-2xl overflow-hidden">
+        <div class="h-1.5 w-full bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+
+        <div class="p-8">
+            <div class="flex items-start gap-6">
+                <img src="{{ user.avatar_url }}" alt="{{ user.name }}" class="w-24 h-24 rounded-full border-4 border-slate-700" onerror="this.src='https://ui-avatars.com/api/?name={{ user.initials }}&background=007c43&color=fff&size=96'">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-white">{{ user.name }}</h1>
+                        {% if "llm" in user.roles %}
+                        <span class="px-3 py-1 rounded-full text-sm font-semibold bg-purple-900/50 border border-purple-700 text-purple-300">
+                            <span class="mr-1">🤖</span>AI
+                        </span>
+                        {% endif %}
+                        {% if user.is_deprecated %}
+                        <span class="px-3 py-1 rounded-full text-sm font-semibold bg-slate-700 text-slate-400">LEFT</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-lg text-slate-400 mb-4">@{{ user.username }}</div>
+
+                    {% if user.email %}
+                    <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        {{ user.email }}
+                    </div>
+                    {% endif %}
+
+                    {% if user.github %}
+                    <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        <a href="https://github.com/{{ user.github }}" class="text-piper-light hover:underline" target="_blank">{{ user.github }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if user.is_deprecated %}
+            <div class="mt-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
+                <div class="text-sm text-slate-400">
+                    <strong class="text-slate-300">Departed:</strong> {{ user.deprecated_date | default(value="Unknown") }}
+                    {% if user.deprecated_note %}
+                    <br><strong class="text-slate-300">Note:</strong> {{ user.deprecated_note }}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.teams %}
+            <div class="mt-6">
+                <h3 class="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3">Teams</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for team in user.teams %}
+                    <a href="/teams/{{ team }}" class="px-3 py-1.5 bg-slate-800 rounded-lg text-sm text-slate-300 hover:bg-piper-accent hover:text-white transition-colors">{{ team }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.roles %}
+            <div class="mt-6">
+                <h3 class="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3">Roles</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for role in user.roles %}
+                    <span class="px-3 py-1.5 bg-piper-accent/20 border border-piper-accent/30 rounded-lg text-sm text-piper-light">{{ role }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if authored_records %}
+    <div class="mt-8">
+        <h3 class="text-lg font-semibold text-white mb-4">Authored Records ({{ authored_records | length }})</h3>
+        <div class="space-y-3">
+            {% for record in authored_records %}
+            <a href="/records/{{ record.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 transition-all">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="font-mono text-sm text-piper-light">{{ record.id }}</span>
+                        <span class="ml-2 text-slate-300">{{ record.title }}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase {% if record.status == 'accepted' %}bg-green-900/30 text-green-500{% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if mentioned_in %}
+    <div class="mt-8">
+        <h3 class="text-lg font-semibold text-white mb-4">Mentioned In ({{ mentioned_in | length }})</h3>
+        <div class="space-y-3">
+            {% for record in mentioned_in %}
+            <a href="/records/{{ record.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-amber-500/50 transition-all">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="font-mono text-sm text-amber-400">{{ record.id }}</span>
+                        <span class="ml-2 text-slate-300">{{ record.title }}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-slate-700 text-slate-400">{{ record.status }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+"##;
+
+const TEAMS_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}Teams - {{ site.title }}{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-white mb-6">Teams</h2>
+
+<div id="teams" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+{% for team in teams %}
+<a href="/teams/{{ team.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5">
+    <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-piper-accent to-emerald-400 flex items-center justify-center text-white font-bold text-lg">
+            {{ team.name | first | upper }}
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-white truncate">{{ team.name }}</div>
+            {% if team.lead %}
+            <div class="text-sm text-slate-400">Lead: @{{ team.lead }}</div>
+            {% endif %}
+            {% if team.parent %}
+            <div class="text-xs text-slate-500 mt-1">↳ {{ team.parent }}</div>
+            {% endif %}
+            {% if team.member_count > 0 %}
+            <div class="text-xs text-slate-500 mt-1">{{ team.member_count }} members</div>
+            {% endif %}
+        </div>
+    </div>
+</a>
+{% endfor %}
+</div>
+
+{% if teams | length == 0 %}
+<div class="text-center text-slate-500 py-12">
+    No teams configured. Add teams to <code class="bg-slate-800 px-2 py-1 rounded">dg.toml</code>
+</div>
+{% endif %}
+{% endblock %}
+"##;
+
+const TEAM_TEMPLATE: &str = r##"{% extends "base.html" %}
+
+{% block title %}{{ team.name }} - {{ site.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-piper-card border border-slate-700 rounded-2xl overflow-hidden">
+        <div class="h-1.5 w-full bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+
+        <div class="p-8">
+            <div class="flex items-start gap-6">
+                <div class="w-24 h-24 rounded-xl bg-gradient-to-br from-piper-accent to-emerald-400 flex items-center justify-center text-white font-bold text-3xl">
+                    {{ team.name | first | upper }}
+                </div>
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold text-white mb-2">{{ team.name }}</h1>
+                    <div class="text-lg text-slate-400 mb-4">{{ team.id }}</div>
+
+                    {% if team.description %}
+                    <p class="text-slate-300 mb-4">{{ team.description }}</p>
+                    {% endif %}
+
+                    {% if team.lead %}
+                    <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        Lead: <a href="/users/{{ team.lead }}" class="text-piper-light hover:underline">@{{ team.lead }}</a>
+                    </div>
+                    {% endif %}
+
+                    {% if team.email %}
+                    <div class="flex items-center gap-2 text-sm text-slate-400 mb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        {{ team.email }}
+                    </div>
+                    {% endif %}
+
+                    {% if team.parent %}
+                    <div class="flex items-center gap-2 text-sm text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        Parent: <a href="/teams/{{ team.parent }}" class="text-piper-light hover:underline">{{ team.parent }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if members %}
+    <div class="mt-8">
+        <h3 class="text-lg font-semibold text-white mb-4">Members ({{ members | length }})</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for member in members %}
+            <a href="/users/{{ member.username }}" class="flex items-center gap-3 bg-piper-card border border-slate-700 rounded-xl p-3 hover:border-piper-light/50 transition-all">
+                <img src="{{ member.avatar_url }}" alt="{{ member.name }}" class="w-10 h-10 rounded-full border-2 border-slate-700">
+                <div>
+                    <div class="text-white font-medium">{{ member.name }}</div>
+                    <div class="text-sm text-slate-400">@{{ member.username }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if sub_teams %}
+    <div class="mt-8">
+        <h3 class="text-lg font-semibold text-white mb-4">Sub-teams ({{ sub_teams | length }})</h3>
+        <div class="space-y-3">
+            {% for sub in sub_teams %}
+            <a href="/teams/{{ sub.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 transition-all">
+                <div class="font-semibold text-white">{{ sub.name }}</div>
+                {% if sub.lead %}
+                <div class="text-sm text-slate-400">Lead: @{{ sub.lead }}</div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+"##;
+
 pub fn create_environment() -> Environment<'static> {
     let mut env = Environment::new();
     env.add_template("base.html", BASE_TEMPLATE).unwrap();
@@ -1593,5 +2243,9 @@ pub fn create_environment() -> Environment<'static> {
     env.add_template("timeline.html", TIMELINE_TEMPLATE)
         .unwrap();
     env.add_template("edit.html", EDIT_TEMPLATE).unwrap();
+    env.add_template("users.html", USERS_TEMPLATE).unwrap();
+    env.add_template("user.html", USER_TEMPLATE).unwrap();
+    env.add_template("teams.html", TEAMS_TEMPLATE).unwrap();
+    env.add_template("team.html", TEAM_TEMPLATE).unwrap();
     env
 }

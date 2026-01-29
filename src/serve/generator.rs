@@ -1,10 +1,11 @@
 use crate::models::Graph;
-use crate::serve::config::SiteConfig;
+use crate::serve::config::{DgConfig, SiteConfig};
 use crate::serve::templates::create_environment;
 use anyhow::Result;
 use minijinja::context;
 use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
@@ -15,6 +16,15 @@ pub fn generate_site(graph: &Graph, output_dir: &Path, docs_dir: &Path) -> Resul
 
     // Load site config
     let site_config = SiteConfig::load(docs_dir)?;
+
+    // Load users/teams for mention validation
+    let dg_config = DgConfig::load(docs_dir)?;
+    let valid_mentions: HashSet<String> = dg_config
+        .users
+        .keys()
+        .chain(dg_config.teams.keys())
+        .cloned()
+        .collect();
 
     let env = create_environment();
 
@@ -47,7 +57,7 @@ pub fn generate_site(graph: &Graph, output_dir: &Path, docs_dir: &Path) -> Resul
         let mut ctx = record_to_context(record);
 
         // Add content as HTML using pulldown-cmark
-        let content_html = markdown_to_html(&record.content);
+        let content_html = markdown_to_html_with_mentions(&record.content, &valid_mentions);
         ctx.insert(
             "content_html".to_string(),
             serde_json::Value::String(content_html),
@@ -203,8 +213,13 @@ fn record_to_context(record: &crate::models::Record) -> serde_json::Map<String, 
     map
 }
 
-/// Convert markdown to HTML using pulldown-cmark
+/// Convert markdown to HTML using pulldown-cmark (without mention validation)
 pub fn markdown_to_html(md: &str) -> String {
+    markdown_to_html_with_mentions(md, &HashSet::new())
+}
+
+/// Convert markdown to HTML with validated @mentions
+pub fn markdown_to_html_with_mentions(md: &str, valid_mentions: &HashSet<String>) -> String {
     // Strip HTML comments before rendering
     let comment_re = Regex::new(r"<!--[\s\S]*?-->").unwrap();
     let cleaned = comment_re.replace_all(md, "");
@@ -217,5 +232,27 @@ pub fn markdown_to_html(md: &str) -> String {
     let parser = Parser::new_ext(&cleaned, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
-    html_output
+
+    // Linkify @mentions (only valid ones if validation set provided)
+    linkify_mentions(&html_output, valid_mentions)
+}
+
+/// Convert @username mentions to clickable links (only if user/team exists)
+fn linkify_mentions(html: &str, valid_mentions: &HashSet<String>) -> String {
+    let mention_re = Regex::new(r"@([a-zA-Z][a-zA-Z0-9_-]*)").unwrap();
+    mention_re
+        .replace_all(html, |caps: &regex::Captures| {
+            let username = &caps[1];
+            // Only create link if valid_mentions is empty (no validation) or username exists
+            if valid_mentions.is_empty() || valid_mentions.contains(username) {
+                format!(
+                    r#"<a href="/users/{}" class="mention text-piper-light hover:underline">@{}</a>"#,
+                    username, username
+                )
+            } else {
+                // Keep as plain text for non-existent users
+                format!("@{}", username)
+            }
+        })
+        .to_string()
 }

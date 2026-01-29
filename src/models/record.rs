@@ -20,6 +20,7 @@ pub enum RecordType {
     Incident,
     Runbook,
     Meeting,
+    Feedback,
 }
 
 impl RecordType {
@@ -36,6 +37,7 @@ impl RecordType {
             RecordType::Incident => "INC",
             RecordType::Runbook => "RUN",
             RecordType::Meeting => "MTG",
+            RecordType::Feedback => "FBK",
         }
     }
 
@@ -52,6 +54,7 @@ impl RecordType {
             "INC" => Some(RecordType::Incident),
             "RUN" => Some(RecordType::Runbook),
             "MTG" => Some(RecordType::Meeting),
+            "FBK" => Some(RecordType::Feedback),
             _ => None,
         }
     }
@@ -69,6 +72,7 @@ impl RecordType {
             "incident" => Some(RecordType::Incident),
             "runbook" => Some(RecordType::Runbook),
             "meeting" => Some(RecordType::Meeting),
+            "feedback" => Some(RecordType::Feedback),
             _ => RecordType::from_prefix(s),
         }
     }
@@ -86,6 +90,7 @@ impl RecordType {
             RecordType::Incident => "incident",
             RecordType::Runbook => "runbook",
             RecordType::Meeting => "meeting",
+            RecordType::Feedback => "feedback",
         }
     }
 }
