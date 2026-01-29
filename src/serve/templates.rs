@@ -92,6 +92,10 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .author-avatar.hidden {
             display: none;
         }
+        /* List styles for markdown content */
+        ul { list-style-type: disc; padding-left: 1.5rem; margin: 1rem 0; }
+        ol { list-style-type: decimal; padding-left: 1.5rem; margin: 1rem 0; }
+        li { margin: 0.25rem 0; }
         {{ site.custom_css | default(value="") | safe }}
     </style>
     <script defer src="/static/katex.min.js"></script>
@@ -249,13 +253,13 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div id="records" class="space-y-4">
 {% for record in records %}
-<a href="/records/{{ record.id }}" class="card block rounded-xl p-5 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-emerald-500 bg-slate-800/60 hover:bg-slate-700/60{% else %}bg-piper-card border border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/50{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
+<a href="/records/{{ record.id }}" class="card block rounded-xl p-5 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-yellow-500 bg-slate-800/60 hover:bg-slate-700/60{% else %}bg-piper-card border border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/50{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
     <div class="flex justify-between items-start gap-4">
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-2">
                 <span class="font-mono text-xs text-slate-500">{{ record.id }}</span>
                 {% if record.is_draft %}<span class="inline-flex items-center rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20">DRAFT</span>{% endif %}
-                {% if record.foundational %}<span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">CORE</span>{% endif %}
+                {% if record.foundational %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">CORE</span>{% endif %}
             </div>
             <h3 class="text-lg font-medium text-slate-100 mb-2 leading-snug">{{ record.title }}</h3>
             <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
@@ -291,7 +295,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
                     <span class="text-slate-500">{{ record.id }}</span>
                     {% if record.is_draft %}<span class="ml-1 inline-flex items-center rounded-md bg-violet-500/10 px-1.5 py-0.5 text-xs font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20">D</span>{% endif %}
-                    {% if record.foundational %}<span class="ml-1 inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">★</span>{% endif %}
+                    {% if record.foundational %}<span class="ml-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">★</span>{% endif %}
                 </td>
                 <td class="py-3 px-4 text-slate-200 font-medium">{{ record.title }}</td>
                 <td class="py-3 px-4 text-slate-500 text-sm">{{ record.type_display }}</td>
