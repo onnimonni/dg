@@ -517,3 +517,44 @@ async fn test_incidents_show_duration() {
             || html.contains("day")
     );
 }
+
+// ============================================================================
+// Avatar Group Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_record_has_avatar_group() {
+    let server = TestServer::new().await;
+    let html = server.get_text("/records/ADR-004").await;
+
+    // Should have avatar-group container with overlapping styling
+    assert!(html.contains("avatar-group"));
+    assert!(html.contains("-space-x-6"));
+}
+
+#[tokio::test]
+async fn test_avatar_group_shows_author_initials() {
+    let server = TestServer::new().await;
+    let html = server.get_text("/records/ADR-004").await;
+
+    // ADR-004 has authors: Richard Hendricks, Bertram Gilfoyle, Dinesh Chugtai
+    // Should show initials (RH, BG, DC) in avatar elements
+    assert!(html.contains("avatar-initials"));
+
+    // Should have links to user profiles
+    assert!(html.contains("/users/Richard Hendricks"));
+    assert!(html.contains("/users/Bertram Gilfoyle"));
+    assert!(html.contains("/users/Dinesh Chugtai"));
+}
+
+#[tokio::test]
+async fn test_avatar_has_tooltip() {
+    let server = TestServer::new().await;
+    let html = server.get_text("/records/ADR-004").await;
+
+    // Should have author-tooltip elements for hover display
+    assert!(html.contains("author-tooltip"));
+
+    // Tooltip should contain author name
+    assert!(html.contains("Richard Hendricks"));
+}

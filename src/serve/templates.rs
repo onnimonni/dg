@@ -57,12 +57,11 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             border-radius: 9999px;
             border: 2px solid #1e293b;
             cursor: pointer;
-            transition: border-color 0.2s, transform 0.15s;
+            transition: border-color 0.2s;
         }
         .author-wrapper:hover .author-avatar,
         .author-wrapper:hover .avatar-initials {
             border-color: var(--accent);
-            transform: translateY(-2px);
             z-index: 10;
         }
         .author-tooltip {
@@ -736,7 +735,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             {% if record.resolved_authors %}
             <div class="flex items-center gap-3">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
-                <div class="avatar-group -space-x-4">
+                <div class="avatar-group -space-x-6">
                     {% for author in record.resolved_authors %}
                     <div class="avatar author-wrapper">
                         <a href="/users/{{ author.username }}" class="w-8">
