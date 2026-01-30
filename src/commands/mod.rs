@@ -1,4 +1,5 @@
 pub mod build;
+pub mod changelog;
 pub mod context;
 pub mod diff;
 pub mod edit;

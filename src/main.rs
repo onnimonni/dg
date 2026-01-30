@@ -290,6 +290,25 @@ enum Commands {
         output: Option<String>,
     },
 
+    /// Generate changelog from records
+    Changelog {
+        /// Changes since date (YYYY-MM-DD) or git tag
+        #[arg(long)]
+        since: Option<String>,
+
+        /// Filter by type (comma-separated: decision,adr)
+        #[arg(short, long)]
+        r#type: Option<String>,
+
+        /// Filter by status
+        #[arg(short, long)]
+        status: Option<String>,
+
+        /// Output format: markdown, json
+        #[arg(short, long, default_value = "markdown")]
+        format: String,
+    },
+
     /// Start HTTP server for browsing records
     Serve {
         /// Port to listen on
@@ -681,6 +700,12 @@ fn main() -> Result<()> {
             format,
         } => commands::context::run(&cli.docs_dir, &topic, depth, &format),
         Commands::Build { output } => commands::build::run(&cli.docs_dir, output.as_deref()),
+        Commands::Changelog {
+            since,
+            r#type,
+            status,
+            format,
+        } => commands::changelog::run(&cli.docs_dir, since.as_deref(), r#type, status, &format),
         Commands::Serve { port, open, watch } => {
             commands::serve::run(&cli.docs_dir, port, open, watch)
         }
