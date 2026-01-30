@@ -739,4 +739,221 @@ mod tests {
         assert_eq!(truncate("short", 10), "short");
         assert_eq!(truncate("this is a very long string", 10), "this is...");
     }
+
+    #[test]
+    fn test_records_by_type() {
+        let graph = make_test_graph();
+        let decisions = graph.records_by_type(&RecordType::Decision);
+        assert_eq!(decisions.len(), 2);
+
+        let adrs = graph.records_by_type(&RecordType::Adr);
+        assert_eq!(adrs.len(), 1);
+
+        let strategies = graph.records_by_type(&RecordType::Strategy);
+        assert_eq!(strategies.len(), 0);
+    }
+
+    #[test]
+    fn test_core_records_none() {
+        let graph = make_test_graph();
+        // Default test graph has no core records
+        let core = graph.core_records();
+        assert!(core.is_empty());
+    }
+
+    #[test]
+    fn test_core_records_some() {
+        let mut graph = make_test_graph();
+        // Mark DEC-001 as core
+        if let Some(record) = graph.get_mut("DEC-001") {
+            record.frontmatter.core = true;
+        }
+
+        let core = graph.core_records();
+        assert_eq!(core.len(), 1);
+        assert_eq!(core[0].id(), "DEC-001");
+    }
+
+    #[test]
+    fn test_trace_dependencies() {
+        let graph = make_test_graph();
+        // DEC-001 -> DEC-002 -> ADR-001 (both depends_on)
+        let paths = graph.trace_dependencies("DEC-001");
+        // Should find path through the dependency chain
+        assert!(!paths.is_empty());
+
+        // First path should start with DEC-001
+        let has_dec001_start = paths
+            .iter()
+            .any(|p| p.nodes.first() == Some(&"DEC-001".to_string()));
+        assert!(has_dec001_start);
+    }
+
+    #[test]
+    fn test_trace_dependencies_no_deps() {
+        let graph = make_test_graph();
+        // ADR-001 has no outgoing depends_on links
+        let paths = graph.trace_dependencies("ADR-001");
+        // Should return empty since ADR-001 doesn't depend on anything
+        assert!(paths.is_empty());
+    }
+
+    #[test]
+    fn test_trace_dependents() {
+        let graph = make_test_graph();
+        // ADR-001 is depended on by DEC-002, which is depended on by DEC-001
+        let paths = graph.trace_dependents("ADR-001");
+
+        // Should find dependents
+        assert!(!paths.is_empty());
+    }
+
+    #[test]
+    fn test_trace_dependents_none() {
+        let graph = make_test_graph();
+        // DEC-001 has no records that depend on it
+        let paths = graph.trace_dependents("DEC-001");
+        // Should be empty
+        assert!(paths.is_empty());
+    }
+
+    #[test]
+    fn test_context() {
+        let graph = make_test_graph();
+        let result = graph.context("DEC-001", 1);
+
+        // Should include the matching record and neighbors
+        assert!(!result.records.is_empty());
+
+        // DEC-001 should be in the results
+        let has_dec001 = result.records.iter().any(|r| r.id() == "DEC-001");
+        assert!(has_dec001);
+    }
+
+    #[test]
+    fn test_context_includes_neighbors() {
+        let graph = make_test_graph();
+        let result = graph.context("DEC-001", 1);
+
+        // Should include neighbors DEC-002 and ADR-001 at depth 1
+        let ids: HashSet<_> = result.records.iter().map(|r| r.id()).collect();
+        assert!(ids.contains("DEC-001"));
+        assert!(ids.contains("DEC-002"));
+        assert!(ids.contains("ADR-001"));
+    }
+
+    #[test]
+    fn test_context_includes_edges() {
+        let graph = make_test_graph();
+        let result = graph.context("DEC-001", 1);
+
+        // Should include edges between the returned records
+        assert!(!result.edges.is_empty());
+
+        // Find depends_on edge from DEC-001 to DEC-002
+        let has_edge = result
+            .edges
+            .iter()
+            .any(|e| e.from == "DEC-001" && e.to == "DEC-002" && e.link_type == "depends_on");
+        assert!(has_edge);
+    }
+
+    #[test]
+    fn test_context_no_match() {
+        let graph = make_test_graph();
+        let result = graph.context("NONEXISTENT", 1);
+
+        // Should return empty since no records match
+        assert!(result.records.is_empty());
+        assert!(result.edges.is_empty());
+    }
+
+    #[test]
+    fn test_to_dot_subset() {
+        let graph = make_test_graph();
+        let mut subset = HashSet::new();
+        subset.insert("DEC-001".to_string());
+        subset.insert("DEC-002".to_string());
+
+        let dot = graph.to_dot(Some(&subset));
+
+        // Should contain the subset nodes
+        assert!(dot.contains("DEC-001"));
+        assert!(dot.contains("DEC-002"));
+        // Should not contain ADR-001
+        assert!(!dot.contains("ADR-001"));
+    }
+
+    #[test]
+    fn test_validate_returns_errors() {
+        // Create a graph with broken links
+        let mut records = HashMap::new();
+        let content = "---\ntype: decision\nid: DEC-001\ntitle: Test\nstatus: proposed\ncreated: 2024-01-01\nupdated: 2024-01-01\nauthors: []\ntags: []\nlinks:\n  depends_on:\n    - NONEXISTENT\n---\n\n# Test\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        records.insert("DEC-001".to_string(), record);
+
+        let graph = Graph {
+            records,
+            edges: vec![GraphEdge {
+                from: "DEC-001".to_string(),
+                to: "NONEXISTENT".to_string(),
+                link_type: "depends_on".to_string(),
+            }],
+            docs_dir: None,
+        };
+
+        let errors = graph.validate();
+        // Should have at least one broken link error
+        assert!(!errors.is_empty());
+    }
+
+    #[test]
+    fn test_get_mut() {
+        let mut graph = make_test_graph();
+
+        // Modify a record
+        if let Some(record) = graph.get_mut("DEC-001") {
+            record.frontmatter.title = "Modified Title".to_string();
+        }
+
+        // Verify the change
+        let record = graph.get("DEC-001").unwrap();
+        assert_eq!(record.title(), "Modified Title");
+    }
+
+    #[test]
+    fn test_graph_edge_fields() {
+        let edge = GraphEdge {
+            from: "DEC-001".to_string(),
+            to: "DEC-002".to_string(),
+            link_type: "depends_on".to_string(),
+        };
+
+        assert_eq!(edge.from, "DEC-001");
+        assert_eq!(edge.to, "DEC-002");
+        assert_eq!(edge.link_type, "depends_on");
+    }
+
+    #[test]
+    fn test_graph_node_fields() {
+        let node = GraphNode {
+            id: "DEC-001".to_string(),
+            title: "Test Decision".to_string(),
+            record_type: RecordType::Decision,
+        };
+
+        assert_eq!(node.id, "DEC-001");
+        assert_eq!(node.title, "Test Decision");
+        assert_eq!(node.record_type, RecordType::Decision);
+    }
+
+    #[test]
+    fn test_graph_stats_by_status() {
+        let graph = make_test_graph();
+        let stats = graph.stats();
+
+        // All test records have "accepted" status
+        assert!(stats.by_status.contains_key("accepted"));
+        assert_eq!(*stats.by_status.get("accepted").unwrap(), 3);
+    }
 }

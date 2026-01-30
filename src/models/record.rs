@@ -703,4 +703,287 @@ Some content here.
             .to_string()
             .contains("Missing frontmatter"));
     }
+
+    fn make_record_with_content(content: &str) -> Record {
+        let full_content = format!(
+            "---\ntype: decision\nid: DEC-001\ntitle: Test\nstatus: proposed\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {{}}\n---\n\n{}",
+            content
+        );
+        Record::parse_content(&full_content, std::path::PathBuf::from("test.md")).unwrap()
+    }
+
+    #[test]
+    fn test_extract_daci_driver_role() {
+        let record = make_record_with_content("- **Driver**: Alice Smith");
+        let roles = record.extract_daci_roles();
+
+        assert!(roles.contains_key("responsible"));
+        assert!(roles["responsible"].contains(&"Alice Smith".to_string()));
+    }
+
+    #[test]
+    fn test_extract_daci_multiple_roles() {
+        let record = make_record_with_content(
+            "- **Driver**: Alice\n- **Approver**: Bob\n- **Contributor**: Carol\n- **Informed**: Dave",
+        );
+        let roles = record.extract_daci_roles();
+
+        assert!(roles.contains_key("responsible"));
+        assert!(roles.contains_key("approver"));
+        assert!(roles.contains_key("consulted"));
+        assert!(roles.contains_key("informed"));
+    }
+
+    #[test]
+    fn test_extract_daci_multiple_people() {
+        let record = make_record_with_content("- **Approvers**: Alice, Bob and Carol");
+        let roles = record.extract_daci_roles();
+
+        assert!(roles.contains_key("approver"));
+        let approvers = &roles["approver"];
+        assert!(approvers.contains(&"Alice".to_string()));
+        assert!(approvers.contains(&"Bob".to_string()));
+        assert!(approvers.contains(&"Carol".to_string()));
+    }
+
+    #[test]
+    fn test_extract_daci_with_descriptions() {
+        let record = make_record_with_content("- **Driver**: Alice (Engineering Lead)");
+        let roles = record.extract_daci_roles();
+
+        // Should extract name without description
+        assert!(roles["responsible"].contains(&"Alice".to_string()));
+        assert!(!roles["responsible"]
+            .iter()
+            .any(|s| s.contains("Engineering")));
+    }
+
+    #[test]
+    fn test_extract_daci_responsible_alias() {
+        let record = make_record_with_content("- **Responsible**: Alice");
+        let roles = record.extract_daci_roles();
+
+        // Responsible should map to "responsible" key
+        assert!(roles.contains_key("responsible"));
+        assert!(roles["responsible"].contains(&"Alice".to_string()));
+    }
+
+    #[test]
+    fn test_extract_daci_accountable_alias() {
+        let record = make_record_with_content("- **Accountable**: Bob");
+        let roles = record.extract_daci_roles();
+
+        // Accountable should map to "approver" key
+        assert!(roles.contains_key("approver"));
+        assert!(roles["approver"].contains(&"Bob".to_string()));
+    }
+
+    #[test]
+    fn test_extract_daci_consulted_alias() {
+        let record = make_record_with_content("- **Consulted**: Carol");
+        let roles = record.extract_daci_roles();
+
+        // Consulted should map to "consulted" key
+        assert!(roles.contains_key("consulted"));
+        assert!(roles["consulted"].contains(&"Carol".to_string()));
+    }
+
+    #[test]
+    fn test_extract_daci_ignores_invalid_roles() {
+        let record = make_record_with_content("- **Manager**: Alice\n- **Stakeholder**: Bob");
+        let roles = record.extract_daci_roles();
+
+        // Should not contain invalid roles
+        assert!(!roles.contains_key("manager"));
+        assert!(!roles.contains_key("stakeholder"));
+        assert!(roles.is_empty());
+    }
+
+    #[test]
+    fn test_extract_daci_empty_content() {
+        let record = make_record_with_content("No DACI roles here");
+        let roles = record.extract_daci_roles();
+        assert!(roles.is_empty());
+    }
+
+    #[test]
+    fn test_extract_action_items_basic() {
+        let record = make_record_with_content("- [ ] Complete the task");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 1);
+        assert!(actions[0].0.contains("Complete the task"));
+        assert!(!actions[0].1); // Not completed
+        assert!(actions[0].2.is_none()); // No owner
+    }
+
+    #[test]
+    fn test_extract_action_items_completed() {
+        let record = make_record_with_content("- [x] Done task");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 1);
+        assert!(actions[0].1); // Completed
+    }
+
+    #[test]
+    fn test_extract_action_items_completed_uppercase() {
+        let record = make_record_with_content("- [X] Done task");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 1);
+        assert!(actions[0].1); // Completed
+    }
+
+    #[test]
+    fn test_extract_action_items_with_owner() {
+        let record = make_record_with_content("- [ ] Review PR @alice");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].2, Some("alice".to_string()));
+    }
+
+    #[test]
+    fn test_extract_action_items_multiple() {
+        let record =
+            make_record_with_content("- [ ] Task 1 @alice\n- [x] Task 2 @bob\n- [ ] Task 3");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 3);
+        assert!(!actions[0].1);
+        assert_eq!(actions[0].2, Some("alice".to_string()));
+        assert!(actions[1].1);
+        assert_eq!(actions[1].2, Some("bob".to_string()));
+        assert!(!actions[2].1);
+        assert!(actions[2].2.is_none());
+    }
+
+    #[test]
+    fn test_extract_action_items_asterisk_bullet() {
+        let record = make_record_with_content("* [ ] Task with asterisk");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 1);
+        assert!(actions[0].0.contains("Task with asterisk"));
+    }
+
+    #[test]
+    fn test_extract_action_items_empty() {
+        let record = make_record_with_content("No action items here");
+        let actions = record.extract_action_items();
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn test_extract_action_items_owner_in_middle() {
+        let record = make_record_with_content("- [ ] Ping @alice for review tomorrow");
+        let actions = record.extract_action_items();
+
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].2, Some("alice".to_string()));
+    }
+
+    #[test]
+    fn test_status_display() {
+        assert_eq!(Status::Draft.to_string(), "draft");
+        assert_eq!(Status::Proposed.to_string(), "proposed");
+        assert_eq!(Status::Accepted.to_string(), "accepted");
+        assert_eq!(Status::Deprecated.to_string(), "deprecated");
+        assert_eq!(Status::Superseded.to_string(), "superseded");
+        assert_eq!(Status::Active.to_string(), "active");
+        assert_eq!(Status::Open.to_string(), "open");
+        assert_eq!(Status::Closed.to_string(), "closed");
+        assert_eq!(Status::Resolved.to_string(), "resolved");
+        assert_eq!(Status::Cancelled.to_string(), "cancelled");
+    }
+
+    #[test]
+    fn test_record_type_display() {
+        assert_eq!(RecordType::Decision.to_string(), "DEC");
+        assert_eq!(RecordType::Adr.to_string(), "ADR");
+        assert_eq!(RecordType::Incident.to_string(), "INC");
+    }
+
+    #[test]
+    fn test_record_type_template_name() {
+        assert_eq!(RecordType::Decision.template_name(), "decision");
+        assert_eq!(RecordType::Adr.template_name(), "adr");
+        assert_eq!(RecordType::Incident.template_name(), "incident");
+        assert_eq!(RecordType::Meeting.template_name(), "meeting");
+        assert_eq!(RecordType::Feedback.template_name(), "feedback");
+    }
+
+    #[test]
+    fn test_record_type_display_name() {
+        assert_eq!(RecordType::Decision.display_name(), "Decision");
+        assert_eq!(RecordType::Adr.display_name(), "Architecture");
+        assert_eq!(RecordType::Incident.display_name(), "Incident");
+    }
+
+    #[test]
+    fn test_record_filename() {
+        let content = "---\ntype: decision\nid: DEC-001\ntitle: My Test Decision\nstatus: proposed\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\n---\n\n# Content\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+
+        let filename = record.filename();
+        assert!(filename.starts_with("DEC-001-"));
+        assert!(filename.ends_with(".md"));
+        assert!(filename.contains("my-test-decision"));
+    }
+
+    #[test]
+    fn test_links_all_link_types() {
+        let mut links = Links::default();
+        links.supersedes = vec!["A".to_string()];
+        links.superseded_by = vec!["B".to_string()];
+        links.depends_on = vec!["C".to_string()];
+        links.enables = vec!["D".to_string()];
+        links.relates_to = vec!["E".to_string()];
+        links.conflicts_with = vec!["F".to_string()];
+        links.refines = vec!["G".to_string()];
+        links.implements = vec!["H".to_string()];
+
+        let all = links.all_links();
+        assert_eq!(all.len(), 8);
+        assert!(all.contains(&("supersedes", "A")));
+        assert!(all.contains(&("superseded_by", "B")));
+        assert!(all.contains(&("depends_on", "C")));
+        assert!(all.contains(&("enables", "D")));
+        assert!(all.contains(&("relates_to", "E")));
+        assert!(all.contains(&("conflicts_with", "F")));
+        assert!(all.contains(&("refines", "G")));
+        assert!(all.contains(&("implements", "H")));
+    }
+
+    #[test]
+    fn test_record_parse_minimal_links() {
+        let content = "---\ntype: decision\nid: DEC-001\ntitle: Test\nstatus: draft\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\n---\n\n# Test\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        assert!(record.frontmatter.links.all_links().is_empty());
+    }
+
+    #[test]
+    fn test_record_parse_with_extra_fields() {
+        let content = "---\ntype: decision\nid: DEC-001\ntitle: Test\nstatus: draft\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\nseverity: high\ncustom_field: value\n---\n\n# Test\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+
+        // Extra fields should be captured in the extra map
+        assert!(record.frontmatter.extra.contains_key("severity"));
+        assert!(record.frontmatter.extra.contains_key("custom_field"));
+    }
+
+    #[test]
+    fn test_record_core_flag() {
+        let content = "---\ntype: decision\nid: DEC-001\ntitle: Test\nstatus: draft\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\ncore: true\n---\n\n# Test\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        assert!(record.frontmatter.core);
+    }
+
+    #[test]
+    fn test_record_core_flag_default_false() {
+        let content = "---\ntype: decision\nid: DEC-001\ntitle: Test\nstatus: draft\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\n---\n\n# Test\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        assert!(!record.frontmatter.core);
+    }
 }
