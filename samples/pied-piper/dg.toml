@@ -1,0 +1,132 @@
+# Decision Graph Configuration for Pied Piper Sample
+# Characters and teams from HBO's Silicon Valley
+
+[site]
+title = "Pied Piper Decision Archive"
+description = "Strategic decisions from the compression company that changed the world"
+primary_color = "#00a55a"  # Pied Piper Green
+accent_color = "#007c43"
+footer = "Pied Piper Inc."
+quick_preview = true
+github_avatars = false  # Use initials instead of GitHub profile pictures
+
+# Core team members
+
+[users.richard]
+name = "Richard Hendricks"
+email = "richard@piedpiper.com"
+teams = ["founders", "executive", "engineering"]
+roles = ["ceo", "founder", "architect"]
+
+[users.erlich]
+name = "Erlich Bachman"
+email = "erlich@piedpiper.com"
+teams = ["founders", "board"]
+roles = ["founder", "board-member"]
+status = "deprecated"
+deprecated_date = "2017-06-25"
+deprecated_note = "Departed to Tibet, presumed deceased"
+
+[users.gilfoyle]
+name = "Bertram Gilfoyle"
+email = "gilfoyle@piedpiper.com"
+teams = ["engineering"]
+roles = ["systems-architect", "devops"]
+
+[users.dinesh]
+name = "Dinesh Chugtai"
+email = "dinesh@piedpiper.com"
+teams = ["engineering"]
+roles = ["engineer", "cto"]
+
+[users.jared]
+name = "Jared Dunn"
+email = "jared@piedpiper.com"
+teams = ["executive", "operations"]
+roles = ["coo", "head-of-business"]
+
+[users.monica]
+name = "Monica Hall"
+email = "monica@raviga.com"
+teams = ["board", "investors"]
+roles = ["board-member", "partner"]
+
+[users.peter]
+name = "Peter Gregory"
+email = "peter@raviga.com"
+teams = ["investors"]
+roles = ["investor"]
+status = "deprecated"
+deprecated_date = "2014-06-01"
+deprecated_note = "Deceased"
+
+[users.laurie]
+name = "Laurie Bream"
+email = "laurie@raviga.com"
+teams = ["board", "investors"]
+roles = ["board-member", "managing-partner"]
+
+[users.russ]
+name = "Russ Hanneman"
+email = "russ@hanneman.capital"
+teams = ["investors", "board"]
+roles = ["investor", "board-member"]
+
+[users.jack]
+name = "Jack Barker"
+email = "jack@piedpiper.com"
+teams = ["executive"]
+roles = ["ceo"]
+status = "deprecated"
+deprecated_date = "2016-06-12"
+deprecated_note = "Removed as CEO"
+
+[users.ron]
+name = "Ron LaFlamme"
+email = "ron@laflamme.law"
+teams = ["legal"]
+roles = ["attorney"]
+
+[users.gavin]
+name = "Gavin Belson"
+email = "gavin@hooli.com"
+teams = ["competitors"]
+roles = ["ceo"]
+
+# Teams
+
+[teams.founders]
+name = "Founders"
+description = "Original Pied Piper founders"
+
+[teams.executive]
+name = "Executive Team"
+lead = "richard"
+description = "C-suite leadership"
+
+[teams.engineering]
+name = "Engineering"
+lead = "gilfoyle"
+description = "Core engineering team"
+
+[teams.operations]
+name = "Operations"
+lead = "jared"
+description = "Business operations and HR"
+
+[teams.board]
+name = "Board of Directors"
+description = "Pied Piper board members"
+
+[teams.investors]
+name = "Investors"
+description = "VC partners and angel investors"
+
+[teams.legal]
+name = "Legal"
+lead = "ron"
+description = "Legal counsel"
+
+[teams.competitors]
+name = "Competitors"
+description = "External competitors (for reference)"
