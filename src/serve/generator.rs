@@ -1,3 +1,4 @@
+use crate::models::d2::D2Renderer;
 use crate::models::Graph;
 use crate::serve::config::{DgConfig, SiteConfig};
 use crate::serve::templates::create_environment;
@@ -8,6 +9,14 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
+
+// Lazy-initialized D2 renderer (None if d2 binary not available)
+static D2_RENDERER: OnceLock<Option<D2Renderer>> = OnceLock::new();
+
+fn get_d2_renderer() -> Option<&'static D2Renderer> {
+    D2_RENDERER.get_or_init(|| D2Renderer::new().ok()).as_ref()
+}
 
 pub fn generate_site(graph: &Graph, output_dir: &Path, docs_dir: &Path) -> Result<()> {
     fs::create_dir_all(output_dir)?;
@@ -233,8 +242,68 @@ pub fn markdown_to_html_with_mentions(md: &str, valid_mentions: &HashSet<String>
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
 
+    // Render D2 code blocks to SVG (server-side)
+    let html_output = render_d2_blocks(&html_output);
+
     // Linkify @mentions (only valid ones if validation set provided)
     linkify_mentions(&html_output, valid_mentions)
+}
+
+/// Render D2 code blocks to inline SVG
+fn render_d2_blocks(html: &str) -> String {
+    // Match <pre><code class="language-d2">...</code></pre> blocks
+    let d2_re = Regex::new(r#"<pre><code class="language-d2">([\s\S]*?)</code></pre>"#).unwrap();
+
+    d2_re
+        .replace_all(html, |caps: &regex::Captures| {
+            let d2_code = &caps[1];
+            // Unescape HTML entities in the code
+            let unescaped = html_unescape(d2_code);
+
+            match get_d2_renderer() {
+                Some(renderer) => match renderer.render_svg(&unescaped) {
+                    Ok(svg) => {
+                        format!(
+                            r#"<div class="d2-container my-4 bg-slate-800 rounded-lg p-4 overflow-x-auto">{}</div>"#,
+                            svg
+                        )
+                    }
+                    Err(e) => {
+                        // Render error: show code with error message
+                        let escaped_code = htmlescape::encode_minimal(&unescaped);
+                        let escaped_err = htmlescape::encode_minimal(&e.to_string());
+                        format!(
+                            r#"<div class="d2-error my-4">
+                                <div class="text-red-400 text-sm mb-2">D2 render error: {}</div>
+                                <pre class="bg-slate-800 p-4 rounded-lg overflow-x-auto"><code class="language-d2">{}</code></pre>
+                            </div>"#,
+                            escaped_err, escaped_code
+                        )
+                    }
+                },
+                None => {
+                    // D2 not available: show code with info message
+                    let escaped_code = htmlescape::encode_minimal(&unescaped);
+                    format!(
+                        r#"<div class="d2-unavailable my-4">
+                            <div class="text-slate-500 text-sm mb-2">D2 not installed. <a href="https://d2lang.com" class="text-piper-light hover:underline" target="_blank">Install d2</a> to render this diagram.</div>
+                            <pre class="bg-slate-800 p-4 rounded-lg overflow-x-auto"><code class="language-d2">{}</code></pre>
+                        </div>"#,
+                        escaped_code
+                    )
+                }
+            }
+        })
+        .to_string()
+}
+
+/// Unescape common HTML entities
+fn html_unescape(s: &str) -> String {
+    s.replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
 }
 
 /// Convert @username mentions to clickable links (only if user/team exists)
@@ -255,4 +324,82 @@ fn linkify_mentions(html: &str, valid_mentions: &HashSet<String>) -> String {
             }
         })
         .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_d2_code_block_rendering() {
+        let md = r#"# Test
+
+```d2
+a -> b
+```
+
+After.
+"#;
+        let html = markdown_to_html(md);
+
+        // Should contain d2-container if D2 is available, or d2-unavailable if not
+        assert!(
+            html.contains("d2-container") || html.contains("d2-unavailable"),
+            "Expected d2 container in output, got: {}",
+            html
+        );
+        // Should NOT contain raw code block with language-d2 class unchanged
+        // (it should be wrapped in a d2-container or d2-unavailable div)
+        assert!(
+            html.contains("d2-") && !html.contains("<pre><code class=\"language-d2\">a -&gt; b"),
+            "D2 code should be processed, not left as raw code block"
+        );
+    }
+
+    #[test]
+    fn test_non_d2_code_blocks_preserved() {
+        let md = r#"# Test
+
+```rust
+fn main() {}
+```
+
+After.
+"#;
+        let html = markdown_to_html(md);
+
+        // Rust code block should be preserved as-is
+        assert!(
+            html.contains("language-rust"),
+            "Rust code block should be preserved"
+        );
+    }
+
+    #[test]
+    fn test_mermaid_code_blocks_preserved() {
+        let md = r#"# Test
+
+```mermaid
+graph TD
+A --> B
+```
+
+After.
+"#;
+        let html = markdown_to_html(md);
+
+        // Mermaid should be preserved for client-side rendering
+        assert!(
+            html.contains("language-mermaid"),
+            "Mermaid code block should be preserved for client-side rendering"
+        );
+    }
+
+    #[test]
+    fn test_html_unescape() {
+        assert_eq!(html_unescape("a &lt; b"), "a < b");
+        assert_eq!(html_unescape("a &gt; b"), "a > b");
+        assert_eq!(html_unescape("a &amp; b"), "a & b");
+        assert_eq!(html_unescape("&quot;quoted&quot;"), "\"quoted\"");
+    }
 }

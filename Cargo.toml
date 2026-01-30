@@ -32,6 +32,7 @@ tokio = { version = "1", features = ["full"] }
 notify = { version = "6", default-features = false, features = ["macos_kqueue"] }
 minijinja = "2"
 rust-embed = { version = "8", features = ["include-exclude"] }
+htmlescape = "0.3"
 
 [dev-dependencies]
 tempfile = "3"
