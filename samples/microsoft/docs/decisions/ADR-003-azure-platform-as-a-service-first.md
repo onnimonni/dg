@@ -56,18 +56,14 @@ Without this, the legacy Windows Server team would have:
 
 ### Original Azure PaaS Stack (2010)
 
-```
-┌─────────────────────────────────────┐
-│         Your Application            │
-├─────────────────────────────────────┤
-│    Azure Web/Worker Roles (PaaS)    │
-├─────────────────────────────────────┤
-│    Azure Fabric Controller          │
-├─────────────────────────────────────┤
-│    Hypervisor (custom, NT-based)    │
-├─────────────────────────────────────┤
-│         Physical Infrastructure      │
-└─────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+    App["Your Application"]
+    PaaS["Azure Web/Worker Roles (PaaS)"]
+    Fabric["Azure Fabric Controller"]
+    Hyper["Hypervisor (custom, NT-based)"]
+    Infra["Physical Infrastructure"]
 ```
 
 ### Key Technical Decisions

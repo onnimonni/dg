@@ -299,23 +299,41 @@ impl Record {
     }
 
     pub fn parse_content(content: &str, path: PathBuf) -> Result<Record> {
-        let re = Regex::new(r"(?s)^---\n(.*?)\n---\n(.*)$")?;
-        let caps = re
-            .captures(content)
-            .ok_or_else(|| anyhow!("Invalid frontmatter format"))?;
+        // Normalize line endings (Windows \r\n -> Unix \n)
+        let content = content.replace("\r\n", "\n");
+        let content = content.trim_start(); // Allow leading whitespace
 
-        // Safe: regex pattern guarantees groups 1 and 2 exist when captures succeeds
-        let yaml_str = caps
-            .get(1)
-            .ok_or_else(|| anyhow!("Missing YAML frontmatter"))?
-            .as_str();
-        let body = caps
-            .get(2)
-            .ok_or_else(|| anyhow!("Missing content body"))?
-            .as_str()
+        // Validate frontmatter start
+        if !content.starts_with("---") {
+            return Err(anyhow!("Missing frontmatter: file must start with '---'"));
+        }
+
+        // Find the closing delimiter
+        // Skip the opening "---" and find the next "---" on its own line
+        let after_opening = &content[3..];
+        let after_opening = after_opening.strip_prefix('\n').unwrap_or(after_opening);
+
+        // Find closing "---" that starts a new line
+        let closing_pos = after_opening
+            .find("\n---")
+            .ok_or_else(|| anyhow!("Unterminated frontmatter: missing closing '---'"))?;
+
+        let yaml_str = &after_opening[..closing_pos];
+        let after_closing = &after_opening[closing_pos + 4..]; // Skip "\n---"
+
+        // Content is everything after the closing "---" and its newline
+        let body = after_closing
+            .strip_prefix('\n')
+            .unwrap_or(after_closing)
             .to_string();
 
-        let frontmatter: Frontmatter = serde_yaml::from_str(yaml_str)?;
+        // Parse YAML with better error context
+        let frontmatter: Frontmatter = serde_yaml::from_str(yaml_str).map_err(|e| {
+            anyhow!(
+                "Invalid YAML in frontmatter: {}",
+                e.to_string().lines().next().unwrap_or("unknown error")
+            )
+        })?;
 
         Ok(Record {
             frontmatter,
@@ -643,5 +661,46 @@ Some content here.
         let content = "No frontmatter here";
         let result = Record::parse_content(content, std::path::PathBuf::from("test.md"));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_record_parse_windows_line_endings() {
+        let content = "---\r\ntype: decision\r\nid: DEC-001\r\ntitle: Test\r\nstatus: draft\r\ncreated: 2024-01-15\r\nupdated: 2024-01-15\r\nauthors: []\r\ntags: []\r\nlinks: {}\r\n---\r\n\r\n# Content\r\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        assert_eq!(record.id(), "DEC-001");
+    }
+
+    #[test]
+    fn test_record_parse_leading_whitespace() {
+        let content = "\n  ---\ntype: decision\nid: DEC-002\ntitle: Test\nstatus: draft\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\n---\n\n# Content\n";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        assert_eq!(record.id(), "DEC-002");
+    }
+
+    #[test]
+    fn test_record_parse_no_trailing_newline() {
+        let content = "---\ntype: decision\nid: DEC-003\ntitle: Test\nstatus: draft\ncreated: 2024-01-15\nupdated: 2024-01-15\nauthors: []\ntags: []\nlinks: {}\n---\nContent without trailing newline";
+        let record = Record::parse_content(content, std::path::PathBuf::from("test.md")).unwrap();
+        assert_eq!(record.id(), "DEC-003");
+        assert!(record.content.contains("Content without trailing newline"));
+    }
+
+    #[test]
+    fn test_record_parse_unterminated_frontmatter() {
+        let content = "---\ntype: decision\nid: DEC-001\n# Missing closing delimiter";
+        let result = Record::parse_content(content, std::path::PathBuf::from("test.md"));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Unterminated"));
+    }
+
+    #[test]
+    fn test_record_parse_missing_frontmatter() {
+        let content = "# Just markdown, no frontmatter";
+        let result = Record::parse_content(content, std::path::PathBuf::from("test.md"));
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Missing frontmatter"));
     }
 }

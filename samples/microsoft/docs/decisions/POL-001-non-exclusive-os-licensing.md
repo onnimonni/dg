@@ -57,14 +57,12 @@ Bill Gates and Paul Allen made the most consequential negotiating decision in te
 
 When Compaq reverse-engineered the IBM PC BIOS in 1982, they needed an operating system. Because of this policy, Microsoft could (and did) license DOS to Compaq—and every clone maker that followed.
 
-```
-IBM ────────────┐
-                │
-Compaq ─────────┼──── Microsoft DOS
-                │
-Dell ───────────┤
-                │
-HP ─────────────┘
+```mermaid
+flowchart LR
+    IBM --> DOS[Microsoft DOS]
+    Compaq --> DOS
+    Dell --> DOS
+    HP --> DOS
 ```
 
 **Result**: Hardware commoditized. Software captured value.

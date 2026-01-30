@@ -41,14 +41,10 @@ Bundle everything. Charge per machine per year. Simplify procurement. Increase s
 
 ### Standard Enterprise Agreement
 
-```
-┌────────────────────────────────────────────────────┐
-│              3-Year Enterprise Agreement            │
-├────────────────────────────────────────────────────┤
-│ Year 1: Full payment (or 1/3 upfront)              │
-│ Year 2: True-up for added machines                 │
-│ Year 3: True-up + renewal negotiation              │
-└────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    Y1[Year 1<br/>Full payment<br/>or 1/3 upfront] --> Y2[Year 2<br/>True-up for<br/>added machines]
+    Y2 --> Y3[Year 3<br/>True-up +<br/>renewal negotiation]
 ```
 
 ### Components
@@ -83,11 +79,11 @@ Bundle everything. Charge per machine per year. Simplify procurement. Increase s
 
 ### Annual Cycle
 
-```
-Q1: Anniversary planning
-Q2: True-up reporting (count added machines)
-Q3: True-up payment
-Q4: Renewal negotiation begins
+```mermaid
+flowchart LR
+    Q1[Q1<br/>Anniversary<br/>planning] --> Q2[Q2<br/>True-up<br/>reporting]
+    Q2 --> Q3[Q3<br/>True-up<br/>payment]
+    Q3 --> Q4[Q4<br/>Renewal<br/>negotiation]
 ```
 
 ## Strategic Benefits

@@ -77,19 +77,14 @@ Cutler designed VMS at DEC—the gold standard for enterprise reliability. He br
 
 ### The HAL Layer
 
-```
-┌─────────────────────────────────────┐
-│          Applications               │
-├─────────────────────────────────────┤
-│          Win32 Subsystem            │
-├─────────────────────────────────────┤
-│          NT Executive               │
-│  (Memory, Process, I/O, Security)   │
-├─────────────────────────────────────┤
-│       Hardware Abstraction Layer    │
-├─────────────────────────────────────┤
-│      Hardware (x86, MIPS, Alpha)    │
-└─────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+    Applications
+    Win32["Win32 Subsystem"]
+    Executive["NT Executive<br/>(Memory, Process, I/O, Security)"]
+    HAL["Hardware Abstraction Layer"]
+    Hardware["Hardware (x86, MIPS, Alpha)"]
 ```
 
 The HAL isolates hardware-specific code, enabling:

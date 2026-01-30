@@ -27,14 +27,16 @@ After IBM departed in 1990 and the consumer market became increasingly contested
 
 ## The Flywheel Model
 
-```
-Windows Devices → Active Directory (Identity)
-        ↓                    ↓
-   Office Apps  ←→  Exchange (Email)
-        ↓                    ↓
-  SQL Server   ←→   SharePoint (Content)
-        ↓
-   Dynamics (ERP)
+```mermaid
+flowchart TD
+    WD[Windows Devices] --> AD[Active Directory<br/>Identity]
+    WD --> OA[Office Apps]
+    AD --> EX[Exchange<br/>Email]
+    OA <--> EX
+    OA --> SQL[SQL Server]
+    EX --> SP[SharePoint<br/>Content]
+    SQL <--> SP
+    SQL --> DYN[Dynamics<br/>ERP]
 ```
 
 Each component reinforces the others:

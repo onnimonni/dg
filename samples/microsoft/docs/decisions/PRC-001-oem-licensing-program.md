@@ -27,15 +27,12 @@ The OEM (Original Equipment Manufacturer) Licensing Program is Microsoft's prima
 
 ## Process Flow
 
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ Microsoft   │───▶│ OEM Partner │───▶│ End Customer│
-│ (Software)  │    │ (Hardware)  │    │ (PC Buyer)  │
-└─────────────┘    └─────────────┘    └─────────────┘
-     │                   │
-     ▼                   ▼
-  Per-Copy           Windows
-  Royalty           Pre-installed
+```mermaid
+flowchart LR
+    MS[Microsoft<br/>Software] -->|License| OEM[OEM Partner<br/>Hardware]
+    OEM -->|Pre-install| Customer[End Customer<br/>PC Buyer]
+    MS -.->|Per-Copy<br/>Royalty| MS
+    OEM -.->|Windows<br/>Pre-installed| OEM
 ```
 
 ## Key Terms
