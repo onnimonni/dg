@@ -96,10 +96,30 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .content ul { list-style-type: disc; padding-left: 1.5rem; margin: 1rem 0; }
         .content ol { list-style-type: decimal; padding-left: 1.5rem; margin: 1rem 0; }
         .content li { margin: 0.25rem 0; }
+        /* Mermaid diagram containers */
+        .mermaid-container { background: #1e293b; border-radius: 0.5rem; padding: 1rem; overflow-x: auto; }
+        .mermaid-container svg { max-width: 100%; height: auto; }
         {{ site.custom_css | default(value="") | safe }}
     </style>
     <script defer src="/static/katex.min.js"></script>
     <script defer src="/static/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('pre code.language-mermaid').forEach((el, i) => {
+                const code = el.textContent;
+                const container = document.createElement('div');
+                container.className = 'mermaid-container my-4';
+                el.parentElement.replaceWith(container);
+                mermaid.render('mermaid-' + i, code).then(({svg}) => {
+                    container.innerHTML = svg;
+                }).catch(err => {
+                    container.innerHTML = '<pre class="text-error">' + err + '</pre>';
+                });
+            });
+        });
+    </script>
     {% block head %}{% endblock %}
 </head>
 <body class="bg-base-300 text-base-content min-h-screen font-sans">
