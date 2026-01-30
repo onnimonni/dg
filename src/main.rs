@@ -1,5 +1,6 @@
 mod commands;
 mod git;
+mod lock;
 mod models;
 mod serve;
 mod templates;
@@ -7,6 +8,7 @@ mod templates;
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
+use std::path::Path;
 
 #[derive(Parser)]
 #[command(name = "dg")]
@@ -20,6 +22,10 @@ struct Cli {
     /// Quiet mode - only output on errors
     #[arg(short, long, global = true)]
     quiet: bool,
+
+    /// Skip file locking (for recovery only)
+    #[arg(long, global = true)]
+    force: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -551,8 +557,45 @@ enum HistoryAction {
     },
 }
 
+/// Check if a command requires write access (needs locking)
+fn needs_write_lock(cmd: &Commands) -> bool {
+    matches!(
+        cmd,
+        Commands::Init
+            | Commands::New { .. }
+            | Commands::Finalize { .. }
+            | Commands::Edit { .. }
+            | Commands::Link { .. }
+            | Commands::Unlink { .. }
+            | Commands::Status { .. }
+            | Commands::Resolve { .. }
+            | Commands::Reindex
+            | Commands::Fmt { check: false, .. }
+            | Commands::Retype { .. }
+            | Commands::Users {
+                action: UsersAction::Add { .. }
+                    | UsersAction::Deprecate { .. }
+                    | UsersAction::ImportGithub { dry_run: false, .. }
+            }
+            | Commands::Teams {
+                action: TeamsAction::Create { .. }
+                    | TeamsAction::AddMember { .. }
+                    | TeamsAction::RemoveMember { .. }
+                    | TeamsAction::ImportGithub { dry_run: false, .. }
+            }
+    )
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    let docs_path = Path::new(&cli.docs_dir);
+
+    // Acquire lock for write operations
+    let _lock = if needs_write_lock(&cli.command) {
+        lock::GraphLock::acquire(docs_path, cli.force)?
+    } else {
+        None
+    };
 
     match cli.command {
         Commands::Init => commands::init::run(&cli.docs_dir),
