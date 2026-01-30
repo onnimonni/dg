@@ -92,10 +92,10 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
         .author-avatar.hidden {
             display: none;
         }
-        /* List styles for markdown content */
-        ul { list-style-type: disc; padding-left: 1.5rem; margin: 1rem 0; }
-        ol { list-style-type: decimal; padding-left: 1.5rem; margin: 1rem 0; }
-        li { margin: 0.25rem 0; }
+        /* List styles for markdown content only */
+        .content ul { list-style-type: disc; padding-left: 1.5rem; margin: 1rem 0; }
+        .content ol { list-style-type: decimal; padding-left: 1.5rem; margin: 1rem 0; }
+        .content li { margin: 0.25rem 0; }
         {{ site.custom_css | default(value="") | safe }}
     </style>
     <script defer src="/static/katex.min.js"></script>
@@ -621,7 +621,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                     CORE
                 </span>
                 {% endif %}
-                <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-piper-accent/10 border border-piper-accent/30 text-piper-light text-xs font-semibold uppercase tracking-wide">
+                <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-piper-accent/20 text-piper-light text-xs font-semibold uppercase tracking-wide">
                     <span class="w-2 h-2 rounded-full bg-piper-light {% if record.status == 'accepted' or record.status == 'active' %}animate-pulse{% endif %}"></span>
                     {{ record.status }}
                 </span>
@@ -689,7 +689,10 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             </div>
             <nav id="toc" class="hidden lg:block w-56 shrink-0">
                 <div class="sticky top-6">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono">On This Page</h4>
+                    <button id="toc-toggle" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono hover:text-slate-400 transition-colors">
+                        <svg id="toc-chevron" class="w-2.5 h-2.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                        On This Page
+                    </button>
                     <ul id="toc-list" class="list-none space-y-1 text-sm"></ul>
                 </div>
             </nav>
@@ -808,6 +811,16 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
     window.addEventListener('scroll', updateActiveSection, { passive: true });
     updateActiveSection();
+
+    // TOC collapse toggle
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocChevron = document.getElementById('toc-chevron');
+    let tocCollapsed = false;
+    tocToggle.addEventListener('click', () => {
+        tocCollapsed = !tocCollapsed;
+        tocList.style.display = tocCollapsed ? 'none' : 'block';
+        tocChevron.style.transform = tocCollapsed ? 'rotate(-90deg)' : 'rotate(0)';
+    });
 })();
 </script>
 {% endblock %}
