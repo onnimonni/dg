@@ -13,7 +13,7 @@ tags:
 - strategy
 links:
   enables: [ADR-002, ADR-003, ADR-004]
-foundational: false
+core: false
 ---
 
 # Pivot from B2C Music App to B2B Infrastructure

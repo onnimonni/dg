@@ -399,11 +399,11 @@ impl Graph {
         dot
     }
 
-    /// Returns all records marked as foundational
-    pub fn foundational_records(&self) -> Vec<&Record> {
+    /// Returns all records marked as core
+    pub fn core_records(&self) -> Vec<&Record> {
         self.records
             .values()
-            .filter(|r| r.frontmatter.foundational)
+            .filter(|r| r.frontmatter.core)
             .collect()
     }
 

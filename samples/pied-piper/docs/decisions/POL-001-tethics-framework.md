@@ -6,8 +6,8 @@ status: accepted
 created: 2018-06-01
 updated: 2018-06-15
 authors: ["Richard Hendricks"]
-tags: [foundational, ethics, policy, culture]
-foundational: true
+tags: [core, ethics, policy, culture]
+core: true
 links:
   supersedes: []
   superseded_by: []

@@ -169,7 +169,7 @@
     echo "  dg list                - List records"
     echo "  dg search <query>      - Search records"
     echo "  dg graph               - Show graph"
-    echo "  dg principles          - List foundational records"
+    echo "  dg principles          - List core records"
     echo "  dg why <id>            - Trace dependencies"
     echo "  dg impact <id>         - Show dependents"
     echo "  dg context <topic>     - LLM-friendly context"

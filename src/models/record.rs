@@ -259,9 +259,9 @@ pub struct Frontmatter {
     pub tags: Vec<String>,
     #[serde(default)]
     pub links: Links,
-    /// Marks this record as a foundational principle that other records depend on
+    /// Marks this record as a core principle that other records depend on
     #[serde(default)]
-    pub foundational: bool,
+    pub core: bool,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_yaml::Value>,
 }

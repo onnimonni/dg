@@ -96,7 +96,7 @@ impl std::fmt::Display for ValidationError {
             } => {
                 write!(
                     f,
-                    "{}: conflicts with foundational record {}: {}",
+                    "{}: conflicts with core record {}: {}",
                     id, conflicts_with, message
                 )
             }
@@ -222,7 +222,7 @@ pub fn validate_record(
         errors.extend(check_type_specific(record));
     }
 
-    // Check for conflicts with foundational records
+    // Check for conflicts with core records
     if opts.check_principle_conflicts {
         errors.extend(check_principle_conflicts(record, graph));
     }
@@ -414,23 +414,23 @@ fn check_type_specific(record: &Record) -> Vec<ValidationError> {
     }
 }
 
-/// Check for conflicts with foundational records
+/// Check for conflicts with core records
 fn check_principle_conflicts(record: &Record, graph: &Graph) -> Vec<ValidationError> {
     let mut errors = Vec::new();
     let id = record.id();
 
-    // Get all foundational records
-    let foundational: Vec<_> = graph.foundational_records();
+    // Get all core records
+    let core: Vec<_> = graph.core_records();
 
-    // Check if this record has conflicts_with any foundational record
+    // Check if this record has conflicts_with any core record
     for conflict_id in &record.frontmatter.links.conflicts_with {
         if let Some(conflict_record) = graph.get(conflict_id) {
-            if conflict_record.frontmatter.foundational {
+            if conflict_record.frontmatter.core {
                 errors.push(ValidationError::PrincipleConflict {
                     id: id.to_string(),
                     conflicts_with: conflict_id.clone(),
                     message: format!(
-                        "This record conflicts with '{}' which is a foundational principle",
+                        "This record conflicts with '{}' which is a core principle",
                         conflict_record.title()
                     ),
                 });
@@ -438,9 +438,9 @@ fn check_principle_conflicts(record: &Record, graph: &Graph) -> Vec<ValidationEr
         }
     }
 
-    // Check if any foundational record has conflicts_with this record
-    for foundational_record in &foundational {
-        if foundational_record
+    // Check if any core record has conflicts_with this record
+    for core_record in &core {
+        if core_record
             .frontmatter
             .links
             .conflicts_with
@@ -448,10 +448,10 @@ fn check_principle_conflicts(record: &Record, graph: &Graph) -> Vec<ValidationEr
         {
             errors.push(ValidationError::PrincipleConflict {
                 id: id.to_string(),
-                conflicts_with: foundational_record.id().to_string(),
+                conflicts_with: core_record.id().to_string(),
                 message: format!(
                     "Foundational record '{}' explicitly conflicts with this record",
-                    foundational_record.title()
+                    core_record.title()
                 ),
             });
         }
@@ -599,7 +599,7 @@ mod mention_tests {
                 authors: vec![],
                 tags: vec![],
                 links: Links::default(),
-                foundational: false,
+                core: false,
                 extra: HashMap::new(),
             },
             content: content.to_string(),
@@ -663,7 +663,7 @@ mod mention_tests {
                 authors: vec![],
                 tags: vec![],
                 links: Links::default(),
-                foundational: false,
+                core: false,
                 extra: HashMap::new(),
             },
             content: content.to_string(),

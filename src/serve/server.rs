@@ -200,14 +200,14 @@ async fn index_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let graph = state.graph.read().await;
     let env = create_environment();
 
-    // Sort records: foundational first, then by updated date (newest first)
+    // Sort records: core first, then by updated date (newest first)
     let mut records: Vec<_> = graph.all_records().collect();
     records.sort_by(|a, b| {
         // Foundational records first
-        let a_foundational = a.frontmatter.foundational;
-        let b_foundational = b.frontmatter.foundational;
-        if a_foundational != b_foundational {
-            return b_foundational.cmp(&a_foundational);
+        let a_core = a.frontmatter.core;
+        let b_core = b.frontmatter.core;
+        if a_core != b_core {
+            return b_core.cmp(&a_core);
         }
         // Then by updated date (newest first)
         b.frontmatter.updated.cmp(&a.frontmatter.updated)
@@ -385,7 +385,7 @@ async fn graph_page_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
                 "id": r.id(),
                 "title": r.title(),
                 "type": r.record_type().to_string(),
-                "foundational": r.frontmatter.foundational,
+                "core": r.frontmatter.core,
             })
         }).collect::<Vec<_>>(),
         "edges": graph.edges.iter().map(|e| {
@@ -432,7 +432,7 @@ async fn timeline_handler(State(state): State<Arc<AppState>>) -> impl IntoRespon
                 "title": r.title(),
                 "type": r.record_type().to_string(),
                 "created": r.frontmatter.created.to_string(),
-                "foundational": r.frontmatter.foundational,
+                "core": r.frontmatter.core,
             })
         }).collect::<Vec<_>>(),
         "edges": graph.edges.iter().map(|e| {
@@ -472,7 +472,7 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let graph = state.graph.read().await;
     let env = create_environment();
     let stats = graph.stats();
-    let foundational_count = graph.foundational_records().len();
+    let core_count = graph.core_records().len();
 
     let by_type: Vec<_> = stats
         .by_type
@@ -495,7 +495,7 @@ async fn stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let stats_ctx = serde_json::json!({
         "total_records": stats.total_records,
         "total_edges": stats.total_edges,
-        "foundational": foundational_count,
+        "core": core_count,
         "by_type": by_type,
         "by_status": by_status,
     });
@@ -617,7 +617,7 @@ async fn api_graph(State(state): State<Arc<AppState>>) -> impl IntoResponse {
                 "title": r.title(),
                 "type": r.record_type().to_string(),
                 "status": r.status().to_string(),
-                "foundational": r.frontmatter.foundational,
+                "core": r.frontmatter.core,
             })
         }).collect::<Vec<_>>(),
         "edges": graph.edges.iter().map(|e| {
@@ -1319,8 +1319,8 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
         ),
     );
     map.insert(
-        "foundational".to_string(),
-        serde_json::Value::Bool(record.frontmatter.foundational),
+        "core".to_string(),
+        serde_json::Value::Bool(record.frontmatter.core),
     );
     // Check if this is a draft record (ID contains -NEW-)
     map.insert(

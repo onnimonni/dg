@@ -7,20 +7,19 @@ pub fn run(docs_dir: &str, format: &str) -> Result<()> {
     let docs_path = Path::new(docs_dir);
     let graph = Graph::load(docs_path)?;
 
-    let foundational = graph.foundational_records();
+    let core = graph.core_records();
 
-    if foundational.is_empty() {
+    if core.is_empty() {
         println!(
             "{}",
-            "No foundational records found. Mark records with 'foundational: true' in frontmatter."
-                .yellow()
+            "No core records found. Mark records with 'core: true' in frontmatter.".yellow()
         );
         return Ok(());
     }
 
     match format {
         "json" => {
-            let output: Vec<_> = foundational
+            let output: Vec<_> = core
                 .iter()
                 .map(|r| {
                     serde_json::json!({
@@ -35,12 +34,8 @@ pub fn run(docs_dir: &str, format: &str) -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         _ => {
-            println!(
-                "{} {} foundational records:\n",
-                "Found".green(),
-                foundational.len()
-            );
-            for record in foundational {
+            println!("{} {} core records:\n", "Found".green(), core.len());
+            for record in core {
                 println!(
                     "{} {} [{}]",
                     record.id().cyan().bold(),

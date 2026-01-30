@@ -39,7 +39,7 @@ pub fn run(docs_dir: &str, id: &str, show_links: bool, as_json: bool) -> Result<
     }
 
     // Header
-    let core_marker = if record.frontmatter.foundational {
+    let core_marker = if record.frontmatter.core {
         format!(" {}", "★ CORE".yellow().bold())
     } else {
         String::new()

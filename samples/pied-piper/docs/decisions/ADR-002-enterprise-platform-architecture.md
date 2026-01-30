@@ -15,7 +15,7 @@ links:
   superseded_by: [ADR-004]
   depends_on: [ADR-001]
   implements: [STR-001]
-foundational: false
+core: false
 ---
 
 # Enterprise Platform Architecture

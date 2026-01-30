@@ -6,8 +6,8 @@ status: accepted
 created: 2014-04-13
 updated: 2014-04-13
 authors: ["Richard Hendricks"]
-tags: [foundational, culture, ethics]
-foundational: true
+tags: [core, culture, ethics]
+core: true
 links:
   supersedes: []
   superseded_by: []

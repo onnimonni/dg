@@ -12,7 +12,7 @@ struct Query {
     status_filter: Option<String>,
     tag_filter: Option<String>,
     author_filter: Option<String>,
-    foundational: Option<bool>,
+    core: Option<bool>,
 }
 
 impl Query {
@@ -32,8 +32,8 @@ impl Query {
                 "status" | "s" => query.status_filter = Some(value.to_lowercase()),
                 "tag" => query.tag_filter = Some(value.to_lowercase()),
                 "author" | "a" => query.author_filter = Some(value.to_lowercase()),
-                "foundational" | "f" => {
-                    query.foundational = Some(value == "true" || value == "yes" || value == "1")
+                "core" | "f" => {
+                    query.core = Some(value == "true" || value == "yes" || value == "1")
                 }
                 _ => {}
             }
@@ -60,7 +60,7 @@ impl Query {
             && self.status_filter.is_none()
             && self.tag_filter.is_none()
             && self.author_filter.is_none()
-            && self.foundational.is_none()
+            && self.core.is_none()
     }
 }
 
@@ -89,12 +89,12 @@ pub fn run(
         println!("  dg search status:accepted     Filter by status");
         println!("  dg search tag:auth            Filter by tag");
         println!("  dg search author:john         Filter by author");
-        println!("  dg search foundational:true   Filter foundational records");
+        println!("  dg search core:true   Filter core records");
         println!();
         println!("{}", "Examples:".bold());
         println!("  dg search auth type:adr");
         println!("  dg search status:accepted tag:security");
-        println!("  dg search database foundational:true");
+        println!("  dg search database core:true");
         return Ok(());
     }
 
@@ -142,8 +142,8 @@ pub fn run(
             }
 
             // Foundational filter
-            if let Some(f) = query.foundational {
-                if r.frontmatter.foundational != f {
+            if let Some(f) = query.core {
+                if r.frontmatter.core != f {
                     return false;
                 }
             }
@@ -197,7 +197,7 @@ pub fn run(
                         "type": r.record_type().to_string(),
                         "status": r.status().to_string(),
                         "tags": r.frontmatter.tags,
-                        "foundational": r.frontmatter.foundational,
+                        "core": r.frontmatter.core,
                         "path": r.path.to_string_lossy(),
                     })
                 })
@@ -218,7 +218,7 @@ pub fn run(
             );
 
             for record in results {
-                let foundational_badge = if record.frontmatter.foundational {
+                let core_badge = if record.frontmatter.core {
                     " [CORE]".yellow().to_string()
                 } else {
                     String::new()
@@ -229,7 +229,7 @@ pub fn run(
                     record.id().cyan().bold(),
                     record.title(),
                     record.status(),
-                    foundational_badge
+                    core_badge
                 );
 
                 // Show tags

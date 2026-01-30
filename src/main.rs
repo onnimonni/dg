@@ -227,7 +227,7 @@ enum Commands {
         #[arg(short = 'o', long)]
         warn_orphans: bool,
 
-        /// Check for conflicts with foundational principles
+        /// Check for conflicts with core principles
         #[arg(short = 'p', long)]
         principles: bool,
 
@@ -236,7 +236,7 @@ enum Commands {
         check_users: bool,
     },
 
-    /// List foundational records (core principles)
+    /// List core records (core principles)
     Principles {
         /// Output format: table, json
         #[arg(short, long, default_value = "table")]

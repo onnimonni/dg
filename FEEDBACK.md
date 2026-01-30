@@ -32,7 +32,7 @@ type = "decision"
 id = "DEC-001"
 title = "Anti-Hooli Principle"
 status = "accepted"
-foundational = true
+core = true
 authors = ["Richard"]
 tags = ["culture", "ethics"]
 
@@ -53,7 +53,7 @@ TOML advantages:
 
 Creating a record is step 1. Then I had to:
 - Open file
-- Edit frontmatter (authors, tags, foundational, dates, status)
+- Edit frontmatter (authors, tags, core, dates, status)
 - Replace template placeholders
 - Add links manually
 
@@ -63,7 +63,7 @@ Creating a record is step 1. Then I had to:
 
 ```bash
 # Wanted:
-dg new decision "Title" --foundational --status accepted --author "Richard"
+dg new decision "Title" --core --status accepted --author "Richard"
 
 # Reality:
 dg new decision "Title"
@@ -116,7 +116,7 @@ created = 2014-04-15
 updated = 2014-05-01
 authors = ["Richard Hendricks"]
 tags = ["compression", "algorithm"]
-foundational = true
+core = true
 
 [links]
 depends_on = ["DEC-001"]
@@ -134,7 +134,7 @@ Content here...
 ```bash
 dg new decision "Title" \
   --status accepted \
-  --foundational \
+  --core \
   --author "Name" \
   --tag security \
   --depends-on DEC-001
@@ -151,7 +151,7 @@ dg edit ADR-001 --status     # Interactive picker
 
 ```bash
 dg set ADR-001 status accepted
-dg set ADR-001 foundational true
+dg set ADR-001 core true
 dg set ADR-001 +tag security
 ```
 
@@ -170,7 +170,7 @@ footer = "Pied Piper Inc."
 
 [custom_css]
 inline = """
-.foundational { border-color: gold; }
+.core { border-color: gold; }
 """
 ```
 
@@ -213,7 +213,7 @@ dg new decision "Anti-Hooli Principle"
 # Open file
 # Fix YAML indentation
 # Change status
-# Add foundational: true
+# Add core: true
 # Add authors list
 # Add tags list
 # Add links (careful with indent!)
@@ -226,7 +226,7 @@ dg reindex
 ```bash
 dg new decision "Anti-Hooli Principle" \
   --status accepted \
-  --foundational \
+  --core \
   --author "Richard" \
   --tag culture,ethics \
   --enables DEC-002,POL-001 \

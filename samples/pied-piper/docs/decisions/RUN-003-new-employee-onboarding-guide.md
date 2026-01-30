@@ -32,7 +32,7 @@ Before anything else, read these three documents:
 dg principles
 ```
 
-This shows our **foundational records**—the core beliefs that guide every decision:
+This shows our **core records**—the core beliefs that guide every decision:
 
 | Record | What It Tells You |
 |--------|-------------------|

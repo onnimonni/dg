@@ -19,7 +19,7 @@ pub fn run(docs_dir: &str, id: &str, format: &str) -> Result<()> {
             let output = serde_json::json!({
                 "id": id,
                 "title": record.title(),
-                "foundational": record.frontmatter.foundational,
+                "core": record.frontmatter.core,
                 "dependents": paths.iter().map(|p| {
                     serde_json::json!({
                         "path": p.nodes,
@@ -36,11 +36,11 @@ pub fn run(docs_dir: &str, id: &str, format: &str) -> Result<()> {
                 id.cyan().bold()
             );
 
-            if record.frontmatter.foundational {
+            if record.frontmatter.core {
                 println!(
                     "  {} This is a {} record!\n",
                     "⚠".yellow(),
-                    "foundational".yellow().bold()
+                    "core".yellow().bold()
                 );
             }
 

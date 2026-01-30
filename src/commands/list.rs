@@ -86,7 +86,7 @@ pub fn run(
                     _ => record.status().to_string().normal(),
                 };
 
-                let core_marker = if record.frontmatter.foundational {
+                let core_marker = if record.frontmatter.core {
                     " ★".yellow().to_string()
                 } else {
                     String::new()

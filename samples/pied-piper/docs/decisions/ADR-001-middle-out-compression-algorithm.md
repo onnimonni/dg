@@ -6,8 +6,8 @@ status: accepted
 created: 2014-04-15
 updated: 2014-05-01
 authors: ["Richard Hendricks"]
-tags: [foundational, compression, algorithm, core-tech]
-foundational: true
+tags: [core, compression, algorithm, core-tech]
+core: true
 links:
   supersedes: []
   superseded_by: []

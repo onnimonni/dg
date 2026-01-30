@@ -93,7 +93,7 @@ pub fn graph_to_d2(graph: &Graph, subset: Option<&HashSet<String>>) -> String {
     d2.push_str("  incident: { style: { fill: \"#F44336\" } }\n");
     d2.push_str("  runbook: { style: { fill: \"#8BC34A\" } }\n");
     d2.push_str("  meeting: { style: { fill: \"#03A9F4\" } }\n");
-    d2.push_str("  foundational: { style: { stroke: \"#FFD700\"; stroke-width: 3 } }\n");
+    d2.push_str("  core: { style: { stroke: \"#FFD700\"; stroke-width: 3 } }\n");
     d2.push_str("}\n\n");
 
     // Nodes
@@ -145,8 +145,8 @@ fn node_to_d2(record: &Record) -> String {
     let id = escape_d2_id(record.id());
 
     let mut classes = vec![class];
-    if record.frontmatter.foundational {
-        classes.push("foundational".to_string());
+    if record.frontmatter.core {
+        classes.push("core".to_string());
     }
 
     format!(

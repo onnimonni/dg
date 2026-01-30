@@ -256,14 +256,14 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div id="records" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 {% for record in records %}
-<a href="/records/{{ record.id }}" class="card card-border bg-base-100 hover:bg-base-200 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-warning{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
+<a href="/records/{{ record.id }}" class="card card-border bg-base-100 hover:bg-base-200 transition-all hover:-translate-y-0.5 {% if record.core %}border-l-4 border-l-warning{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-core="{{ record.core }}" data-tags="{{ record.tags | join(',') }}">
     <div class="card-body p-5">
         <div class="flex justify-between items-start gap-3">
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="font-mono text-xs opacity-40">{{ record.id }}</span>
                     {% if record.is_draft %}<span class="badge badge-xs badge-secondary badge-outline">DRAFT</span>{% endif %}
-                    {% if record.foundational %}<span class="badge badge-xs badge-warning badge-outline">CORE</span>{% endif %}
+                    {% if record.core %}<span class="badge badge-xs badge-warning badge-outline">CORE</span>{% endif %}
                 </div>
                 <h3 class="text-base font-semibold text-base-content mb-2">{{ record.title }}</h3>
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-50">
@@ -294,11 +294,11 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
         </thead>
         <tbody>
             {% for record in records %}
-            <tr class="table-row hover:bg-base-200 cursor-pointer {% if record.foundational %}bg-warning/5{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
+            <tr class="table-row hover:bg-base-200 cursor-pointer {% if record.core %}bg-warning/5{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-core="{{ record.core }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
                 <td class="font-mono text-xs whitespace-nowrap">
                     <span class="opacity-50">{{ record.id }}</span>
                     {% if record.is_draft %}<span class="badge badge-xs badge-secondary ml-1">D</span>{% endif %}
-                    {% if record.foundational %}<span class="badge badge-xs badge-warning ml-1">★</span>{% endif %}
+                    {% if record.core %}<span class="badge badge-xs badge-warning ml-1">★</span>{% endif %}
                 </td>
                 <td class="font-medium">{{ record.title }}</td>
                 <td class="text-sm opacity-60">{{ record.type_display }}</td>
@@ -468,8 +468,8 @@ function filterRecords() {
 function sortRecords() {
     const sortFn = (a, b) => {
         if (sortMode === 'default') {
-            const aF = a.dataset.foundational === 'true';
-            const bF = b.dataset.foundational === 'true';
+            const aF = a.dataset.core === 'true';
+            const bF = b.dataset.core === 'true';
             if (aF !== bF) return bF - aF;
             return b.dataset.created.localeCompare(a.dataset.created);
         } else if (sortMode === 'newest') {
@@ -615,7 +615,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <span class="font-mono text-sm font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded border border-slate-700">
                     {{ record.id }}
                 </span>
-                {% if record.foundational %}
+                {% if record.core %}
                 <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-900/30 border border-yellow-800/30 text-yellow-500 text-xs font-semibold uppercase tracking-wide">
                     <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
                     CORE
@@ -875,8 +875,8 @@ const node = g.append('g')
 node.append('circle')
     .attr('r', 20)
     .attr('fill', d => color(d.type))
-    .attr('stroke', d => d.foundational ? 'gold' : '#333')
-    .attr('stroke-width', d => d.foundational ? 3 : 1);
+    .attr('stroke', d => d.core ? 'gold' : '#333')
+    .attr('stroke-width', d => d.core ? 3 : 1);
 
 node.append('text')
     .text(d => d.id)
@@ -1215,8 +1215,8 @@ records.forEach(r => {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', nodeRadius);
     circle.setAttribute('fill', typeColors[r.type] || '#666');
-    circle.setAttribute('stroke', r.foundational ? 'gold' : '#333');
-    circle.setAttribute('stroke-width', r.foundational ? 3 : 1);
+    circle.setAttribute('stroke', r.core ? 'gold' : '#333');
+    circle.setAttribute('stroke-width', r.core ? 3 : 1);
     g.appendChild(circle);
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -1279,7 +1279,7 @@ const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
     </div>
     <div class="stat">
         <div class="stat-title">Core Records</div>
-        <div class="stat-value text-warning">{{ stats.foundational }}</div>
+        <div class="stat-value text-warning">{{ stats.core }}</div>
     </div>
 </div>
 
@@ -1704,7 +1704,7 @@ function initFromRaw() {
 
     fieldTitle.value = fm.title || '';
     fieldStatus.value = fm.status || 'proposed';
-    fieldFoundational.checked = fm.foundational || false;
+    fieldFoundational.checked = fm.core || false;
 
     authors = fm.authors || [];
     tags = fm.tags || [];
@@ -1926,7 +1926,7 @@ function buildFullContent() {
         updated: new Date().toISOString().split('T')[0],
         authors: authors,
         tags: tags,
-        foundational: fieldFoundational.checked || undefined,
+        core: fieldFoundational.checked || undefined,
         links: links
     };
 
@@ -1940,7 +1940,7 @@ function buildFullContent() {
     yaml += `updated: ${fm.updated}\n`;
     yaml += `authors: [${fm.authors.join(', ')}]\n`;
     yaml += `tags: [${fm.tags.join(', ')}]\n`;
-    if (fm.foundational) yaml += `foundational: true\n`;
+    if (fm.core) yaml += `core: true\n`;
     yaml += `links:\n`;
     for (const [k, v] of Object.entries(fm.links)) {
         yaml += `  ${k}: [${(v || []).join(', ')}]\n`;

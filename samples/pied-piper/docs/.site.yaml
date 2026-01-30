@@ -6,5 +6,5 @@ accent_color: "#4CAF50"
 footer: "Pied Piper Inc. (2014-2019) - Making the world a better place"
 quick_preview: true  # Enable hover previews on record IDs (default: true)
 custom_css: |
-  .foundational .card-id { color: gold !important; }
+  .core .card-id { color: gold !important; }
   .badge.accepted { background: #2E7D32 !important; }

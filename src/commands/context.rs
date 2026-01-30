@@ -26,7 +26,7 @@ pub fn run(docs_dir: &str, query: &str, depth: usize, format: &str) -> Result<()
                         "type": r.record_type().to_string(),
                         "status": r.status().to_string(),
                         "tags": r.frontmatter.tags,
-                        "foundational": r.frontmatter.foundational,
+                        "core": r.frontmatter.core,
                         "summary": extract_summary(&r.content),
                     })
                 }).collect::<Vec<_>>(),
@@ -43,15 +43,13 @@ pub fn run(docs_dir: &str, query: &str, depth: usize, format: &str) -> Result<()
         _ => {
             println!("{} for '{}':\n", "Context".green().bold(), query.cyan());
 
-            // Group by foundational
-            let (foundational, regular): (Vec<_>, Vec<_>) = ctx
-                .records
-                .into_iter()
-                .partition(|r| r.frontmatter.foundational);
+            // Group by core
+            let (core, regular): (Vec<_>, Vec<_>) =
+                ctx.records.into_iter().partition(|r| r.frontmatter.core);
 
-            if !foundational.is_empty() {
+            if !core.is_empty() {
                 println!("{}", "Foundational:".yellow().bold());
-                for record in foundational {
+                for record in core {
                     println!(
                         "  {} {} [{}]",
                         record.id().cyan().bold(),
