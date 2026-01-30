@@ -321,6 +321,20 @@ async fn record_handler(
         .collect();
     ctx.insert("backlinks".to_string(), serde_json::Value::Array(backlinks));
 
+    // Add superseded_by links for the warning banner
+    ctx.insert(
+        "superseded_by".to_string(),
+        serde_json::Value::Array(
+            record
+                .frontmatter
+                .links
+                .superseded_by
+                .iter()
+                .map(|s| serde_json::Value::String(s.clone()))
+                .collect(),
+        ),
+    );
+
     // Resolve author info with team memberships
     let resolved_authors: Vec<_> = record
         .frontmatter

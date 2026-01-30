@@ -626,9 +626,61 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}{{ record.id }} - {{ site.title }}{% endblock %}
 
 {% block content %}
-<div class="w-full bg-piper-card border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
-    <!-- Accent bar -->
+<div class="w-full bg-piper-card border border-slate-700 rounded-2xl shadow-2xl overflow-hidden{% if record.status == 'deprecated' or record.status == 'rejected' or record.status == 'superseded' %} opacity-80{% endif %}">
+    <!-- Accent bar - changes color based on status -->
+    {% if record.status == 'deprecated' %}
+    <div class="h-1.5 w-full bg-gradient-to-r from-amber-500 to-amber-600"></div>
+    {% elif record.status == 'rejected' %}
+    <div class="h-1.5 w-full bg-gradient-to-r from-red-500 to-red-600"></div>
+    {% elif record.status == 'superseded' %}
+    <div class="h-1.5 w-full bg-gradient-to-r from-slate-500 to-slate-600"></div>
+    {% else %}
     <div class="h-1.5 w-full bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+    {% endif %}
+
+    <!-- Warning banner for non-active documents -->
+    {% if record.status == 'deprecated' %}
+    <div class="bg-amber-900/30 border-b border-amber-800/40 px-6 py-4">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div>
+                <p class="text-amber-200 font-semibold">This document is deprecated</p>
+                <p class="text-amber-300/70 text-sm mt-1">This decision or record is no longer active. The information may be outdated.</p>
+            </div>
+        </div>
+    </div>
+    {% elif record.status == 'rejected' %}
+    <div class="bg-red-900/30 border-b border-red-800/40 px-6 py-4">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-red-200 font-semibold">This proposal was rejected</p>
+                <p class="text-red-300/70 text-sm mt-1">This decision was not approved. Review the rationale below for context.</p>
+            </div>
+        </div>
+    </div>
+    {% elif record.status == 'superseded' %}
+    <div class="bg-slate-700/50 border-b border-slate-600/40 px-6 py-4">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+            <div>
+                <p class="text-slate-200 font-semibold">This document has been superseded</p>
+                <p class="text-slate-400 text-sm mt-1">
+                    A newer version of this decision exists.
+                    {% if record.superseded_by and record.superseded_by | length > 0 %}
+                    See: {% for link in record.superseded_by %}<a href="/records/{{ link }}" class="text-piper-light hover:underline">{{ link }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="p-8 pb-4">
         <!-- Header row -->
