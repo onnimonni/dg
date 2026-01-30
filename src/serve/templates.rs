@@ -286,7 +286,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
                 {% if record.is_draft %}<span class="badge badge-xs badge-secondary badge-outline">DRAFT</span>{% endif %}
                 {% if record.core %}<span class="badge badge-xs badge-warning badge-outline">CORE</span>{% endif %}
             </div>
-            <span class="badge badge-sm flex-shrink-0 {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status | upper }}</span>
+            <span class="badge badge-sm flex-shrink-0 {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'rejected' %}badge-error badge-outline{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status | upper }}</span>
         </div>
         <h3 class="text-base font-semibold text-base-content flex-1">{{ record.title }}</h3>
         <div class="mt-auto pt-3">
@@ -325,7 +325,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <td class="font-medium">{{ record.title }}</td>
                 <td class="text-sm opacity-60">{{ record.type_display }}</td>
                 <td>
-                    <span class="badge badge-sm {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status }}</span>
+                    <span class="badge badge-sm {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'rejected' %}badge-error badge-outline{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status }}</span>
                 </td>
                 <td class="text-sm opacity-60 whitespace-nowrap">{{ record.created }}</td>
             </tr>

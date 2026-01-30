@@ -131,6 +131,7 @@ pub enum Status {
     Draft,
     Proposed,
     Accepted,
+    Rejected,
     Deprecated,
     Superseded,
     #[serde(rename = "active")]
@@ -151,6 +152,7 @@ impl Status {
             "draft" => Some(Status::Draft),
             "proposed" => Some(Status::Proposed),
             "accepted" => Some(Status::Accepted),
+            "rejected" => Some(Status::Rejected),
             "deprecated" => Some(Status::Deprecated),
             "superseded" => Some(Status::Superseded),
             "active" => Some(Status::Active),
@@ -169,6 +171,7 @@ impl std::fmt::Display for Status {
             Status::Draft => "draft",
             Status::Proposed => "proposed",
             Status::Accepted => "accepted",
+            Status::Rejected => "rejected",
             Status::Deprecated => "deprecated",
             Status::Superseded => "superseded",
             Status::Active => "active",
