@@ -916,34 +916,26 @@ impl ComparisonType {
         }
     }
 
-    fn styles(&self) -> (&'static str, &'static str, &'static str) {
+    /// Returns (marker, color_class) for list item styling
+    fn list_marker(&self) -> (&'static str, &'static str) {
         match self {
-            Self::Positive => (
-                "border-emerald-600",
-                "bg-emerald-950",
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-emerald-500 shrink-0"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" /></svg>"#,
-            ),
-            Self::Negative => (
-                "border-red-600",
-                "bg-red-950",
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-red-500 shrink-0"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>"#,
-            ),
-            Self::Neutral => (
-                "border-sky-600",
-                "bg-sky-950",
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-sky-500 shrink-0"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" /></svg>"#,
-            ),
+            Self::Positive => ("+", "text-emerald-500"),
+            Self::Negative => ("−", "text-red-500"),
+            Self::Neutral => ("●", "text-amber-500"),
         }
     }
 }
 
 /// Style Positive/Negative/Neutral comparison sections using AST-based event processing
+/// Adds colored markers (+/−/●) to list items instead of wrapper boxes
 fn style_comparison_sections<'a>(parser: Parser<'a>) -> Vec<Event<'a>> {
     let mut events: Vec<Event<'a>> = Vec::new();
     let mut in_comparison_heading = false;
     let mut comparison_type: Option<ComparisonType> = None;
     let mut heading_text = String::new();
-    let mut in_comparison_section = false;
+    let mut in_comparison_list = false;
+    let mut in_list_item = false;
+    let mut item_content_started = false;
 
     for event in parser {
         match &event {
@@ -966,77 +958,70 @@ fn style_comparison_sections<'a>(parser: Parser<'a>) -> Vec<Event<'a>> {
             // H3 end - check if it's a comparison heading
             Event::End(TagEnd::Heading(HeadingLevel::H3)) if in_comparison_heading => {
                 in_comparison_heading = false;
-                if let Some(ct) = ComparisonType::from_text(&heading_text) {
-                    comparison_type = Some(ct);
-                    let (border, bg, icon) = ct.styles();
+                comparison_type = ComparisonType::from_text(&heading_text);
+                events.push(event);
+            }
 
-                    // Find and remove the H3 start/end events we just added
-                    // We'll re-wrap them inside the comparison div
-                    let mut h3_events = Vec::new();
-                    while let Some(e) = events.pop() {
-                        let is_h3_start = matches!(
-                            &e,
-                            Event::Start(Tag::Heading {
-                                level: HeadingLevel::H3,
-                                ..
-                            })
-                        );
-                        h3_events.push(e);
-                        if is_h3_start {
-                            break;
-                        }
-                    }
-                    h3_events.reverse();
+            // List start after comparison heading - use custom styling
+            Event::Start(Tag::List(_)) if comparison_type.is_some() && !in_comparison_list => {
+                in_comparison_list = true;
+                // Replace default ul with styled version (no bullets)
+                events.push(Event::Html(CowStr::from(
+                    r#"<ul class="list-none space-y-3 my-4 ml-2">"#,
+                )));
+            }
 
-                    // Insert wrapper div start with SVG icon
+            // List item start - prepare to add marker
+            Event::Start(Tag::Item) if in_comparison_list => {
+                in_list_item = true;
+                item_content_started = false;
+                events.push(Event::Html(CowStr::from(
+                    r#"<li class="flex items-start gap-3">"#,
+                )));
+            }
+
+            // First text/content in list item - prepend the colored marker
+            Event::Text(text) if in_list_item && !item_content_started => {
+                item_content_started = true;
+                if let Some(ct) = comparison_type {
+                    let (marker, color) = ct.list_marker();
                     events.push(Event::Html(CowStr::from(format!(
-                        r#"<div class="comparison-section my-6 p-5 rounded-lg border-l-4 {} {}"><div class="flex items-center gap-3 text-base font-semibold mb-4">{}"#,
-                        border, bg, icon
+                        r#"<span class="{} font-bold text-lg leading-6">{}</span><span>"#,
+                        color, marker
                     ))));
-
-                    // Re-add heading events
-                    events.extend(h3_events);
                     events.push(event);
-
-                    // Close the heading wrapper
-                    events.push(Event::Html(CowStr::from("</div>")));
                 } else {
                     events.push(event);
                 }
             }
 
-            // List start after comparison heading
-            Event::Start(Tag::List(_)) if comparison_type.is_some() && !in_comparison_section => {
-                in_comparison_section = true;
-                events.push(event);
-            }
-
-            // List end - close the comparison section
-            Event::End(TagEnd::List(_)) if in_comparison_section => {
-                events.push(event);
-                events.push(Event::Html(CowStr::from("</div>")));
-                in_comparison_section = false;
-                comparison_type = None;
-            }
-
-            // Any other event resets comparison tracking if we hit a new heading
-            Event::Start(Tag::Heading { .. }) if comparison_type.is_some() => {
-                // New heading without a list - close the section
-                if !in_comparison_section {
-                    events.push(Event::Html(CowStr::from("</div>")));
+            // List item end
+            Event::End(TagEnd::Item) if in_list_item => {
+                in_list_item = false;
+                if item_content_started && comparison_type.is_some() {
+                    events.push(Event::Html(CowStr::from("</span></li>")));
+                } else {
+                    events.push(Event::Html(CowStr::from("</li>")));
                 }
+            }
+
+            // List end - close the comparison list
+            Event::End(TagEnd::List(_)) if in_comparison_list => {
+                events.push(Event::Html(CowStr::from("</ul>")));
+                in_comparison_list = false;
                 comparison_type = None;
-                in_comparison_section = false;
+            }
+
+            // Any other heading resets comparison tracking
+            Event::Start(Tag::Heading { .. })
+                if comparison_type.is_some() && !in_comparison_list =>
+            {
+                comparison_type = None;
                 events.push(event);
             }
 
             _ => events.push(event),
         }
-    }
-
-    // Close any unclosed section at end of document
-    if comparison_type.is_some() && !in_comparison_section {
-        events.push(Event::Html(CowStr::from("</div>")));
     }
 
     events
