@@ -148,8 +148,14 @@ When working on `src/serve/templates.rs` or any HTML/CSS, follow the guidelines 
 - Use existing design tokens (--bg, --surface, --text, etc.)
 - Follow the visual hierarchy: Primary > Secondary > Tertiary
 - Always add hover states and transitions for interactivity
-- Consult Gemini via `mcp__consult-llm__consult_llm` for UX feedback
+- Consult Gemini via `mcp__consult-llm__consult_llm` for UX feedback (prefer `gemini-3-pro-preview`)
 - Test visually with `dg serve` and Playwright screenshots
+
+### URL Design Principles
+
+- **Human-readable anchor links**: Use slug-based IDs like `#rollback` instead of `#heading-7`
+- **Shareable URLs**: All navigation states should be reflected in the URL for sharing
+- **Consistent patterns**: Use lowercase, hyphens for spaces, no special characters
 
 ## Policy
 

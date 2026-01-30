@@ -96,11 +96,51 @@
 .content p { margin-bottom: 1rem; }
 .content ul, .content ol { margin-left: 1.5rem; margin-bottom: 1rem; }
 .content li { margin-bottom: 0.35rem; }
+/* Task list styling - remove bullet points when checkbox present */
+.content li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.25rem; }
+.content li > input[type="checkbox"] {
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    border: 1.5px solid #64748b;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+    cursor: pointer;
+    position: relative;
+    top: -1px;
+}
+.content li > input[type="checkbox"]:checked {
+    background: #007c43;
+    border-color: #007c43;
+}
+.content li > input[type="checkbox"]:checked::after {
+    content: "✓";
+    color: white;
+    font-size: 0.7rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
 .content strong { font-weight: bold; }
 .content em { font-style: italic; }
-.content code { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: 'JetBrains Mono', monospace; }
-.content pre { background: #1e293b; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; }
-.content pre code { background: none; padding: 0; }
+.content code { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+.content pre { background: #1e293b; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; max-width: 100%; }
+.content pre code { background: none; padding: 0; font-size: 0.875rem; }
+
+/* Syntax highlighting overrides for dark theme */
+.content pre code.hljs { background: transparent; padding: 0; }
+.hljs { background: #1e293b; }
+.hljs-comment, .hljs-quote { color: #6b7280; }
+.hljs-keyword, .hljs-selector-tag { color: #c792ea; }
+.hljs-string, .hljs-attr { color: #c3e88d; }
+.hljs-number, .hljs-literal { color: #f78c6c; }
+.hljs-variable, .hljs-template-variable { color: #82aaff; }
+.hljs-function, .hljs-title { color: #82aaff; }
+.hljs-built_in, .hljs-type { color: #ffcb6b; }
+.hljs-params { color: #e2e8f0; }
+.hljs-symbol, .hljs-bullet { color: #89ddff; }
 .content blockquote { border-left: 3px solid #007c43; padding-left: 1rem; margin: 1rem 0; color: #94a3b8; }
 .content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
 .content th, .content td { padding: 0.5rem; border: 1px solid #334155; text-align: left; }

@@ -103,6 +103,8 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
     </style>
     <script defer src="/static/katex.min.js"></script>
     <script defer src="/static/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+    <link rel="stylesheet" href="/static/highlight-github-dark.min.css">
+    <script defer src="/static/highlight.min.js" onload="hljs.highlightAll();"></script>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ startOnLoad: false, theme: 'dark' });
@@ -276,25 +278,25 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 <div id="records" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 {% for record in records %}
-<a href="/records/{{ record.id }}" class="card card-border bg-base-100 hover:bg-base-200 transition-all hover:-translate-y-0.5 {% if record.core %}border-l-4 border-l-warning{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-core="{{ record.core }}" data-tags="{{ record.tags | join(',') }}">
-    <div class="card-body p-5">
-        <div class="flex justify-between items-start gap-3">
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="font-mono text-xs opacity-40">{{ record.id }}</span>
-                    {% if record.is_draft %}<span class="badge badge-xs badge-secondary badge-outline">DRAFT</span>{% endif %}
-                    {% if record.core %}<span class="badge badge-xs badge-warning badge-outline">CORE</span>{% endif %}
-                </div>
-                <h3 class="text-base font-semibold text-base-content mb-2">{{ record.title }}</h3>
-                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-50">
-                    <span class="badge badge-xs badge-ghost">{{ record.type_display }}</span>
-                    {% if record.status == 'deprecated' %}<span class="text-warning">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-error">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-info">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
-                </div>
-                {% if record.tags %}
-                <div class="flex flex-wrap gap-1 mt-2">{% for tag in record.tags %}<span class="tag-link badge badge-xs badge-outline opacity-60 cursor-pointer hover:opacity-100" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}</div>
-                {% endif %}
+<a href="/records/{{ record.id }}" class="card card-border bg-base-100 hover:bg-base-200 transition-all hover:-translate-y-0.5 flex flex-col {% if record.core %}border-l-4 border-l-warning{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-core="{{ record.core }}" data-tags="{{ record.tags | join(',') }}">
+    <div class="card-body p-5 flex flex-col flex-1">
+        <div class="flex justify-between items-center gap-3 mb-1">
+            <div class="flex items-center gap-2">
+                <span class="font-mono text-xs opacity-40">{{ record.id }}</span>
+                {% if record.is_draft %}<span class="badge badge-xs badge-secondary badge-outline">DRAFT</span>{% endif %}
+                {% if record.core %}<span class="badge badge-xs badge-warning badge-outline">CORE</span>{% endif %}
             </div>
             <span class="badge badge-sm flex-shrink-0 {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status | upper }}</span>
+        </div>
+        <h3 class="text-base font-semibold text-base-content flex-1">{{ record.title }}</h3>
+        <div class="mt-auto pt-3">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-50 mb-2">
+                <span class="badge badge-xs badge-ghost">{{ record.type_display }}</span>
+                {% if record.status == 'deprecated' %}<span class="text-warning">{{ record.created_month_year }} → {{ record.updated_month_year }}{% if record.duration %} <span class="opacity-70">({{ record.duration }})</span>{% endif %}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-error">{{ record.created_month_year }} → ongoing{% if record.duration %} <span class="opacity-70">({{ record.duration }})</span>{% endif %}</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-info">{{ record.created_month_year }} → {{ record.updated_month_year }}{% if record.duration %} <span class="opacity-70">({{ record.duration }})</span>{% endif %}</span>{% elif record.type == 'CUS' and record.created_year != record.updated_year %}<span>{{ record.created_month_year }} → {{ record.updated_month_year }}{% if record.duration %} <span class="opacity-70">({{ record.duration }})</span>{% endif %}</span>{% else %}<span>{{ record.created_month_year }}</span>{% endif %}
+            </div>
+            {% if record.tags %}
+            <div class="flex flex-wrap gap-1">{% for tag in record.tags %}<span class="tag-link badge badge-xs badge-outline opacity-60 cursor-pointer hover:opacity-100" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}</div>
+            {% endif %}
         </div>
     </div>
 </a>
@@ -701,11 +703,8 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         </div>
 
         <!-- Content with ToC -->
-        <div class="mt-6 flex gap-8">
-            <div class="flex-1 text-slate-300 leading-relaxed content" id="content">
-                {{ record.content_html | safe }}
-            </div>
-            <nav id="toc" class="hidden lg:block w-56 shrink-0">
+        <div class="mt-6 pr-4">
+            <nav id="toc" class="hidden lg:block w-56 mb-4 pl-8 border-l border-slate-700/50" style="float: right; margin-left: 3rem;">
                 <div class="sticky top-6">
                     <button id="toc-toggle" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono hover:text-slate-400 transition-colors">
                         <svg id="toc-chevron" class="w-2.5 h-2.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
@@ -714,6 +713,10 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
                     <ul id="toc-list" class="list-none space-y-1 text-sm"></ul>
                 </div>
             </nav>
+            <div class="text-slate-300 leading-relaxed content" id="content">
+                {{ record.content_html | safe }}
+            </div>
+            <div style="clear: both;"></div>
         </div>
     </div>
 
@@ -758,8 +761,8 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
     <!-- Footer -->
     <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500 font-mono">
-        <span>{{ record.id }}</span>
-        {% if record.resolved_authors %}<span>Authors: {% for a in record.resolved_authors %}{{ a.name }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% elif record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
+        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="hover:text-slate-300 transition-colors cursor-pointer">{{ record.id }}</a>
+        {% if record.resolved_authors %}<span>Authors: {% for a in record.resolved_authors %}<a href="/users/{{ a.username }}" class="hover:text-slate-300 transition-colors">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>{% elif record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
     </div>
 </div>
 {% endblock %}
@@ -780,10 +783,21 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
     // Generate ToC items
     const tocItems = [];
+    const usedIds = new Set();
     headings.forEach((heading, index) => {
-        // Add ID to heading if it doesn't have one
+        // Add ID to heading if it doesn't have one - use human-readable slug from heading text
         if (!heading.id) {
-            heading.id = 'heading-' + index;
+            let slug = heading.textContent.toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')  // Remove special chars
+                .replace(/\s+/g, '-')           // Spaces to dashes
+                .replace(/-+/g, '-')            // Multiple dashes to single
+                .replace(/^-|-$/g, '');         // Trim dashes from ends
+            // Handle duplicates by adding index
+            if (usedIds.has(slug)) {
+                slug = slug + '-' + index;
+            }
+            usedIds.add(slug);
+            heading.id = slug || 'heading-' + index;
         }
 
         // Make heading clickable to update URL (for sharing)
@@ -850,6 +864,9 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         tocCollapsed = !tocCollapsed;
         tocList.style.display = tocCollapsed ? 'none' : 'block';
         tocChevron.style.transform = tocCollapsed ? 'rotate(-90deg)' : 'rotate(0)';
+        // Collapse width when closed to give content more room
+        toc.style.width = tocCollapsed ? 'auto' : '';
+        toc.style.marginLeft = tocCollapsed ? '1rem' : '';
     });
 
     // Mark Pros/Cons lists with appropriate classes
@@ -2320,38 +2337,53 @@ const USERS_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}Users - {{ site.title }}{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-6">
+<!-- Header with search and toggle -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
     <h2 class="text-2xl font-bold text-white">Users</h2>
-    <label class="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
-        <input type="checkbox" id="showDeprecated" class="rounded bg-slate-800 border-slate-600 text-piper-accent focus:ring-piper-accent">
-        Show deprecated
-    </label>
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+        <!-- Search input -->
+        <div class="relative flex-1 sm:flex-initial">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" id="userSearch" placeholder="Search users..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-piper-accent focus:ring-1 focus:ring-piper-accent">
+        </div>
+        <!-- Toggle switch for deprecated -->
+        <button type="button" id="showDeprecatedToggle" role="switch" aria-checked="false" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors">
+            <span class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out" id="toggleTrack">
+                <span class="translate-x-0 pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-400 shadow ring-0 transition duration-200 ease-in-out" id="toggleKnob"></span>
+            </span>
+            <span class="text-sm text-slate-400 group-hover:text-slate-300">Show deprecated</span>
+        </button>
+    </div>
 </div>
 
-<div id="users" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<!-- User grid - tighter layout -->
+<div id="users" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
 {% for user in users %}
-<a href="/users/{{ user.username }}" class="user-card block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5{% if user.is_deprecated %} opacity-50{% endif %}" data-deprecated="{{ user.is_deprecated }}">
-    <div class="flex items-center gap-4">
-        <img src="{{ user.avatar_url }}" alt="{{ user.name }}" class="w-12 h-12 rounded-full border-2 border-slate-700" onerror="this.src='https://ui-avatars.com/api/?name={{ user.initials }}&background=007c43&color=fff&size=64'">
-        <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-                <span class="font-semibold text-white truncate">{{ user.name }}</span>
-                {% if user.is_llm %}
-                <span class="px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-900/50 border border-purple-700 text-purple-300">🤖</span>
-                {% endif %}
-                {% if user.is_deprecated %}
-                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-700 text-slate-400">LEFT</span>
-                {% endif %}
-            </div>
-            <div class="text-sm text-slate-400">@{{ user.username }}</div>
-            {% if user.teams %}
-            <div class="flex flex-wrap gap-1 mt-1">
-                {% for team in user.teams %}
-                <span class="px-1.5 py-0.5 bg-slate-800 rounded text-xs text-slate-400">{{ team }}</span>
-                {% endfor %}
-            </div>
+<a href="/users/{{ user.username }}" class="user-card flex items-center gap-3 p-3 bg-piper-card border border-slate-700 rounded-lg hover:border-piper-light/50 hover:bg-slate-800/50 transition-all{% if user.is_deprecated %} opacity-50{% endif %}" data-deprecated="{{ user.is_deprecated }}" data-name="{{ user.name | lower }}" data-username="{{ user.username | lower }}">
+    <!-- Avatar with deterministic color -->
+    <div class="w-10 h-10 rounded-full {{ user.avatar_color }} flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+        {{ user.initials }}
+    </div>
+    <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5">
+            <span class="font-medium text-sm text-white truncate">{{ user.name }}</span>
+            {% if user.is_llm %}
+            <span class="text-purple-400 text-xs">🤖</span>
+            {% endif %}
+            {% if user.is_deprecated %}
+            <span class="inline-flex items-center rounded-full bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">LEFT</span>
             {% endif %}
         </div>
+        <div class="text-xs text-slate-500">@{{ user.username }}</div>
+        {% if user.teams %}
+        <div class="flex flex-wrap gap-1 mt-1">
+            {% for team in user.teams %}
+            <span class="inline-flex items-center rounded-full bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-400">{{ team }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 </a>
 {% endfor %}
@@ -2366,16 +2398,47 @@ const USERS_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block scripts %}
 <script>
-const showDeprecated = document.getElementById('showDeprecated');
-showDeprecated.addEventListener('change', () => {
-    document.querySelectorAll('.user-card').forEach(card => {
-        if (card.dataset.deprecated === 'true') {
-            card.style.display = showDeprecated.checked ? 'block' : 'none';
-        }
-    });
+// Toggle switch functionality
+const toggleBtn = document.getElementById('showDeprecatedToggle');
+const toggleTrack = document.getElementById('toggleTrack');
+const toggleKnob = document.getElementById('toggleKnob');
+let showDeprecated = false;
+
+toggleBtn.addEventListener('click', () => {
+    showDeprecated = !showDeprecated;
+    toggleBtn.setAttribute('aria-checked', showDeprecated);
+    if (showDeprecated) {
+        toggleTrack.classList.remove('bg-slate-700');
+        toggleTrack.classList.add('bg-piper-accent');
+        toggleKnob.classList.remove('translate-x-0', 'bg-slate-400');
+        toggleKnob.classList.add('translate-x-4', 'bg-white');
+    } else {
+        toggleTrack.classList.add('bg-slate-700');
+        toggleTrack.classList.remove('bg-piper-accent');
+        toggleKnob.classList.add('translate-x-0', 'bg-slate-400');
+        toggleKnob.classList.remove('translate-x-4', 'bg-white');
+    }
+    filterUsers();
 });
+
+// Search functionality
+const searchInput = document.getElementById('userSearch');
+searchInput.addEventListener('input', filterUsers);
+
+function filterUsers() {
+    const query = searchInput.value.toLowerCase();
+    document.querySelectorAll('.user-card').forEach(card => {
+        const isDeprecated = card.dataset.deprecated === 'true';
+        const name = card.dataset.name || '';
+        const username = card.dataset.username || '';
+        const matchesSearch = name.includes(query) || username.includes(query);
+        const shouldShow = matchesSearch && (showDeprecated || !isDeprecated);
+        card.style.display = shouldShow ? 'flex' : 'none';
+    });
+}
+
 // Hide deprecated by default
-document.querySelectorAll('.user-card[data-deprecated="true"]').forEach(c => c.style.display = 'none');
+filterUsers();
 </script>
 {% endblock %}
 "##;
@@ -2561,33 +2624,217 @@ const TEAMS_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}Teams - {{ site.title }}{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold text-white mb-6">Teams</h2>
-
-<div id="teams" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-{% for team in teams %}
-<a href="/teams/{{ team.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 hover:bg-slate-700/30 transition-all hover:-translate-y-0.5">
-    <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-piper-accent to-emerald-400 flex items-center justify-center text-white font-bold text-lg">
-            {{ team.name | first | upper }}
-        </div>
-        <div class="flex-1 min-w-0">
-            <div class="font-semibold text-white truncate">{{ team.name }}</div>
-            {% if team.lead %}
-            <div class="text-sm text-slate-400">Lead: @{{ team.lead }}</div>
-            {% endif %}
-            {% if team.parent %}
-            <div class="text-xs text-slate-500 mt-1">↳ {{ team.parent }}</div>
-            {% endif %}
-            {% if team.member_count > 0 %}
-            <div class="text-xs text-slate-500 mt-1">{{ team.member_count }} members</div>
-            {% endif %}
-        </div>
+<div class="flex flex-col md:flex-row justify-between items-end mb-6 border-b border-slate-700 pb-4 gap-4">
+    <div>
+        <h2 class="text-2xl font-bold text-white mb-1">Organization Chart</h2>
+        <p class="text-sm text-slate-400">Teams, members, and stakeholders</p>
     </div>
-</a>
-{% endfor %}
+    <div class="flex gap-2 flex-wrap items-center">
+        <span class="inline-flex items-center rounded-full bg-slate-800 border border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-400">{{ active_user_count }} Active</span>
+        {% if current_user_team %}
+        <span class="inline-flex items-center rounded-full bg-piper-accent/20 border border-piper-accent/50 px-2.5 py-1 text-xs font-medium text-piper-light">Your Team: {{ current_user_team }}</span>
+        {% endif %}
+    </div>
 </div>
 
-{% if teams | length == 0 %}
+<div class="flex flex-col xl:flex-row gap-6">
+    <!-- Main Area: Core Teams -->
+    <div class="flex-1 min-w-0">
+        {% if core_teams | length > 0 %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for team in core_teams %}
+            <div class="bg-piper-card border border-slate-700 rounded-xl overflow-hidden shadow-lg hover:shadow-xl hover:border-slate-600 transition-all {% if team.is_current_user_team %}ring-2 ring-piper-accent ring-offset-2 ring-offset-slate-900{% endif %}">
+                <!-- Team header with colored border -->
+                <div class="h-1 bg-gradient-to-r from-piper-accent to-emerald-400"></div>
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <a href="/teams/{{ team.id }}" class="flex items-center gap-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-piper-accent to-emerald-400 flex items-center justify-center text-white font-bold shadow-md">
+                                {{ team.name | first | upper }}
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-white group-hover:text-piper-light transition-colors">{{ team.name }}</h3>
+                                <div class="text-xs text-slate-500">{{ team.member_count }} members</div>
+                            </div>
+                        </a>
+                        {% if team.is_current_user_team %}
+                        <span class="inline-flex items-center rounded-full bg-piper-accent/20 border border-piper-accent/50 px-2 py-0.5 text-[10px] font-medium text-piper-light">Your Team</span>
+                        {% endif %}
+                    </div>
+
+                    {% if team.description %}
+                    <p class="text-sm text-slate-400 mb-3">{{ team.description }}</p>
+                    {% endif %}
+
+                    <!-- Team Lead -->
+                    {% if team.lead %}
+                    <div class="mb-3">
+                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1.5 font-medium">Lead</div>
+                        <a href="/users/{{ team.lead }}" class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors group">
+                            <div class="relative">
+                                <div class="w-9 h-9 rounded-full {% for m in team.members %}{% if m.username == team.lead %}{{ m.avatar_color }}{% endif %}{% endfor %} flex items-center justify-center text-sm font-medium text-white {% if team.lead_is_current %}ring-2 ring-piper-accent ring-offset-1 ring-offset-slate-800{% endif %}">
+                                    {% for m in team.members %}{% if m.username == team.lead %}{{ m.initials }}{% endif %}{% endfor %}
+                                </div>
+                                {% if team.lead_is_current %}
+                                <span class="absolute -top-1 -right-1 px-1 text-[9px] rounded bg-piper-accent text-white font-medium">You</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm text-white group-hover:text-piper-light transition-colors truncate">
+                                    {% for m in team.members %}{% if m.username == team.lead %}{{ m.name }}{% endif %}{% endfor %}
+                                </div>
+                                <div class="text-xs text-slate-500">@{{ team.lead }}</div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Team Members -->
+                    {% if team.members | length > 0 %}
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1.5 font-medium">Members</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        {% for member in team.members %}
+                        {% if member.username != team.lead %}
+                        <a href="/users/{{ member.username }}" class="relative group/member" title="{{ member.name }}">
+                            <div class="w-8 h-8 rounded-full {{ member.avatar_color }} flex items-center justify-center text-xs font-medium text-white hover:ring-2 hover:ring-slate-500 transition-all {% if member.is_current_user %}ring-2 ring-piper-accent{% endif %}">
+                                {{ member.initials }}
+                            </div>
+                            {% if member.is_current_user %}
+                            <span class="absolute -top-1 -right-1 px-1 text-[9px] rounded bg-piper-accent text-white font-medium">You</span>
+                            {% endif %}
+                            <span class="absolute -bottom-7 left-1/2 -translate-x-1/2 px-2 py-1 text-xs bg-slate-900 border border-slate-700 rounded whitespace-nowrap opacity-0 group-hover/member:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">{{ member.name }}</span>
+                        </a>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Other Teams -->
+        {% if other_teams | length > 0 %}
+        <div class="mt-6">
+            <h3 class="text-sm font-medium text-white mb-3">Other Teams</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for team in other_teams %}
+                <a href="/teams/{{ team.id }}" class="flex items-center gap-3 p-3 bg-piper-card border border-slate-700 rounded-lg shadow hover:shadow-md hover:border-slate-600 transition-all">
+                    <div class="w-9 h-9 rounded-lg bg-slate-700 flex items-center justify-center text-white font-bold text-sm">
+                        {{ team.name | first | upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-sm text-white truncate">{{ team.name }}</div>
+                        <div class="text-xs text-slate-500">{{ team.member_count }} members</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Mobile: Stakeholders accordion (hidden on xl) -->
+        <div class="xl:hidden mt-6">
+            <button onclick="document.getElementById('mobile-stakeholders').classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('rotate-180');" class="w-full flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-lg text-sm font-medium text-white hover:bg-slate-800 transition-colors">
+                <span>Stakeholders & External</span>
+                <svg class="chevron w-5 h-5 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div id="mobile-stakeholders" class="hidden mt-3 p-4 bg-slate-800/30 border border-slate-700 rounded-lg space-y-4">
+                {% for team in stakeholder_teams %}
+                {% if team.members | length > 0 %}
+                <div>
+                    <div class="text-[10px] font-bold tracking-widest text-slate-500 uppercase mb-2">{{ team.name }}</div>
+                    <div class="space-y-1.5">
+                        {% for member in team.members %}
+                        <a href="/users/{{ member.username }}" class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 transition-colors">
+                            <div class="w-7 h-7 rounded-full {{ member.avatar_color }} flex items-center justify-center text-xs font-medium text-white">{{ member.initials }}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm text-white truncate">{{ member.name }}</div>
+                                {% if member.hashtag_teams | length > 0 %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for ht in member.hashtag_teams %}
+                                    <span class="inline-flex items-center rounded-full bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-[9px] font-medium text-slate-400">#{{ ht.id }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar: Stakeholders (hidden on mobile, visible xl+) -->
+    <div class="hidden xl:block w-72 flex-shrink-0 border-l border-slate-700 pl-6 bg-slate-900/30 -mr-4 pr-4 py-2 rounded-r-lg">
+        <div class="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4">Stakeholders</div>
+        {% for team in stakeholder_teams %}
+        {% if team.members | length > 0 %}
+        <div class="mb-5">
+            <div class="text-[10px] font-bold tracking-widest text-slate-500 uppercase mb-2">{{ team.name }}</div>
+            <div class="space-y-1.5">
+                {% for member in team.members %}
+                <a href="/users/{{ member.username }}" class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-800/30 border border-slate-700/50 hover:bg-slate-800/70 hover:border-slate-600 transition-all group">
+                    <div class="relative">
+                        <div class="w-7 h-7 rounded-full {{ member.avatar_color }} flex items-center justify-center text-xs font-medium text-white transition-colors {% if member.is_current_user %}ring-2 ring-piper-accent{% endif %}">
+                            {{ member.initials }}
+                        </div>
+                        {% if member.is_current_user %}
+                        <span class="absolute -top-1 -right-1 px-1 text-[8px] rounded bg-piper-accent text-white font-medium">You</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-sm text-white truncate">{{ member.name }}</div>
+                        {% if member.roles | length > 0 %}
+                        <div class="text-[10px] text-slate-500 truncate">{{ member.roles | first }}</div>
+                        {% endif %}
+                        {% if member.hashtag_teams | length > 0 %}
+                        <div class="flex flex-wrap gap-1 mt-0.5">
+                            {% for ht in member.hashtag_teams %}
+                            <span class="inline-flex items-center rounded-full bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-[9px] font-medium text-slate-400">#{{ ht.id }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Deprecated Users toggle -->
+        {% if deprecated_users | length > 0 %}
+        <div class="mt-4 pt-4 border-t border-slate-700">
+            <button onclick="var el = document.getElementById('deprecated-users'); var track = document.getElementById('deprecated-track'); var knob = document.getElementById('deprecated-knob'); el.classList.toggle('hidden'); if(el.classList.contains('hidden')) { track.classList.add('bg-slate-700'); track.classList.remove('bg-piper-accent'); knob.classList.add('translate-x-0'); knob.classList.remove('translate-x-4'); } else { track.classList.remove('bg-slate-700'); track.classList.add('bg-piper-accent'); knob.classList.remove('translate-x-0'); knob.classList.add('translate-x-4'); }" class="w-full flex items-center justify-between group">
+                <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase group-hover:text-slate-400 transition-colors">Deprecated ({{ deprecated_users | length }})</span>
+                <span class="relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-700 transition-colors duration-200 ease-in-out" id="deprecated-track">
+                    <span class="translate-x-0 pointer-events-none inline-block h-3 w-3 transform rounded-full bg-slate-400 shadow ring-0 transition duration-200 ease-in-out" id="deprecated-knob"></span>
+                </span>
+            </button>
+            <div id="deprecated-users" class="hidden mt-3 space-y-1.5">
+                {% for user in deprecated_users %}
+                <a href="/users/{{ user.username }}" class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-800/20 opacity-60 hover:opacity-100 transition-all">
+                    <div class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs font-medium text-slate-500">
+                        {{ user.initials }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-sm text-slate-400 line-through truncate">{{ user.name }}</div>
+                        <span class="inline-flex items-center rounded-full bg-red-900/30 border border-red-500/30 px-1.5 py-0.5 text-[9px] font-medium text-red-400">Left</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if core_teams | length == 0 and stakeholder_teams | length == 0 and other_teams | length == 0 %}
 <div class="text-center text-slate-500 py-12">
     No teams configured. Add teams to <code class="bg-slate-800 px-2 py-1 rounded">dg.toml</code>
 </div>

@@ -58,6 +58,27 @@ pub enum ValidationError {
         id: String,
         line: usize,
     },
+    // Config validation errors
+    TeamCircularParent {
+        team: String,
+        cycle: Vec<String>,
+    },
+    TeamMissingParent {
+        team: String,
+        parent: String,
+    },
+    TeamLeadNotUser {
+        team: String,
+        lead: String,
+    },
+    TeamLeadNotMember {
+        team: String,
+        lead: String,
+    },
+    UserInNonexistentTeam {
+        user: String,
+        team: String,
+    },
 }
 
 impl std::fmt::Display for ValidationError {
@@ -126,6 +147,43 @@ impl std::fmt::Display for ValidationError {
                     f,
                     "{}: line {}: code block missing language identifier (use ```bash, ```yaml, etc.)",
                     id, line
+                )
+            }
+            // Config validation errors
+            ValidationError::TeamCircularParent { team, cycle } => {
+                write!(
+                    f,
+                    "dg.toml: team '{}' has circular parent: {}",
+                    team,
+                    cycle.join(" -> ")
+                )
+            }
+            ValidationError::TeamMissingParent { team, parent } => {
+                write!(
+                    f,
+                    "dg.toml: team '{}' references non-existent parent '{}'",
+                    team, parent
+                )
+            }
+            ValidationError::TeamLeadNotUser { team, lead } => {
+                write!(
+                    f,
+                    "dg.toml: team '{}' lead '{}' is not defined in [users]",
+                    team, lead
+                )
+            }
+            ValidationError::TeamLeadNotMember { team, lead } => {
+                write!(
+                    f,
+                    "dg.toml: team '{}' lead '{}' is not a member of that team",
+                    team, lead
+                )
+            }
+            ValidationError::UserInNonexistentTeam { user, team } => {
+                write!(
+                    f,
+                    "dg.toml: user '{}' belongs to non-existent team '{}'",
+                    user, team
                 )
             }
         }
@@ -631,6 +689,101 @@ pub fn check_code_blocks(record: &Record) -> Vec<ValidationError> {
     errors
 }
 
+/// Validate dg.toml config for impossible team/user graphs
+pub fn validate_config(
+    users_config: &UsersConfig,
+    teams_config: &TeamsConfig,
+) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+
+    // Check for teams referencing non-existent parents
+    for (team_id, team) in &teams_config.teams {
+        if let Some(ref parent) = team.parent {
+            if !teams_config.exists(parent) {
+                errors.push(ValidationError::TeamMissingParent {
+                    team: team_id.clone(),
+                    parent: parent.clone(),
+                });
+            }
+        }
+    }
+
+    // Check for circular parent references
+    for team_id in teams_config.teams.keys() {
+        if let Some(cycle) = detect_team_cycle(team_id, teams_config) {
+            errors.push(ValidationError::TeamCircularParent {
+                team: team_id.clone(),
+                cycle,
+            });
+        }
+    }
+
+    // Check that team leads exist as users
+    for (team_id, team) in &teams_config.teams {
+        if let Some(ref lead) = team.lead {
+            if !users_config.exists(lead) {
+                errors.push(ValidationError::TeamLeadNotUser {
+                    team: team_id.clone(),
+                    lead: lead.clone(),
+                });
+            }
+        }
+    }
+
+    // Check that team leads are members of the team they lead
+    for (team_id, team) in &teams_config.teams {
+        if let Some(ref lead) = team.lead {
+            if let Some(user) = users_config.get(lead) {
+                if !user.teams.contains(team_id) {
+                    errors.push(ValidationError::TeamLeadNotMember {
+                        team: team_id.clone(),
+                        lead: lead.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    // Check that users don't belong to non-existent teams
+    for (user_id, user) in &users_config.users {
+        for team in &user.teams {
+            if !teams_config.exists(team) {
+                errors.push(ValidationError::UserInNonexistentTeam {
+                    user: user_id.clone(),
+                    team: team.clone(),
+                });
+            }
+        }
+    }
+
+    errors
+}
+
+/// Detect cycles in team parent hierarchy
+fn detect_team_cycle(start_team: &str, teams_config: &TeamsConfig) -> Option<Vec<String>> {
+    let mut visited = HashSet::new();
+    let mut path = Vec::new();
+    let mut current = start_team;
+
+    while let Some(team) = teams_config.get(current) {
+        if visited.contains(current) {
+            // Found a cycle - reconstruct the cycle path
+            path.push(current.to_string());
+            return Some(path);
+        }
+
+        visited.insert(current.to_string());
+        path.push(current.to_string());
+
+        match &team.parent {
+            Some(parent) => current = parent,
+            None => return None, // No cycle, reached root
+        }
+    }
+
+    None // Parent doesn't exist (separate error)
+}
+
 #[cfg(test)]
 mod mention_tests {
     use super::*;
@@ -798,5 +951,181 @@ mod mention_tests {
         let record = make_test_record(content); // DEC type
         let errors = check_action_items(&record, &users, &teams);
         assert!(errors.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod config_validation_tests {
+    use super::*;
+    use crate::models::teams::Team;
+    use crate::models::users::User;
+
+    #[test]
+    fn test_valid_config() {
+        let mut users = UsersConfig::default();
+        users.users.insert(
+            "richard".to_string(),
+            User {
+                teams: vec!["engineering".to_string()],
+                ..Default::default()
+            },
+        );
+
+        let mut teams = TeamsConfig::default();
+        teams.teams.insert(
+            "engineering".to_string(),
+            Team {
+                name: "Engineering".to_string(),
+                lead: Some("richard".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let errors = validate_config(&users, &teams);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn test_circular_parent() {
+        let users = UsersConfig::default();
+        let mut teams = TeamsConfig::default();
+
+        teams.teams.insert(
+            "team-a".to_string(),
+            Team {
+                name: "Team A".to_string(),
+                parent: Some("team-b".to_string()),
+                ..Default::default()
+            },
+        );
+        teams.teams.insert(
+            "team-b".to_string(),
+            Team {
+                name: "Team B".to_string(),
+                parent: Some("team-a".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let errors = validate_config(&users, &teams);
+        let cycle_errors: Vec<_> = errors
+            .iter()
+            .filter(|e| matches!(e, ValidationError::TeamCircularParent { .. }))
+            .collect();
+        assert_eq!(cycle_errors.len(), 2);
+    }
+
+    #[test]
+    fn test_missing_parent() {
+        let users = UsersConfig::default();
+        let mut teams = TeamsConfig::default();
+
+        teams.teams.insert(
+            "child".to_string(),
+            Team {
+                name: "Child".to_string(),
+                parent: Some("nonexistent".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let errors = validate_config(&users, &teams);
+        assert_eq!(errors.len(), 1);
+        assert!(matches!(
+            &errors[0],
+            ValidationError::TeamMissingParent { team, parent }
+            if team == "child" && parent == "nonexistent"
+        ));
+    }
+
+    #[test]
+    fn test_lead_not_user() {
+        let users = UsersConfig::default();
+        let mut teams = TeamsConfig::default();
+
+        teams.teams.insert(
+            "engineering".to_string(),
+            Team {
+                name: "Engineering".to_string(),
+                lead: Some("nobody".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let errors = validate_config(&users, &teams);
+        assert!(errors.iter().any(
+            |e| matches!(e, ValidationError::TeamLeadNotUser { lead, .. } if lead == "nobody")
+        ));
+    }
+
+    #[test]
+    fn test_lead_not_member() {
+        let mut users = UsersConfig::default();
+        users.users.insert("richard".to_string(), User::default()); // Not in engineering team
+
+        let mut teams = TeamsConfig::default();
+        teams.teams.insert(
+            "engineering".to_string(),
+            Team {
+                name: "Engineering".to_string(),
+                lead: Some("richard".to_string()),
+                ..Default::default()
+            },
+        );
+
+        let errors = validate_config(&users, &teams);
+        assert!(errors.iter().any(
+            |e| matches!(e, ValidationError::TeamLeadNotMember { team, lead } if team == "engineering" && lead == "richard")
+        ));
+    }
+
+    #[test]
+    fn test_user_in_nonexistent_team() {
+        let mut users = UsersConfig::default();
+        users.users.insert(
+            "richard".to_string(),
+            User {
+                teams: vec!["nonexistent".to_string()],
+                ..Default::default()
+            },
+        );
+
+        let teams = TeamsConfig::default();
+
+        let errors = validate_config(&users, &teams);
+        assert_eq!(errors.len(), 1);
+        assert!(matches!(
+            &errors[0],
+            ValidationError::UserInNonexistentTeam { user, team }
+            if user == "richard" && team == "nonexistent"
+        ));
+    }
+
+    #[test]
+    fn test_secondary_team_no_lead_is_valid() {
+        let mut users = UsersConfig::default();
+        users.users.insert(
+            "richard".to_string(),
+            User {
+                teams: vec!["founders".to_string()],
+                ..Default::default()
+            },
+        );
+
+        let mut teams = TeamsConfig::default();
+        teams.teams.insert(
+            "founders".to_string(),
+            Team {
+                name: "Founders".to_string(),
+                // No lead - this is a secondary/hashtag team
+                ..Default::default()
+            },
+        );
+
+        let errors = validate_config(&users, &teams);
+        assert!(
+            errors.is_empty(),
+            "Secondary teams without leads should be valid"
+        );
     }
 }

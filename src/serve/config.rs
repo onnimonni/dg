@@ -1,6 +1,7 @@
 use crate::models::authors::{AuthorInfo, AuthorsConfig};
 use crate::models::teams::{Team, TeamsConfig};
 use crate::models::users::{User, UsersConfig};
+use crate::models::validation::{validate_config, ValidationError};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -94,6 +95,11 @@ impl DgConfig {
         let content = toml::to_string_pretty(self)?;
         fs::write(&config_path, content)?;
         Ok(())
+    }
+
+    /// Validate config for impossible graphs (circular refs, missing refs, etc.)
+    pub fn validate(&self) -> Vec<ValidationError> {
+        validate_config(&self.users_config(), &self.teams_config())
     }
 }
 

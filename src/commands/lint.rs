@@ -45,9 +45,20 @@ pub fn run(
     let docs_path = Path::new(docs_dir);
     let graph = Graph::load(docs_path)?;
 
+    // Load config and validate if checking users
+    let config = DgConfig::load(docs_path)?;
+    let config_errors: Vec<LintError> = if check_users {
+        config
+            .validate()
+            .into_iter()
+            .map(|e| LintError::new("dg.toml", e))
+            .collect()
+    } else {
+        vec![]
+    };
+
     // Load user/team config if checking users
     let (users_config, teams_config) = if check_users {
-        let config = DgConfig::load(docs_path)?;
         (Some(config.users_config()), Some(config.teams_config()))
     } else {
         (None, None)
@@ -79,11 +90,14 @@ pub fn run(
         }
     };
 
-    let lint_errors = if let Some(file_list) = files {
+    let mut lint_errors = if let Some(file_list) = files {
         lint_files(&graph, docs_path, &file_list, &opts)
     } else {
         lint_all(&graph, &opts)
     };
+
+    // Add config validation errors
+    lint_errors.extend(config_errors);
 
     let (errors, warnings): (Vec<_>, Vec<_>) =
         lint_errors.into_iter().partition(|e| !e.is_warning());

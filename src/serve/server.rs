@@ -13,6 +13,7 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use chrono::{Datelike, NaiveDate, Utc};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use rust_embed::Embed;
 use tower_http::services::ServeDir;
@@ -106,16 +107,25 @@ pub async fn run_server(
         .nest_service("/assets", ServeDir::new(assets_path))
         .with_state(state.clone());
 
+    // Try the specified port first, fall back to random port if unavailable
     let addr = format!("127.0.0.1:{}", port);
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(l) => l,
+        Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+            eprintln!("Port {} is in use, finding available port...", port);
+            tokio::net::TcpListener::bind("127.0.0.1:0").await?
+        }
+        Err(e) => return Err(e.into()),
+    };
 
-    println!("Server running at http://{}", addr);
+    let actual_addr = listener.local_addr()?;
+    println!("Server running at http://{}", actual_addr);
     if watch {
         println!("Watching for file changes...");
     }
 
     if open {
-        let _ = open_browser(&format!("http://{}", addr));
+        let _ = open_browser(&format!("http://{}", actual_addr));
     }
 
     // Start file watcher if enabled
@@ -871,6 +881,23 @@ async fn save_record_handler(
     }
 }
 
+/// Generate deterministic avatar color class based on username
+fn avatar_color_class(username: &str) -> &'static str {
+    // Simple hash based on sum of char codes
+    let hash: usize = username.bytes().map(|b| b as usize).sum();
+    const COLORS: &[&str] = &[
+        "bg-emerald-600",
+        "bg-blue-600",
+        "bg-purple-600",
+        "bg-amber-600",
+        "bg-rose-600",
+        "bg-cyan-600",
+        "bg-indigo-600",
+        "bg-teal-600",
+    ];
+    COLORS[hash % COLORS.len()]
+}
+
 // Users list handler
 async fn users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let env = create_environment();
@@ -880,11 +907,13 @@ async fn users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         .users
         .iter()
         .map(|(username, user)| {
+            let avatar_color = avatar_color_class(username);
             serde_json::json!({
                 "username": username,
                 "name": user.display_name(username),
                 "initials": user.initials(username),
                 "avatar_url": user.avatar(username),
+                "avatar_color": avatar_color,
                 "email": user.email,
                 "teams": user.teams,
                 "roles": user.roles,
@@ -1076,34 +1105,182 @@ async fn user_handler(
 async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let env = create_environment();
 
-    let mut teams: Vec<_> = state
+    // Get current system username to highlight current user
+    let current_username = std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .ok();
+
+    // Find matching user in config (case-insensitive)
+    let current_user_id = current_username.as_ref().and_then(|username| {
+        state
+            .users_config
+            .users
+            .keys()
+            .find(|id| id.to_lowercase() == username.to_lowercase())
+            .cloned()
+    });
+
+    // Get current user's team for "Your Team" badge
+    let current_user_team = current_user_id.as_ref().and_then(|uid| {
+        state
+            .users_config
+            .get(uid)
+            .and_then(|u| u.teams.first().cloned())
+    });
+
+    // Identify secondary teams (teams without leads - shown as hashtags, not hierarchy)
+    let secondary_team_ids: std::collections::HashSet<String> = state
         .teams_config
         .teams
         .iter()
-        .map(|(id, team)| {
-            // Count members
-            let member_count = state
-                .users_config
-                .users
-                .values()
-                .filter(|u| u.teams.contains(id))
-                .count();
-
-            serde_json::json!({
-                "id": id,
-                "name": team.name,
-                "lead": team.lead,
-                "parent": team.parent,
-                "member_count": member_count,
-            })
-        })
+        .filter(|(_, t)| t.lead.is_none())
+        .map(|(id, _)| id.clone())
         .collect();
 
-    teams.sort_by(|a, b| {
+    // Build user data with full info including secondary teams as hashtags
+    let build_user_data = |username: &str, user: &crate::models::users::User| {
+        let is_current = current_user_id
+            .as_ref()
+            .map(|id| id == username)
+            .unwrap_or(false);
+
+        // Get user's secondary teams (teams without leads) for hashtag display
+        let hashtag_teams: Vec<_> = user
+            .teams
+            .iter()
+            .filter(|t| secondary_team_ids.contains(*t))
+            .map(|t| {
+                state
+                    .teams_config
+                    .get(t)
+                    .map(|team| {
+                        serde_json::json!({
+                            "id": t,
+                            "name": team.name,
+                        })
+                    })
+                    .unwrap_or_else(|| serde_json::json!({"id": t, "name": t}))
+            })
+            .collect();
+
+        let avatar_color = avatar_color_class(username);
+        serde_json::json!({
+            "username": username,
+            "name": user.display_name(username),
+            "initials": user.initials(username),
+            "avatar_url": user.avatar(username),
+            "avatar_color": avatar_color,
+            "roles": user.roles,
+            "is_deprecated": user.is_deprecated(),
+            "deprecated_note": user.deprecated_note,
+            "is_current_user": is_current,
+            "hashtag_teams": hashtag_teams,
+        })
+    };
+
+    // Categorize teams by role (only teams WITH leads participate in hierarchy)
+    let core_team_ids = ["founders", "executive", "engineering", "operations"];
+    let stakeholder_team_ids = ["board", "investors", "legal", "competitors"];
+
+    // Build team data with members
+    let build_team_data = |id: &str, team: &crate::models::teams::Team| {
+        let members: Vec<_> = state
+            .users_config
+            .users
+            .iter()
+            .filter(|(_, u)| u.teams.contains(&id.to_string()) && !u.is_deprecated())
+            .map(|(username, user)| build_user_data(username, user))
+            .collect();
+
+        let is_current_user_team = current_user_team.as_ref().map(|t| t == id).unwrap_or(false);
+
+        let lead_is_current = team
+            .lead
+            .as_ref()
+            .and_then(|lead| current_user_id.as_ref().map(|uid| lead == uid))
+            .unwrap_or(false);
+
+        serde_json::json!({
+            "id": id,
+            "name": team.name,
+            "description": team.description,
+            "lead": team.lead,
+            "parent": team.parent,
+            "members": members,
+            "member_count": members.len(),
+            "is_current_user_team": is_current_user_team,
+            "lead_is_current": lead_is_current,
+        })
+    };
+
+    // Core teams (main area) - only teams with leads (primary teams)
+    let mut core_teams: Vec<_> = state
+        .teams_config
+        .teams
+        .iter()
+        .filter(|(id, team)| core_team_ids.contains(&id.as_str()) && team.lead.is_some())
+        .map(|(id, team)| build_team_data(id, team))
+        .collect();
+    core_teams.sort_by(|a, b| {
         let a_name = a["name"].as_str().unwrap_or("");
         let b_name = b["name"].as_str().unwrap_or("");
         a_name.cmp(b_name)
     });
+
+    // Stakeholder teams (sidebar) - show ALL stakeholder teams
+    // These are advisory/external teams - we list users even without leads
+    let mut stakeholder_teams: Vec<_> = state
+        .teams_config
+        .teams
+        .iter()
+        .filter(|(id, _)| stakeholder_team_ids.contains(&id.as_str()))
+        .map(|(id, team)| build_team_data(id, team))
+        .collect();
+    stakeholder_teams.sort_by(|a, b| {
+        let a_name = a["name"].as_str().unwrap_or("");
+        let b_name = b["name"].as_str().unwrap_or("");
+        a_name.cmp(b_name)
+    });
+
+    // Other teams (not in core or stakeholder) - only teams with leads
+    let mut other_teams: Vec<_> = state
+        .teams_config
+        .teams
+        .iter()
+        .filter(|(id, team)| {
+            !core_team_ids.contains(&id.as_str())
+                && !stakeholder_team_ids.contains(&id.as_str())
+                && team.lead.is_some()
+        })
+        .map(|(id, team)| build_team_data(id, team))
+        .collect();
+    other_teams.sort_by(|a, b| {
+        let a_name = a["name"].as_str().unwrap_or("");
+        let b_name = b["name"].as_str().unwrap_or("");
+        a_name.cmp(b_name)
+    });
+
+    // Deprecated users (hidden by default)
+    let mut deprecated_users: Vec<_> = state
+        .users_config
+        .users
+        .iter()
+        .filter(|(_, u)| u.is_deprecated())
+        .map(|(username, user)| build_user_data(username, user))
+        .collect();
+    deprecated_users.sort_by(|a, b| {
+        let a_name = a["name"].as_str().unwrap_or("");
+        let b_name = b["name"].as_str().unwrap_or("");
+        a_name.cmp(b_name)
+    });
+
+    // Total active user count
+    let active_user_count = state
+        .users_config
+        .users
+        .values()
+        .filter(|u| !u.is_deprecated())
+        .count();
 
     match env.get_template("teams.html") {
         Ok(tmpl) => {
@@ -1111,7 +1288,13 @@ async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
                 site => &state.site_config,
                 has_users => state.has_users(),
                 current_page => "teams",
-                teams => teams,
+                core_teams => core_teams,
+                stakeholder_teams => stakeholder_teams,
+                other_teams => other_teams,
+                deprecated_users => deprecated_users,
+                active_user_count => active_user_count,
+                current_user_id => current_user_id,
+                current_user_team => current_user_team,
             }) {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => (
@@ -1322,6 +1505,61 @@ fn type_to_display_name(type_code: &str) -> String {
     }
 }
 
+/// Format date as "Jan 2017"
+fn format_month_year(date_str: &str) -> String {
+    const MONTHS: &[&str] = &[
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        let month = MONTHS.get(date.month0() as usize).unwrap_or(&"???");
+        format!("{} {}", month, date.year())
+    } else {
+        date_str.to_string()
+    }
+}
+
+/// Calculate human-readable duration between two dates or from date to now
+fn format_duration(start_str: &str, end_str: Option<&str>) -> String {
+    let start = match NaiveDate::parse_from_str(start_str, "%Y-%m-%d") {
+        Ok(d) => d,
+        Err(_) => return String::new(),
+    };
+
+    let end = match end_str {
+        Some(s) => match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+            Ok(d) => d,
+            Err(_) => return String::new(),
+        },
+        None => Utc::now().date_naive(),
+    };
+
+    let days = (end - start).num_days();
+    if days < 0 {
+        return String::new();
+    }
+
+    // Convert to appropriate unit
+    if days == 0 {
+        "same day".to_string()
+    } else if days == 1 {
+        "1 day".to_string()
+    } else if days < 7 {
+        format!("{} days", days)
+    } else if days < 14 {
+        "1 week".to_string()
+    } else if days < 30 {
+        format!("{} weeks", days / 7)
+    } else if days < 60 {
+        "1 month".to_string()
+    } else if days < 365 {
+        format!("{} months", days / 30)
+    } else if days < 730 {
+        "1 year".to_string()
+    } else {
+        format!("{} years", days / 365)
+    }
+}
+
 fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
     let type_code = record.record_type().to_string();
@@ -1375,6 +1613,28 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
                 .unwrap_or(&updated_str)
                 .to_string(),
         ),
+    );
+    // Month-year format (e.g., "Jan 2017")
+    map.insert(
+        "created_month_year".to_string(),
+        serde_json::Value::String(format_month_year(&created_str)),
+    );
+    map.insert(
+        "updated_month_year".to_string(),
+        serde_json::Value::String(format_month_year(&updated_str)),
+    );
+    // Duration: time between created and updated (or now if ongoing)
+    let status = record.status().to_string();
+    let is_ongoing = status == "open" || status == "proposed" || status == "draft";
+    let duration = if is_ongoing {
+        format_duration(&created_str, None)
+    } else {
+        format_duration(&created_str, Some(&updated_str))
+    };
+    map.insert("duration".to_string(), serde_json::Value::String(duration));
+    map.insert(
+        "is_ongoing".to_string(),
+        serde_json::Value::Bool(is_ongoing),
     );
     map.insert(
         "core".to_string(),
