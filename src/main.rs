@@ -49,6 +49,10 @@ enum Commands {
         /// Use temporary draft ID (for multi-player mode, finalize before merging)
         #[arg(long)]
         draft: bool,
+
+        /// Template variables (can be repeated): --var key=value
+        #[arg(long = "var", value_name = "KEY=VALUE")]
+        vars: Vec<String>,
     },
 
     /// Finalize draft records by converting temporary IDs to permanent ones
@@ -622,7 +626,8 @@ fn main() -> Result<()> {
             record_type,
             title,
             draft,
-        } => commands::new::run(&cli.docs_dir, &record_type, &title, draft),
+            vars,
+        } => commands::new::run(&cli.docs_dir, &record_type, &title, draft, vars),
         Commands::Finalize { dry_run } => commands::finalize::run(&cli.docs_dir, dry_run),
         Commands::List {
             r#type,
