@@ -200,18 +200,9 @@ async fn index_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let graph = state.graph.read().await;
     let env = create_environment();
 
-    // Sort records: core first, then by updated date (newest first)
+    // Sort records by updated date (newest first)
     let mut records: Vec<_> = graph.all_records().collect();
-    records.sort_by(|a, b| {
-        // Foundational records first
-        let a_core = a.frontmatter.core;
-        let b_core = b.frontmatter.core;
-        if a_core != b_core {
-            return b_core.cmp(&a_core);
-        }
-        // Then by updated date (newest first)
-        b.frontmatter.updated.cmp(&a.frontmatter.updated)
-    });
+    records.sort_by(|a, b| b.frontmatter.updated.cmp(&a.frontmatter.updated));
 
     let records_data: Vec<_> = records.iter().map(|r| record_to_json(r)).collect();
 

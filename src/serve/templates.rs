@@ -250,7 +250,7 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
             <svg id="viewIconCards" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
             <svg id="viewIconTable" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
         </button>
-        <button id="sort" class="btn btn-sm btn-outline" title="Core First">★</button>
+        <button id="sort" class="btn btn-sm btn-outline" title="Newest First">↓</button>
     </div>
 </div>
 
@@ -327,7 +327,7 @@ const viewIconTable = document.getElementById('viewIconTable');
 let activeType = 'all';
 let activeStatus = 'all';
 let activeTag = '';
-let sortMode = 'default'; // default -> newest -> oldest -> default
+let sortMode = 'newest'; // newest -> oldest -> core -> newest
 let viewMode = localStorage.getItem('dg-view-mode') || 'cards';
 
 // View toggle
@@ -359,9 +359,9 @@ document.querySelectorAll('.table-row').forEach(row => {
 });
 
 const sortModes = {
-    default: { next: 'newest', icon: '★', title: 'Core First' },
     newest: { next: 'oldest', icon: '↓', title: 'Newest First' },
-    oldest: { next: 'default', icon: '↑', title: 'Oldest First' }
+    oldest: { next: 'core', icon: '↑', title: 'Oldest First' },
+    core: { next: 'newest', icon: '★', title: 'Core First' }
 };
 
 // Tag filter UI
@@ -391,7 +391,7 @@ function updateUrl() {
     if (activeType !== 'all') params.set('type', activeType);
     if (activeStatus !== 'all') params.set('status', activeStatus);
     if (activeTag) params.set('tag', activeTag);
-    if (sortMode !== 'default') params.set('sort', sortMode);
+    if (sortMode !== 'newest') params.set('sort', sortMode);
     const url = params.toString() ? '?' + params.toString() : '/';
     history.replaceState(null, '', url);
 }
@@ -467,15 +467,15 @@ function filterRecords() {
 
 function sortRecords() {
     const sortFn = (a, b) => {
-        if (sortMode === 'default') {
+        if (sortMode === 'newest') {
+            return b.dataset.created.localeCompare(a.dataset.created);
+        } else if (sortMode === 'oldest') {
+            return a.dataset.created.localeCompare(b.dataset.created);
+        } else { // core
             const aF = a.dataset.core === 'true';
             const bF = b.dataset.core === 'true';
             if (aF !== bF) return bF - aF;
             return b.dataset.created.localeCompare(a.dataset.created);
-        } else if (sortMode === 'newest') {
-            return b.dataset.created.localeCompare(a.dataset.created);
-        } else {
-            return a.dataset.created.localeCompare(b.dataset.created);
         }
     };
     // Sort cards
@@ -820,6 +820,21 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         tocCollapsed = !tocCollapsed;
         tocList.style.display = tocCollapsed ? 'none' : 'block';
         tocChevron.style.transform = tocCollapsed ? 'rotate(-90deg)' : 'rotate(0)';
+    });
+
+    // Mark Pros/Cons lists with appropriate classes
+    content.querySelectorAll('p').forEach(p => {
+        const strong = p.querySelector('strong:only-child');
+        if (!strong) return;
+        const text = strong.textContent.trim().toLowerCase();
+        const nextEl = p.nextElementSibling;
+        if (nextEl && nextEl.tagName === 'UL') {
+            if (text.includes('pros')) {
+                nextEl.classList.add('pros-list');
+            } else if (text.includes('cons')) {
+                nextEl.classList.add('cons-list');
+            }
+        }
     });
 })();
 </script>

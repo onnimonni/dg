@@ -149,5 +149,22 @@
 .preview-status.proposed { background: #FF9800; color: #000; }
 .preview-status.resolved { background: #3498db; }
 
+/* Pros/Cons list styling */
+.pros-list, .cons-list { list-style: none !important; padding-left: 1.5rem !important; }
+.pros-list li::before {
+    content: "+";
+    color: #22c55e;
+    font-weight: bold;
+    margin-left: -1rem;
+    margin-right: 0.5rem;
+}
+.cons-list li::before {
+    content: "−";
+    color: #ef4444;
+    font-weight: bold;
+    margin-left: -1rem;
+    margin-right: 0.5rem;
+}
+
 /* TOC styling */
 #toc-list, #toc-list ul { list-style: none; padding-left: 0; margin-left: 0; }
