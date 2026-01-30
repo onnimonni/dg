@@ -292,6 +292,10 @@ enum Commands {
         /// Output directory (default: docs/_site)
         #[arg(short, long)]
         output: Option<String>,
+
+        /// Base URL for links (e.g., /docs for GitHub Pages subdirectory)
+        #[arg(long)]
+        base_url: Option<String>,
     },
 
     /// Generate changelog from records
@@ -704,7 +708,9 @@ fn main() -> Result<()> {
             depth,
             format,
         } => commands::context::run(&cli.docs_dir, &topic, depth, &format),
-        Commands::Build { output } => commands::build::run(&cli.docs_dir, output.as_deref()),
+        Commands::Build { output, base_url } => {
+            commands::build::run(&cli.docs_dir, output.as_deref(), base_url.as_deref())
+        }
         Commands::Changelog {
             since,
             r#type,

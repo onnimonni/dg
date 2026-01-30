@@ -285,6 +285,7 @@ async fn record_handler(
         serde_json::Value::String(markdown_to_html_with_mentions(
             &record.content,
             &state.valid_mentions,
+            "",
         )),
     );
 
@@ -613,7 +614,7 @@ async fn api_render(
         }
     };
 
-    let html = markdown_to_html_with_mentions(markdown, &state.valid_mentions);
+    let html = markdown_to_html_with_mentions(markdown, &state.valid_mentions, "");
     Json(serde_json::json!({ "html": html })).into_response()
 }
 
