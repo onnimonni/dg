@@ -918,9 +918,21 @@ impl ComparisonType {
 
     fn styles(&self) -> (&'static str, &'static str, &'static str) {
         match self {
-            Self::Positive => ("border-emerald-500/50", "bg-emerald-500/5", "✓"),
-            Self::Negative => ("border-red-500/50", "bg-red-500/5", "✗"),
-            Self::Neutral => ("border-slate-500/50", "bg-slate-500/5", "○"),
+            Self::Positive => (
+                "border-emerald-600",
+                "bg-emerald-950",
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-emerald-500 shrink-0"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" /></svg>"#,
+            ),
+            Self::Negative => (
+                "border-red-600",
+                "bg-red-950",
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-red-500 shrink-0"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>"#,
+            ),
+            Self::Neutral => (
+                "border-sky-600",
+                "bg-sky-950",
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-sky-500 shrink-0"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" /></svg>"#,
+            ),
         }
     }
 }
@@ -976,9 +988,9 @@ fn style_comparison_sections<'a>(parser: Parser<'a>) -> Vec<Event<'a>> {
                     }
                     h3_events.reverse();
 
-                    // Insert wrapper div start
+                    // Insert wrapper div start with SVG icon
                     events.push(Event::Html(CowStr::from(format!(
-                        r#"<div class="comparison-section my-4 p-4 rounded-lg border-l-4 {} {}"><div class="flex items-center gap-2 text-base font-semibold mb-3"><span class="text-lg">{}</span>"#,
+                        r#"<div class="comparison-section my-6 p-5 rounded-lg border-l-4 {} {}"><div class="flex items-center gap-3 text-base font-semibold mb-4">{}"#,
                         border, bg, icon
                     ))));
 
