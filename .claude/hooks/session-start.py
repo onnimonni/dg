@@ -46,7 +46,7 @@ def main():
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", ".")
 
     # Check if decision graph is initialized
-    decisions_dir = os.path.join(project_dir, "docs", ".decisions")
+    decisions_dir = os.path.join(project_dir, "docs", "decisions")
     if not os.path.isdir(decisions_dir):
         # No decision graph - nothing to remind about
         print(json.dumps({"continue": True}))

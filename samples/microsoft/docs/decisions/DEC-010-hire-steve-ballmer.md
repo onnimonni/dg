@@ -5,7 +5,7 @@ title: Hire Steve Ballmer as First Business Manager
 status: accepted
 created: 1980-06-11
 updated: 1980-06-11
-authors: [billg]
+authors: [bg]
 tags: [founding-team, hiring, leadership]
 links:
   supersedes: []

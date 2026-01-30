@@ -738,7 +738,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
     <!-- Footer -->
     <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500 font-mono">
         <span>{{ record.id }}</span>
-        {% if record.resolved_authors %}<span>Authors: {% for a in record.resolved_authors %}{{ a.initials }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% elif record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
+        {% if record.resolved_authors %}<span>Authors: {% for a in record.resolved_authors %}{{ a.name }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% elif record.authors %}<span>Authors: {{ record.authors | join(", ") }}</span>{% endif %}
     </div>
 </div>
 {% endblock %}

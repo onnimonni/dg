@@ -9,9 +9,9 @@ pub fn run(docs_dir: &str, base_ref: Option<&str>) -> Result<()> {
     let base = base_ref.unwrap_or("HEAD");
 
     // Get the decisions directory relative path
-    let decisions_dir = docs_path.join(".decisions");
+    let decisions_dir = docs_path.join("decisions");
     if !decisions_dir.exists() {
-        bail!("No .decisions directory found");
+        bail!("No decisions directory found");
     }
 
     // Get list of changed files from git
@@ -141,7 +141,7 @@ pub fn run(docs_dir: &str, base_ref: Option<&str>) -> Result<()> {
 }
 
 fn extract_record_id(path: &str) -> String {
-    // Extract ID from path like "docs/.decisions/DEC-001-some-title.md"
+    // Extract ID from path like "docs/decisions/DEC-001-some-title.md"
     Path::new(path)
         .file_stem()
         .and_then(|s| s.to_str())

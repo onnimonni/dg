@@ -18,8 +18,12 @@ use rust_embed::Embed;
 use tower_http::services::ServeDir;
 
 // Embed static assets (KaTeX CSS, JS, fonts) for offline support
+// Excludes build-time tools (tailwindcss binary, daisyui.mjs)
 #[derive(Embed)]
 #[folder = "src/serve/static/"]
+#[exclude = "tailwindcss"]
+#[exclude = "daisyui*.mjs"]
+#[exclude = "input.css"]
 struct StaticAssets;
 use minijinja::context;
 use std::collections::HashMap;
@@ -149,8 +153,8 @@ async fn run_file_watcher(docs_dir: PathBuf, state: Arc<AppState>) -> Result<()>
         Config::default().with_poll_interval(Duration::from_secs(1)),
     )?;
 
-    // Watch the .decisions directory
-    let decisions_dir = docs_dir.join(".decisions");
+    // Watch the decisions directory
+    let decisions_dir = docs_dir.join("decisions");
     if decisions_dir.exists() {
         watcher.watch(&decisions_dir, RecursiveMode::Recursive)?;
     }
@@ -322,18 +326,27 @@ async fn record_handler(
         .iter()
         .map(|username| {
             let base = state.authors_config.resolve(username);
-            // Check if we have user config with team info
-            let teams: Vec<String> = state
-                .users_config
-                .get(username)
-                .map(|u| u.teams.clone())
-                .unwrap_or_default();
+            // Check if we have user config - prefer user name/email over authors config
+            let user = state.users_config.get(username);
+            let name = user
+                .map(|u| u.display_name(username))
+                .unwrap_or_else(|| base.name.clone());
+            let email = user
+                .and_then(|u| u.email.clone())
+                .or_else(|| base.email.clone());
+            let teams: Vec<String> = user.map(|u| u.teams.clone()).unwrap_or_default();
+            let avatar_url = user
+                .map(|u| u.avatar(username))
+                .unwrap_or_else(|| base.avatar_url.clone());
+            let initials = user
+                .map(|u| u.initials(username))
+                .unwrap_or_else(|| base.initials.clone());
             serde_json::json!({
                 "username": username,
-                "name": base.name,
-                "email": base.email,
-                "avatar_url": base.avatar_url,
-                "initials": base.initials,
+                "name": name,
+                "email": email,
+                "avatar_url": avatar_url,
+                "initials": initials,
                 "teams": teams,
             })
         })
@@ -1246,6 +1259,7 @@ fn type_to_display_name(type_code: &str) -> String {
         "RUN" => "Runbook".to_string(),
         "MTG" => "Meeting".to_string(),
         "FBK" => "Feedback".to_string(),
+        "LEG" => "Legal".to_string(),
         other => other.to_string(),
     }
 }

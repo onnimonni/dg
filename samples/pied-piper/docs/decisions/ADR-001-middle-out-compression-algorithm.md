@@ -35,6 +35,46 @@ Implement bidirectional "Middle-Out" compression that starts from the statistica
 
 ### The Middle-Out Heuristic
 
+```d2
+direction: right
+
+input: Raw Data Block {
+  shape: document
+}
+
+center: Statistical Center {
+  shape: diamond
+  style.fill: "#4CAF50"
+}
+
+forward: Forward Stream {
+  shape: hexagon
+  style.fill: "#2196F3"
+}
+
+backward: Backward Stream {
+  shape: hexagon
+  style.fill: "#FF9800"
+}
+
+cross: Cross-Reference {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+output: Compressed Output {
+  shape: document
+  style.fill: "#4CAF50"
+}
+
+input -> center: Find center
+center -> forward: center → end
+center -> backward: center → start
+forward -> cross: Redundancies
+backward -> cross: Redundancies
+cross -> output: Merge with shared dictionary
+```
+
 ```
 Algorithm: Middle-Out Compression
 1. Analyze data block to find statistical center

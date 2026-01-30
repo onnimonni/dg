@@ -208,7 +208,7 @@ enum Commands {
         #[arg(short, long)]
         check: bool,
 
-        /// Specific files to format (default: all files in .decisions)
+        /// Specific files to format (default: all files in decisions)
         #[arg(value_name = "FILES")]
         files: Option<Vec<String>>,
     },

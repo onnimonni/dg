@@ -116,13 +116,13 @@ fn lint_files(
     opts: &ValidationOptions,
 ) -> Vec<LintError> {
     let mut errors = Vec::new();
-    let decisions_dir = docs_path.join(".decisions");
+    let decisions_dir = docs_path.join("decisions");
 
     for file_path in files {
         let path = Path::new(file_path);
 
         // Skip non-decision files
-        if !file_path.contains(".decisions") && !path.starts_with(&decisions_dir) {
+        if !file_path.contains("decisions") && !path.starts_with(&decisions_dir) {
             continue;
         }
 
@@ -163,7 +163,7 @@ pub fn lint_new_files(_graph: &Graph, new_files: &[String], _docs_path: &Path) -
     for file_path in new_files {
         let path = Path::new(file_path);
 
-        if !file_path.contains(".decisions") {
+        if !file_path.contains("decisions") {
             continue;
         }
 

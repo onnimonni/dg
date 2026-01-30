@@ -53,7 +53,7 @@ in
 
     # Initialize dg if not already done
     enterShell = ''
-      if command -v dg &> /dev/null && [ ! -d "docs/.decisions" ]; then
+      if command -v dg &> /dev/null && [ ! -d "docs/decisions" ]; then
         echo "Initializing Decision Graph..."
         dg init 2>/dev/null || true
       fi
@@ -69,7 +69,7 @@ in
             dg lint 2>/dev/null || true
           fi
         ''}";
-        files = "\\.decisions/.*\\.md$";
+        files = "\\decisions/.*\\.md$";
         pass_filenames = false;
       };
     };

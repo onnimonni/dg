@@ -90,7 +90,7 @@ struct IndexStats {
 
 impl Graph {
     pub fn load(docs_dir: &Path) -> Result<Graph> {
-        let decisions_dir = docs_dir.join(".decisions");
+        let decisions_dir = docs_dir.join("decisions");
         let mut records = HashMap::new();
         let mut edges = Vec::new();
 
@@ -337,6 +337,8 @@ impl Graph {
             ("INC", "#F44336"),
             ("RUN", "#8BC34A"),
             ("MTG", "#03A9F4"),
+            ("FBK", "#FF5722"),
+            ("LEG", "#546E7A"),
         ];
 
         for record in self.records.values() {

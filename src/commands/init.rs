@@ -6,7 +6,7 @@ use std::path::Path;
 
 pub fn run(docs_dir: &str) -> Result<()> {
     let docs_path = Path::new(docs_dir);
-    let decisions_path = docs_path.join(".decisions");
+    let decisions_path = docs_path.join("decisions");
     let templates_path = docs_path.join(".templates");
 
     // Create directories

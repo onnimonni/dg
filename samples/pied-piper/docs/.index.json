@@ -1,54 +1,276 @@
 {
-  "generated": "2026-01-28T18:43:23.013778+02:00",
+  "generated": "2026-01-29T21:42:03.198856+02:00",
   "records": [
     {
-      "id": "PRC-001",
-      "title": "Board Governance and Voting",
-      "type": "PRC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/PRC-001-board-governance-and-voting.md"
+      "id": "ADR-003",
+      "title": "The Box Hardware Appliance",
+      "type": "ADR",
+      "status": "deprecated",
+      "tags": [
+        "architecture",
+        "enterprise",
+        "hardware",
+        "pivot"
+      ],
+      "links": [
+        {
+          "type": "superseded_by",
+          "target": "ADR-004"
+        },
+        {
+          "type": "depends_on",
+          "target": "ADR-001"
+        }
+      ],
+      "path": "decisions/ADR-003-the-box-hardware-appliance.md"
     },
     {
-      "id": "DEC-004",
-      "title": "Accept Russ Hanneman Bridge Funding",
-      "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-004-accept-russ-hanneman-bridge-funding.md"
+      "id": "INC-001",
+      "title": "Hooli Intellectual Property Lawsuit",
+      "type": "INC",
+      "status": "resolved",
+      "tags": [
+        "critical",
+        "hooli",
+        "ip",
+        "legal"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "DEC-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-001"
+        }
+      ],
+      "path": "decisions/INC-001-hooli-intellectual-property-lawsuit.md"
     },
     {
       "id": "STR-001",
       "title": "Pivot from B2C Music App to B2B Infrastructure",
       "type": "STR",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/STR-001-pivot-from-b2c-music-app-to-b2b-infrastructure.md"
-    },
-    {
-      "id": "DEC-002",
-      "title": "Anti-Hooli Corporate Principle",
-      "type": "DEC",
       "status": "accepted",
       "tags": [
-        "culture",
-        "ethics",
-        "foundational"
+        "b2b",
+        "compression",
+        "pivot",
+        "strategy"
       ],
       "links": [
         {
           "type": "enables",
-          "target": "DEC-003"
+          "target": "ADR-002"
         },
         {
           "type": "enables",
+          "target": "ADR-003"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-004"
+        }
+      ],
+      "path": "decisions/STR-001-pivot-from-b2c-music-app-to-b2b-infrastructure.md"
+    },
+    {
+      "id": "INC-003",
+      "title": "51 Percent Attack on PiperNet",
+      "type": "INC",
+      "status": "resolved",
+      "tags": [
+        "attack",
+        "blockchain",
+        "pipernet",
+        "security"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-005"
+        }
+      ],
+      "path": "decisions/INC-003-51-percent-attack-on-pipernet.md"
+    },
+    {
+      "id": "POL-001",
+      "title": "Tethics Framework",
+      "type": "POL",
+      "status": "accepted",
+      "tags": [
+        "culture",
+        "ethics",
+        "foundational",
+        "policy"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        },
+        {
+          "type": "enables",
+          "target": "DEC-005"
+        },
+        {
+          "type": "refines",
+          "target": "DEC-002"
+        }
+      ],
+      "path": "decisions/POL-001-tethics-framework.md"
+    },
+    {
+      "id": "DEC-003",
+      "title": "Data Privacy First - No Ad Mining",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "business-model",
+        "ethics",
+        "privacy"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "ADR-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "STR-001"
+        },
+        {
+          "type": "relates_to",
           "target": "POL-001"
         }
       ],
-      "path": ".decisions/DEC-002-anti-hooli-corporate-principle.md"
+      "path": "decisions/DEC-003-data-privacy-first---no-ad-mining.md"
+    },
+    {
+      "id": "DEC-001",
+      "title": "Accept Peter Gregory Seed Funding",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "funding",
+        "investment",
+        "seed"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "STR-001"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-004"
+        }
+      ],
+      "path": "decisions/DEC-001-accept-peter-gregory-seed-funding.md"
+    },
+    {
+      "id": "ADR-001",
+      "title": "Middle-Out Compression Algorithm",
+      "type": "ADR",
+      "status": "accepted",
+      "tags": [
+        "algorithm",
+        "compression",
+        "core-tech",
+        "foundational"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-002"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-003"
+        },
+        {
+          "type": "enables",
+          "target": "ADR-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "INC-001"
+        }
+      ],
+      "path": "decisions/ADR-001-middle-out-compression-algorithm.md"
+    },
+    {
+      "id": "ADR-005",
+      "title": "PiedPiperCoin Tokenomics",
+      "type": "ADR",
+      "status": "deprecated",
+      "tags": [
+        "architecture",
+        "blockchain",
+        "pipernet",
+        "tokenomics"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "ADR-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "INC-003"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-005"
+        }
+      ],
+      "path": "decisions/ADR-005-piedpipercoin-tokenomics.md"
+    },
+    {
+      "id": "RUN-001",
+      "title": "Deploying Middle-Out Compression",
+      "type": "RUN",
+      "status": "accepted",
+      "tags": [
+        "api",
+        "compression",
+        "deployment"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "ADR-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-002"
+        },
+        {
+          "type": "implements",
+          "target": "ADR-001"
+        }
+      ],
+      "path": "decisions/RUN-001-deploying-middle-out-compression.md"
     },
     {
       "id": "DEC-005",
@@ -87,27 +309,108 @@
           "target": "POL-001"
         }
       ],
-      "path": ".decisions/DEC-005-sabotage-pipernet-launch-to-save-the-world.md"
+      "path": "decisions/DEC-005-sabotage-pipernet-launch-to-save-the-world.md"
     },
     {
-      "id": "RUN-001",
-      "title": "Deploying Middle-Out Compression",
+      "id": "RUN-002",
+      "title": "PiperNet Node Operation",
+      "type": "RUN",
+      "status": "deprecated",
+      "tags": [
+        "decentralized",
+        "node",
+        "operation",
+        "pipernet"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "ADR-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "ADR-005"
+        },
+        {
+          "type": "relates_to",
+          "target": "INC-003"
+        },
+        {
+          "type": "implements",
+          "target": "ADR-004"
+        }
+      ],
+      "path": "decisions/RUN-002-pipernet-node-operation.md"
+    },
+    {
+      "id": "PRC-001",
+      "title": "Board Governance and Voting",
+      "type": "PRC",
+      "status": "accepted",
+      "tags": [
+        "board",
+        "governance",
+        "voting"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-001"
+        },
+        {
+          "type": "depends_on",
+          "target": "DEC-004"
+        },
+        {
+          "type": "relates_to",
+          "target": "DEC-005"
+        }
+      ],
+      "path": "decisions/PRC-001-board-governance-and-voting.md"
+    },
+    {
+      "id": "DEC-004",
+      "title": "Accept Russ Hanneman Bridge Funding",
+      "type": "DEC",
+      "status": "accepted",
+      "tags": [
+        "bridge",
+        "funding",
+        "investment"
+      ],
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-001"
+        },
+        {
+          "type": "relates_to",
+          "target": "STR-001"
+        }
+      ],
+      "path": "decisions/DEC-004-accept-russ-hanneman-bridge-funding.md"
+    },
+    {
+      "id": "RUN-003",
+      "title": "New Employee Onboarding Guide",
       "type": "RUN",
       "status": "accepted",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/RUN-001-deploying-middle-out-compression.md"
-    },
-    {
-      "id": "ADR-005",
-      "title": "PiedPiperCoin Tokenomics",
-      "type": "ADR",
-      "status": "proposed",
       "tags": [
-        "architecture"
+        "culture",
+        "documentation",
+        "onboarding"
       ],
-      "links": [],
-      "path": ".decisions/ADR-005-piedpipercoin-tokenomics.md"
+      "links": [
+        {
+          "type": "depends_on",
+          "target": "DEC-002"
+        },
+        {
+          "type": "depends_on",
+          "target": "POL-001"
+        }
+      ],
+      "path": "decisions/RUN-003-new-employee-onboarding-guide.md"
     },
     {
       "id": "ADR-004",
@@ -158,203 +461,106 @@
           "target": "DEC-002"
         }
       ],
-      "path": ".decisions/ADR-004-pipernet-decentralized-architecture.md"
+      "path": "decisions/ADR-004-pipernet-decentralized-architecture.md"
     },
     {
-      "id": "INC-002",
-      "title": "COPPA Violation PiperChat",
-      "type": "INC",
-      "status": "open",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/INC-002-coppa-violation-piperchat.md"
-    },
-    {
-      "id": "INC-003",
-      "title": "51 Percent Attack on PiperNet",
-      "type": "INC",
-      "status": "open",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/INC-003-51-percent-attack-on-pipernet.md"
-    },
-    {
-      "id": "POL-001",
-      "title": "Tethics Framework",
-      "type": "POL",
+      "id": "DEC-002",
+      "title": "Anti-Hooli Corporate Principle",
+      "type": "DEC",
       "status": "accepted",
       "tags": [
         "culture",
         "ethics",
-        "foundational",
-        "policy"
+        "foundational"
       ],
       "links": [
         {
-          "type": "depends_on",
-          "target": "DEC-002"
+          "type": "enables",
+          "target": "DEC-003"
         },
         {
           "type": "enables",
-          "target": "DEC-005"
-        },
-        {
-          "type": "refines",
-          "target": "DEC-002"
-        }
-      ],
-      "path": ".decisions/POL-001-tethics-framework.md"
-    },
-    {
-      "id": "RUN-002",
-      "title": "PiperNet Node Operation",
-      "type": "RUN",
-      "status": "accepted",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/RUN-002-pipernet-node-operation.md"
-    },
-    {
-      "id": "RUN-003",
-      "title": "New Employee Onboarding Guide",
-      "type": "RUN",
-      "status": "accepted",
-      "tags": [
-        "culture",
-        "documentation",
-        "onboarding"
-      ],
-      "links": [
-        {
-          "type": "depends_on",
-          "target": "DEC-002"
-        },
-        {
-          "type": "depends_on",
           "target": "POL-001"
         }
       ],
-      "path": ".decisions/RUN-003-new-employee-onboarding-guide.md"
+      "path": "decisions/DEC-002-anti-hooli-corporate-principle.md"
     },
     {
       "id": "ADR-002",
       "title": "Enterprise Platform Architecture",
       "type": "ADR",
-      "status": "proposed",
+      "status": "superseded",
       "tags": [
-        "architecture"
+        "architecture",
+        "b2b",
+        "enterprise",
+        "scalability"
       ],
       "links": [
+        {
+          "type": "superseded_by",
+          "target": "ADR-004"
+        },
+        {
+          "type": "depends_on",
+          "target": "ADR-001"
+        },
         {
           "type": "implements",
           "target": "STR-001"
         }
       ],
-      "path": ".decisions/ADR-002-enterprise-platform-architecture.md"
-    },
-    {
-      "id": "INC-001",
-      "title": "Hooli Intellectual Property Lawsuit",
-      "type": "INC",
-      "status": "resolved",
-      "tags": [
-        "critical",
-        "hooli",
-        "ip",
-        "legal"
-      ],
-      "links": [
-        {
-          "type": "enables",
-          "target": "DEC-004"
-        },
-        {
-          "type": "relates_to",
-          "target": "ADR-001"
-        },
-        {
-          "type": "relates_to",
-          "target": "DEC-001"
-        }
-      ],
-      "path": ".decisions/INC-001-hooli-intellectual-property-lawsuit.md"
-    },
-    {
-      "id": "DEC-001",
-      "title": "Accept Peter Gregory Seed Funding",
-      "type": "DEC",
-      "status": "accepted",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-001-accept-peter-gregory-seed-funding.md"
-    },
-    {
-      "id": "DEC-003",
-      "title": "Data Privacy First - No Ad Mining",
-      "type": "DEC",
-      "status": "proposed",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/DEC-003-data-privacy-first---no-ad-mining.md"
-    },
-    {
-      "id": "ADR-003",
-      "title": "The Box Hardware Appliance",
-      "type": "ADR",
-      "status": "proposed",
-      "tags": [
-        "architecture"
-      ],
-      "links": [],
-      "path": ".decisions/ADR-003-the-box-hardware-appliance.md"
+      "path": "decisions/ADR-002-enterprise-platform-architecture.md"
     },
     {
       "id": "INC-004",
       "title": "AI Encryption Paradox Discovery",
       "type": "INC",
-      "status": "open",
-      "tags": [],
-      "links": [],
-      "path": ".decisions/INC-004-ai-encryption-paradox-discovery.md"
-    },
-    {
-      "id": "ADR-001",
-      "title": "Middle-Out Compression Algorithm",
-      "type": "ADR",
-      "status": "accepted",
+      "status": "resolved",
       "tags": [
-        "algorithm",
-        "compression",
-        "core-tech",
-        "foundational"
+        "ai",
+        "encryption",
+        "existential",
+        "pipernet"
       ],
       "links": [
         {
-          "type": "depends_on",
-          "target": "DEC-002"
+          "type": "enables",
+          "target": "DEC-005"
         },
         {
-          "type": "enables",
-          "target": "ADR-002"
-        },
-        {
-          "type": "enables",
-          "target": "ADR-003"
-        },
-        {
-          "type": "enables",
+          "type": "relates_to",
           "target": "ADR-004"
         },
         {
           "type": "relates_to",
-          "target": "INC-001"
+          "target": "INC-003"
         }
       ],
-      "path": ".decisions/ADR-001-middle-out-compression-algorithm.md"
+      "path": "decisions/INC-004-ai-encryption-paradox-discovery.md"
+    },
+    {
+      "id": "INC-002",
+      "title": "COPPA Violation PiperChat",
+      "type": "INC",
+      "status": "resolved",
+      "tags": [
+        "children",
+        "compliance",
+        "legal",
+        "piperchat"
+      ],
+      "links": [
+        {
+          "type": "enables",
+          "target": "POL-001"
+        }
+      ],
+      "path": "decisions/INC-002-coppa-violation-piperchat.md"
     }
   ],
   "stats": {
     "total": 20,
-    "edges": 30
+    "edges": 66
   }
 }

@@ -41,7 +41,7 @@ fn test_init_creates_directories() {
         .success()
         .stdout(predicate::str::contains("Decision Graph initialized"));
 
-    assert!(docs_dir.join(".decisions").exists());
+    assert!(docs_dir.join("decisions").exists());
     assert!(docs_dir.join(".templates").exists());
     assert!(docs_dir.join(".templates/decision.md").exists());
     assert!(docs_dir.join(".templates/adr.md").exists());
@@ -69,7 +69,7 @@ fn test_new_decision() {
         .success()
         .stdout(predicate::str::contains("DEC-001"));
 
-    let file = temp.path().join("docs/.decisions/DEC-001-test-decision.md");
+    let file = temp.path().join("docs/decisions/DEC-001-test-decision.md");
     assert!(file.exists());
 
     let content = fs::read_to_string(&file).unwrap();
@@ -88,9 +88,7 @@ fn test_new_adr() {
         .success()
         .stdout(predicate::str::contains("ADR-001"));
 
-    let file = temp
-        .path()
-        .join("docs/.decisions/ADR-001-use-postgresql.md");
+    let file = temp.path().join("docs/decisions/ADR-001-use-postgresql.md");
     assert!(file.exists());
 }
 
@@ -129,7 +127,7 @@ fn test_new_with_special_characters_in_title() {
 
     let file = temp
         .path()
-        .join("docs/.decisions/ADR-001-adr-use-redis-for-caching.md");
+        .join("docs/decisions/ADR-001-adr-use-redis-for-caching.md");
     assert!(file.exists());
 
     let content = fs::read_to_string(&file).unwrap();
@@ -265,7 +263,7 @@ fn test_link_records() {
         .stdout(predicate::str::contains("Linked"));
 
     // Verify link exists in file
-    let file = temp.path().join("docs/.decisions/DEC-001-decision.md");
+    let file = temp.path().join("docs/decisions/DEC-001-decision.md");
     let content = fs::read_to_string(&file).unwrap();
     assert!(content.contains("STR-001"));
 }
@@ -290,7 +288,7 @@ fn test_link_supersedes_creates_inverse() {
         .stdout(predicate::str::contains("inverse"));
 
     // Check DEC-001 has superseded_by
-    let file = temp.path().join("docs/.decisions/DEC-001-old.md");
+    let file = temp.path().join("docs/decisions/DEC-001-old.md");
     let content = fs::read_to_string(&file).unwrap();
     assert!(content.contains("superseded_by"));
     assert!(content.contains("DEC-002"));
@@ -356,7 +354,7 @@ fn test_unlink_records() {
         .stdout(predicate::str::contains("Unlinked"));
 
     // Verify link removed
-    let file = temp.path().join("docs/.decisions/DEC-001-a.md");
+    let file = temp.path().join("docs/decisions/DEC-001-a.md");
     let content = fs::read_to_string(&file).unwrap();
     assert!(!content.contains("DEC-002") || content.contains("relates_to: []"));
 }
@@ -421,7 +419,7 @@ fn test_status_update() {
         .success();
 
     // Verify status changed
-    let file = temp.path().join("docs/.decisions/DEC-001-test.md");
+    let file = temp.path().join("docs/decisions/DEC-001-test.md");
     let content = fs::read_to_string(&file).unwrap();
     assert!(content.contains("status: accepted"));
 }
@@ -456,7 +454,7 @@ fn test_validate_broken_link() {
         .success();
 
     // Manually add broken link
-    let file = temp.path().join("docs/.decisions/DEC-001-test.md");
+    let file = temp.path().join("docs/decisions/DEC-001-test.md");
     let content = fs::read_to_string(&file).unwrap();
     let modified = content.replace("depends_on: []", "depends_on: [NONEXISTENT-001]");
     fs::write(&file, modified).unwrap();

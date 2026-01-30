@@ -5,7 +5,7 @@ title: Publish 'Open Letter to Hobbyists'
 status: accepted
 created: 1976-02-03
 updated: 1976-02-03
-authors: [billg]
+authors: [bg]
 tags: [business-model, strategy]
 links:
   supersedes: []

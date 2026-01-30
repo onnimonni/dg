@@ -5,7 +5,7 @@ title: Bundle IE Free with Windows
 status: accepted
 created: 1995-12-07
 updated: 1995-12-07
-authors: [allard, billg]
+authors: [allard, bg]
 tags: [antitrust, browser, bundling, internet, strategy]
 links:
   supersedes: []

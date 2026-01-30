@@ -123,7 +123,7 @@ dg lint --strict             # Require tags and meaningful content
 
 ## File Format
 
-Records are stored in `docs/.decisions/` as markdown with YAML frontmatter:
+Records are stored in `docs/decisions/` as markdown with YAML frontmatter:
 
 ```markdown
 ---
@@ -284,7 +284,7 @@ dg graph DEC-005 -d 4  # Shows full chain from ADR back to strategy
 
 ```
 docs/
-├── .decisions/
+├── decisions/
 │   ├── DEC-001-expand-to-france.md
 │   ├── STR-001-european-market-strategy.md
 │   ├── CUS-001-acme-corp.md

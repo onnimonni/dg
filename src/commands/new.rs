@@ -19,7 +19,7 @@ pub fn is_draft_id(id: &str) -> bool {
 
 pub fn run(docs_dir: &str, record_type: &str, title: &str, draft: bool) -> Result<()> {
     let docs_path = Path::new(docs_dir);
-    let decisions_path = docs_path.join(".decisions");
+    let decisions_path = docs_path.join("decisions");
     let templates_path = docs_path.join(".templates");
 
     if !decisions_path.exists() {

@@ -28,29 +28,40 @@ pub struct DgConfig {
 }
 
 impl DgConfig {
-    /// Load config from docs/dg.toml or use defaults
+    /// Load config from dg.toml (in docs_dir or parent directory)
     pub fn load(docs_dir: &Path) -> Result<Self> {
+        // First try docs_dir/dg.toml
         let config_path = docs_dir.join("dg.toml");
-
         if config_path.exists() {
             let content = fs::read_to_string(&config_path)?;
             let config: DgConfig = toml::from_str(&content)?;
-            Ok(config)
-        } else {
-            // Try legacy .site.yaml for backwards compatibility
-            let legacy_path = docs_dir.join(".site.yaml");
-            if legacy_path.exists() {
-                let content = fs::read_to_string(&legacy_path)?;
-                let site: SiteConfig = serde_yaml::from_str(&content)?;
-                return Ok(DgConfig {
-                    site,
-                    authors: HashMap::new(),
-                    users: HashMap::new(),
-                    teams: HashMap::new(),
-                });
-            }
-            Ok(Self::default())
+            return Ok(config);
         }
+
+        // Then try parent directory (project root)
+        if let Some(parent) = docs_dir.parent() {
+            let parent_config = parent.join("dg.toml");
+            if parent_config.exists() {
+                let content = fs::read_to_string(&parent_config)?;
+                let config: DgConfig = toml::from_str(&content)?;
+                return Ok(config);
+            }
+        }
+
+        // Try legacy .site.yaml for backwards compatibility
+        let legacy_path = docs_dir.join(".site.yaml");
+        if legacy_path.exists() {
+            let content = fs::read_to_string(&legacy_path)?;
+            let site: SiteConfig = serde_yaml::from_str(&content)?;
+            return Ok(DgConfig {
+                site,
+                authors: HashMap::new(),
+                users: HashMap::new(),
+                teams: HashMap::new(),
+            });
+        }
+
+        Ok(Self::default())
     }
 
     /// Get AuthorsConfig from the loaded authors map

@@ -5,7 +5,7 @@ title: Recruit Dave Cutler from DEC
 status: accepted
 created: 1988-10-31
 updated: 1988-10-31
-authors: [billg]
+authors: [bg]
 tags: [engineering, hiring, talent, windows-nt]
 links:
   supersedes: []

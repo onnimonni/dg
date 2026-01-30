@@ -62,6 +62,7 @@ dg link RUN-XXX enables PRC-WWW
 | Incident | INC | Post-mortems, outages |
 | Runbook | RUN | Operational how-tos |
 | Meeting | MTG | Meeting notes |
+| Legal | LEG | Privacy policies, ToS, agreements |
 
 ## Quick Reference
 
@@ -106,7 +107,7 @@ dg stats
 ```
 src/              # Rust CLI source
 docs/
-  .decisions/     # Record files
+  decisions/     # Record files
   .templates/     # Record templates
   .index.json     # Auto-generated index
 .claude/

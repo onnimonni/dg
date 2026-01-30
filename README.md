@@ -212,7 +212,7 @@ links:
 
 ```
 docs/
-├── .decisions/     # Record files
+├── decisions/      # Record files
 ├── .templates/     # Record templates
 └── .index.json     # Auto-generated index
 .claude/

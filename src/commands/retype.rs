@@ -139,7 +139,7 @@ fn build_change_plan(
     target_records: &[&Record],
     chronological_position: usize,
 ) -> Result<ChangePlan> {
-    let decisions_path = docs_path.join(".decisions");
+    let decisions_path = docs_path.join("decisions");
     let prefix = target_type.prefix();
     let old_id = source_record.id().to_string();
 
@@ -298,8 +298,8 @@ fn find_code_mentions(
             continue;
         }
 
-        // Skip markdown files in .decisions (handled separately)
-        if path.to_string_lossy().contains(".decisions")
+        // Skip markdown files in decisions (handled separately)
+        if path.to_string_lossy().contains("decisions")
             && path.extension().is_some_and(|e| e == "md")
         {
             continue;

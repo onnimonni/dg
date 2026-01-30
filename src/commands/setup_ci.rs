@@ -41,7 +41,7 @@ jobs:
       - name: Check for draft records
         id: check
         run: |
-          if grep -r "\-NEW-" docs/.decisions/*.md 2>/dev/null; then
+          if grep -r "\-NEW-" docs/decisions/*.md 2>/dev/null; then
             echo "has_drafts=true" >> $GITHUB_OUTPUT
           else
             echo "has_drafts=false" >> $GITHUB_OUTPUT
@@ -56,7 +56,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/.decisions/
+          git add docs/decisions/
           git diff --staged --quiet || git commit -m "chore: finalize draft record IDs [skip ci]"
           git push
 "#;
@@ -66,7 +66,7 @@ const LINT_WORKFLOW: &str = r#"name: Lint Decision Graph
 on:
   pull_request:
     paths:
-      - 'docs/.decisions/**'
+      - 'docs/decisions/**'
       - 'docs/dg.toml'
 
 jobs:

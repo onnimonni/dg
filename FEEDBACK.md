@@ -67,7 +67,7 @@ dg new decision "Title" --foundational --status accepted --author "Richard"
 
 # Reality:
 dg new decision "Title"
-vim docs/.decisions/DEC-001-*.md  # Manual edit
+vim docs/decisions/DEC-001-*.md  # Manual edit
 ```
 
 ### 4. Links Require File Editing

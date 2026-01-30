@@ -32,22 +32,39 @@ Build PiperNet: a fully decentralized peer-to-peer network that eliminates centr
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      PiperNet Mesh                          │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
-│  │  Phone  │──│  Laptop │──│   IoT   │──│  Phone  │        │
-│  │  Node   │  │  Node   │  │  Node   │  │  Node   │        │
-│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘        │
-│       │            │            │            │              │
-│       └────────────┴─────┬──────┴────────────┘              │
-│                          │                                  │
-│              ┌───────────┴───────────┐                      │
-│              │   Distributed Ledger  │                      │
-│              │   (Shard Registry)    │                      │
-│              └───────────────────────┘                      │
-└─────────────────────────────────────────────────────────────┘
+```d2
+direction: down
+
+mesh: PiperNet Mesh {
+  phone1: Phone Node {
+    shape: rectangle
+    style.fill: "#4CAF50"
+  }
+  laptop: Laptop Node {
+    shape: rectangle
+    style.fill: "#2196F3"
+  }
+  iot: IoT Node {
+    shape: rectangle
+    style.fill: "#FF9800"
+  }
+  phone2: Phone Node {
+    shape: rectangle
+    style.fill: "#4CAF50"
+  }
+
+  phone1 <-> laptop: P2P
+  laptop <-> iot: P2P
+  iot <-> phone2: P2P
+  phone2 <-> phone1: P2P
+}
+
+ledger: Distributed Ledger\n(Shard Registry) {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+mesh -> ledger: Shard metadata
 ```
 
 ### Core Components

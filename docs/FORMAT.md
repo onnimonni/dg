@@ -91,7 +91,7 @@ Meeting notes and minutes (agenda, discussion, decisions, action items).
 
 ```
 docs/
-├── .decisions/
+├── decisions/
 │   ├── DEC-001-expand-to-france.md
 │   ├── STR-001-european-market-strategy.md
 │   └── ...

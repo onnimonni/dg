@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 pub fn run(docs_dir: &str, check: bool, files: Option<Vec<String>>, quiet: bool) -> Result<()> {
     let docs_path = Path::new(docs_dir);
-    let decisions_dir = docs_path.join(".decisions");
+    let decisions_dir = docs_path.join("decisions");
 
     let mut total = 0;
     let mut formatted = 0;

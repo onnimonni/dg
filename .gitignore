@@ -39,5 +39,10 @@ devenv.local.yaml
 # Generated CSS (rebuild with: css-build)
 src/serve/static/tailwind.css
 
+# Downloaded build tools (auto-downloaded by devenv)
+src/serve/static/tailwindcss
+src/serve/static/daisyui.mjs
+src/serve/static/daisyui-theme.mjs
+
 # Generated sites
 samples/microsoft/docs/_site

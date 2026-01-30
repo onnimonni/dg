@@ -21,6 +21,7 @@ pub enum RecordType {
     Runbook,
     Meeting,
     Feedback,
+    Legal,
 }
 
 impl RecordType {
@@ -38,6 +39,7 @@ impl RecordType {
             RecordType::Runbook => "RUN",
             RecordType::Meeting => "MTG",
             RecordType::Feedback => "FBK",
+            RecordType::Legal => "LEG",
         }
     }
 
@@ -55,6 +57,7 @@ impl RecordType {
             "RUN" => Some(RecordType::Runbook),
             "MTG" => Some(RecordType::Meeting),
             "FBK" => Some(RecordType::Feedback),
+            "LEG" => Some(RecordType::Legal),
             _ => None,
         }
     }
@@ -73,6 +76,7 @@ impl RecordType {
             "runbook" => Some(RecordType::Runbook),
             "meeting" => Some(RecordType::Meeting),
             "feedback" => Some(RecordType::Feedback),
+            "legal" => Some(RecordType::Legal),
             _ => RecordType::from_prefix(s),
         }
     }
@@ -91,6 +95,7 @@ impl RecordType {
             RecordType::Runbook => "runbook",
             RecordType::Meeting => "meeting",
             RecordType::Feedback => "feedback",
+            RecordType::Legal => "legal",
         }
     }
 }
@@ -391,6 +396,7 @@ mod tests {
         assert!(parse_id("PRC-001").is_some());
         assert!(parse_id("HIR-001").is_some());
         assert!(parse_id("ADR-001").is_some());
+        assert!(parse_id("LEG-001").is_some());
     }
 
     #[test]
@@ -421,6 +427,7 @@ mod tests {
         assert_eq!(RecordType::from_str("process"), Some(RecordType::Process));
         assert_eq!(RecordType::from_str("hiring"), Some(RecordType::Hiring));
         assert_eq!(RecordType::from_str("adr"), Some(RecordType::Adr));
+        assert_eq!(RecordType::from_str("legal"), Some(RecordType::Legal));
     }
 
     #[test]
@@ -433,6 +440,7 @@ mod tests {
         assert_eq!(RecordType::Process.prefix(), "PRC");
         assert_eq!(RecordType::Hiring.prefix(), "HIR");
         assert_eq!(RecordType::Adr.prefix(), "ADR");
+        assert_eq!(RecordType::Legal.prefix(), "LEG");
     }
 
     #[test]

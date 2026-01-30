@@ -12,7 +12,7 @@ use std::path::Path;
 /// Finalize all draft records, converting them to permanent IDs
 pub fn run(docs_dir: &str, dry_run: bool) -> Result<()> {
     let docs_path = Path::new(docs_dir);
-    let decisions_path = docs_path.join(".decisions");
+    let decisions_path = docs_path.join("decisions");
 
     if !decisions_path.exists() {
         return Err(anyhow!(
@@ -91,7 +91,7 @@ pub fn run(docs_dir: &str, dry_run: bool) -> Result<()> {
 
 /// Rename a record file and update its ID in frontmatter
 fn rename_record(docs_path: &Path, old_id: &str, new_id: &str) -> Result<()> {
-    let decisions_path = docs_path.join(".decisions");
+    let decisions_path = docs_path.join("decisions");
 
     // Find the file with the old ID
     let old_file = find_record_file(&decisions_path, old_id)?;
@@ -134,7 +134,7 @@ fn find_record_file(decisions_path: &Path, id: &str) -> Result<std::path::PathBu
 
 /// Update all references to old IDs in all documents
 fn update_all_references(docs_path: &Path, id_mapping: &HashMap<String, String>) -> Result<()> {
-    let decisions_path = docs_path.join(".decisions");
+    let decisions_path = docs_path.join("decisions");
 
     for entry in fs::read_dir(&decisions_path)? {
         let entry = entry?;

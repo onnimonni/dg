@@ -5,7 +5,7 @@ title: The Internet Tidal Wave Memo
 status: accepted
 created: 1995-05-26
 updated: 1995-12-07
-authors: [billg]
+authors: [bg]
 tags: [pivot, strategy]
 links:
   supersedes: []

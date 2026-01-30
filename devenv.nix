@@ -9,7 +9,6 @@
     graphviz      # For DOT graph visualization
     d2            # For D2 diagram rendering
     python3       # For hooks
-    tailwindcss   # For CSS compilation
     # Fonts (for copying to static folder)
     inter
     jetbrains-mono
@@ -54,7 +53,7 @@
           dg fmt --check
         fi
       ''}";
-      files = "\\.decisions/.*\\.md$";
+      files = "\\decisions/.*\\.md$";
       pass_filenames = false;
     };
 
@@ -68,7 +67,7 @@
           dg lint
         fi
       ''}";
-      files = "\\.decisions/.*\\.md$";
+      files = "\\decisions/.*\\.md$";
       pass_filenames = false;
     };
   };
@@ -80,14 +79,14 @@
     test.exec = "cargo test";
     install.exec = "cargo install --path .";
 
-    # CSS build commands
-    css-build.exec = "tailwindcss -i src/serve/static/input.css -o src/serve/static/tailwind.css --minify";
-    css-watch.exec = "tailwindcss -i src/serve/static/input.css -o src/serve/static/tailwind.css --watch";
+    # CSS build commands (uses Tailwind v4 standalone for DaisyUI support)
+    css-build.exec = "$DEVENV_ROOT/src/serve/static/tailwindcss -i src/serve/static/input.css -o src/serve/static/tailwind.css --minify";
+    css-watch.exec = "$DEVENV_ROOT/src/serve/static/tailwindcss -i src/serve/static/input.css -o src/serve/static/tailwind.css --watch";
 
     # Full build (CSS + release binary)
     build-all.exec = ''
       echo "Building CSS..."
-      tailwindcss -i src/serve/static/input.css -o src/serve/static/tailwind.css --minify
+      "$DEVENV_ROOT/src/serve/static/tailwindcss" -i src/serve/static/input.css -o src/serve/static/tailwind.css --minify
       echo "Building release binary..."
       cargo build --release
     '';
@@ -186,5 +185,25 @@
     mkdir -p "$DEVENV_ROOT/src/serve/static/fonts"
     cp ${pkgs.inter}/share/fonts/truetype/InterVariable.ttf "$DEVENV_ROOT/src/serve/static/fonts/" 2>/dev/null || true
     cp ${pkgs.jetbrains-mono}/share/fonts/WOFF2/JetBrainsMono-Regular.woff2 "$DEVENV_ROOT/src/serve/static/fonts/" 2>/dev/null || true
+
+    # Download Tailwind CSS v4 standalone (required for DaisyUI v5)
+    if [ ! -f "$DEVENV_ROOT/src/serve/static/tailwindcss" ]; then
+      echo "Downloading Tailwind CSS v4 standalone..."
+      ARCH=$(uname -m)
+      case "$ARCH" in
+        arm64|aarch64) BINARY="tailwindcss-macos-arm64" ;;
+        x86_64) BINARY="tailwindcss-macos-x64" ;;
+        *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+      esac
+      curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/$BINARY" -o "$DEVENV_ROOT/src/serve/static/tailwindcss"
+      chmod +x "$DEVENV_ROOT/src/serve/static/tailwindcss"
+    fi
+
+    # Download DaisyUI standalone bundles if not present
+    if [ ! -f "$DEVENV_ROOT/src/serve/static/daisyui.mjs" ]; then
+      echo "Downloading DaisyUI bundle..."
+      curl -sL "https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.mjs" -o "$DEVENV_ROOT/src/serve/static/daisyui.mjs"
+      curl -sL "https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.mjs" -o "$DEVENV_ROOT/src/serve/static/daisyui-theme.mjs"
+    fi
   '';
 }
