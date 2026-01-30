@@ -98,6 +98,25 @@ impl RecordType {
             RecordType::Legal => "legal",
         }
     }
+
+    /// Human-readable display name for the record type
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            RecordType::Decision => "Decision",
+            RecordType::Strategy => "Strategy",
+            RecordType::Policy => "Policy",
+            RecordType::Customer => "Customer",
+            RecordType::Opportunity => "Opportunity",
+            RecordType::Process => "Process",
+            RecordType::Hiring => "Hiring",
+            RecordType::Adr => "Architecture",
+            RecordType::Incident => "Incident",
+            RecordType::Runbook => "Runbook",
+            RecordType::Meeting => "Meeting",
+            RecordType::Feedback => "Feedback",
+            RecordType::Legal => "Legal",
+        }
+    }
 }
 
 impl std::fmt::Display for RecordType {

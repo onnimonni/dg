@@ -822,6 +822,40 @@ const GRAPH_TEMPLATE: &str = r##"{% extends "base.html" %}
 <style>
 #graph { width: 100%; height: 600px; }
 #graph svg { width: 100%; height: 100%; }
+.graph-tooltip {
+    position: fixed;
+    background: var(--surface, #1a202c);
+    border: 1px solid var(--primary, #007c43);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    display: none;
+    max-width: 300px;
+    color: var(--text, #e2e8f0);
+}
+.graph-tooltip .tooltip-type {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim, #94a3b8);
+    margin-bottom: 4px;
+}
+.graph-tooltip .tooltip-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+.graph-tooltip .tooltip-meta {
+    font-size: 12px;
+    color: var(--text-dim, #94a3b8);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
 </style>
 {% endblock %}
 
@@ -873,7 +907,7 @@ const node = g.append('g')
         .on('end', dragended));
 
 node.append('circle')
-    .attr('r', 20)
+    .attr('r', 28)
     .attr('fill', d => color(d.type))
     .attr('stroke', d => d.core ? 'gold' : '#333')
     .attr('stroke-width', d => d.core ? 3 : 1);
@@ -881,11 +915,29 @@ node.append('circle')
 node.append('text')
     .text(d => d.id)
     .attr('text-anchor', 'middle')
-    .attr('dy', 4)
+    .attr('dy', 5)
     .attr('fill', '#fff')
-    .attr('font-size', '10px');
+    .attr('font-size', '11px')
+    .attr('font-weight', '500');
 
-node.append('title').text(d => d.title);
+// Custom tooltip
+const tooltip = d3.select('body').append('div').attr('class', 'graph-tooltip');
+node.on('mouseenter', (e, d) => {
+    const authors = d.authors && d.authors.length > 0 ? d.authors.join(', ') : 'Unknown';
+    const date = d.date || 'No date';
+    tooltip.html(`
+        <div class="tooltip-type">${d.type_name || d.type}</div>
+        <div class="tooltip-title">${d.title}</div>
+        <div class="tooltip-meta">
+            <span>📅 ${date}</span>
+            <span>👤 ${authors}</span>
+        </div>
+    `).style('display', 'block');
+}).on('mousemove', (e) => {
+    tooltip.style('left', (e.clientX + 12) + 'px').style('top', (e.clientY + 12) + 'px');
+}).on('mouseleave', () => {
+    tooltip.style('display', 'none');
+});
 node.on('click', (e, d) => window.location.href = '/records/' + d.id);
 node.style('cursor', 'pointer');
 
@@ -901,12 +953,13 @@ simulation.on('end', fitToView);
 function fitToView() {
     if (data.nodes.length === 0) return;
     const padding = 40;
+    const nodeRadius = 28;
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     data.nodes.forEach(d => {
-        minX = Math.min(minX, d.x - 20);
-        maxX = Math.max(maxX, d.x + 20);
-        minY = Math.min(minY, d.y - 20);
-        maxY = Math.max(maxY, d.y + 20);
+        minX = Math.min(minX, d.x - nodeRadius);
+        maxX = Math.max(maxX, d.x + nodeRadius);
+        minY = Math.min(minY, d.y - nodeRadius);
+        maxY = Math.max(maxY, d.y + nodeRadius);
     });
     const bw = maxX - minX + padding * 2;
     const bh = maxY - minY + padding * 2;

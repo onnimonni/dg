@@ -381,10 +381,19 @@ async fn graph_page_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
 
     let graph_data = serde_json::json!({
         "nodes": graph.all_records().map(|r| {
+            // Resolve author names
+            let authors: Vec<String> = r.frontmatter.authors.iter().map(|username| {
+                state.users_config.get(username)
+                    .map(|u| u.display_name(username))
+                    .unwrap_or_else(|| username.to_string())
+            }).collect();
             serde_json::json!({
                 "id": r.id(),
                 "title": r.title(),
                 "type": r.record_type().to_string(),
+                "type_name": r.record_type().display_name(),
+                "date": r.frontmatter.created.to_string(),
+                "authors": authors,
                 "core": r.frontmatter.core,
             })
         }).collect::<Vec<_>>(),
