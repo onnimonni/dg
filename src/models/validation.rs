@@ -51,6 +51,11 @@ pub enum ValidationError {
         owner: String,
         line: usize,
     },
+    InvalidDaciAssignment {
+        id: String,
+        role: String,
+        assignee: String,
+    },
     DraftRecord {
         id: String,
     },
@@ -160,6 +165,9 @@ impl std::fmt::Display for ValidationError {
                     "{}: line {}: unknown action item owner '{}'",
                     id, line, owner
                 )
+            }
+            ValidationError::InvalidDaciAssignment { id, role, assignee } => {
+                write!(f, "{}: unknown person '{}' in {} role", id, assignee, role)
             }
             ValidationError::DraftRecord { id } => {
                 write!(f, "{}: draft record (use 'dg finalize' before merging)", id)
@@ -380,6 +388,8 @@ pub fn validate_record(
     if opts.check_user_mentions {
         if let (Some(users), Some(teams)) = (&opts.users_config, &opts.teams_config) {
             errors.extend(check_user_mentions(record, users, teams));
+            // Also check DACI role assignments
+            errors.extend(check_daci_roles(record, users, teams));
         }
     }
 
@@ -766,6 +776,59 @@ pub fn check_code_blocks(record: &Record) -> Vec<ValidationError> {
             } else {
                 // Ending a code block
                 in_code_block = false;
+            }
+        }
+    }
+
+    errors
+}
+
+/// Check for invalid DACI/RACI role assignments
+/// Validates that people assigned to DACI roles (Driver, Approver, Contributor, Informed)
+/// are defined users or teams in dg.toml
+pub fn check_daci_roles(
+    record: &Record,
+    users_config: &UsersConfig,
+    teams_config: &TeamsConfig,
+) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+
+    // Extract DACI roles from the document
+    let daci_roles = record.extract_daci_roles();
+
+    for (role, assignees) in &daci_roles {
+        for assignee in assignees {
+            // Normalize the assignee name for checking
+            let normalized = assignee.trim().to_lowercase();
+
+            // Skip if it's a valid user or team
+            if users_config
+                .users
+                .keys()
+                .any(|k| k.to_lowercase() == normalized)
+                || teams_config
+                    .teams
+                    .keys()
+                    .any(|k| k.to_lowercase() == normalized)
+            {
+                continue;
+            }
+
+            // Also check against user display names
+            let is_known_user = users_config.users.iter().any(|(username, user)| {
+                let display = user.display_name(username).to_lowercase();
+                display == normalized
+                    || display.contains(&normalized)
+                    || normalized.contains(&display)
+            });
+
+            if !is_known_user {
+                errors.push(ValidationError::InvalidDaciAssignment {
+                    id: id.clone(),
+                    role: role.clone(),
+                    assignee: assignee.clone(),
+                });
             }
         }
     }
