@@ -379,7 +379,7 @@ impl Record {
         format!("{}-{}.md", self.frontmatter.id, slug)
     }
 
-    /// Extract DACI/RACI roles from the document content
+    /// Extract DACI roles from the document content
     /// Returns a map of role -> list of names/usernames mentioned
     pub fn extract_daci_roles(&self) -> HashMap<String, Vec<String>> {
         let mut roles: HashMap<String, Vec<String>> = HashMap::new();
@@ -393,7 +393,7 @@ impl Record {
             let people_str = cap.get(2).map(|m| m.as_str());
 
             if let (Some(role), Some(people)) = (role, people_str) {
-                // Only capture DACI/RACI roles
+                // Only capture DACI roles
                 let valid_roles = [
                     "driver",
                     "approver",

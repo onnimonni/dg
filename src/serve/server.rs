@@ -957,21 +957,58 @@ async fn user_handler(
         "deprecated_note": user.deprecated_note,
     });
 
-    // Find records authored by this user
+    // Build combined records list with authorship and DACI roles
     let graph = state.graph.read().await;
     let mention_pattern = format!("@{}", username);
+    let user_display_name = user.display_name(&username);
 
-    let authored: Vec<_> = graph
-        .all_records()
-        .filter(|r| r.frontmatter.authors.contains(&username))
-        .map(|r| {
-            serde_json::json!({
-                "id": r.id(),
-                "title": r.title(),
-                "status": r.status().to_string(),
-            })
-        })
-        .collect();
+    // Collect all records where user is author or has DACI role
+    let mut user_records: Vec<serde_json::Value> = Vec::new();
+    let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    for record in graph.all_records() {
+        let is_author = record.frontmatter.authors.contains(&username);
+
+        // Check DACI roles
+        let roles = record.extract_daci_roles();
+        let mut user_daci_role: Option<String> = None;
+
+        for (role, names) in &roles {
+            let is_assigned = names.iter().any(|name| {
+                let name_lower = name.to_lowercase();
+                name_lower.contains(&username.to_lowercase())
+                    || name_lower.contains(&user_display_name.to_lowercase())
+                    || user_display_name.to_lowercase().contains(&name_lower)
+            });
+
+            if is_assigned {
+                user_daci_role = Some(role.clone());
+                break;
+            }
+        }
+
+        // Include if author or has DACI role
+        if is_author || user_daci_role.is_some() {
+            if !seen_ids.contains(record.id()) {
+                seen_ids.insert(record.id().to_string());
+                user_records.push(serde_json::json!({
+                    "id": record.id(),
+                    "title": record.title(),
+                    "status": record.status().to_string(),
+                    "date": record.frontmatter.created.to_string(),
+                    "is_author": is_author,
+                    "daci_role": user_daci_role,
+                }));
+            }
+        }
+    }
+
+    // Sort by date descending
+    user_records.sort_by(|a, b| {
+        let date_a = a.get("date").and_then(|d| d.as_str()).unwrap_or("");
+        let date_b = b.get("date").and_then(|d| d.as_str()).unwrap_or("");
+        date_b.cmp(date_a)
+    });
 
     // Find records that mention this user (but not authored by them)
     let mentioned_in: Vec<_> = graph
@@ -987,32 +1024,6 @@ async fn user_handler(
             })
         })
         .collect();
-
-    // Find DACI/RACI roles for this user
-    let user_display_name = user.display_name(&username);
-    let mut daci_roles: Vec<serde_json::Value> = Vec::new();
-
-    for record in graph.all_records() {
-        let roles = record.extract_daci_roles();
-        for (role, names) in roles {
-            // Check if username or display name matches any of the names
-            let is_assigned = names.iter().any(|name| {
-                let name_lower = name.to_lowercase();
-                name_lower.contains(&username.to_lowercase())
-                    || name_lower.contains(&user_display_name.to_lowercase())
-                    || user_display_name.to_lowercase().contains(&name_lower)
-            });
-
-            if is_assigned {
-                daci_roles.push(serde_json::json!({
-                    "id": record.id(),
-                    "title": record.title(),
-                    "role": role,
-                    "status": record.status().to_string(),
-                }));
-            }
-        }
-    }
 
     // Find action items assigned to this user
     let mut action_items: Vec<serde_json::Value> = Vec::new();
@@ -1040,9 +1051,8 @@ async fn user_handler(
                 has_users => state.has_users(),
                 current_page => "users",
                 user => user_data,
-                authored_records => authored,
+                user_records => user_records,
                 mentioned_in => mentioned_in,
-                daci_roles => daci_roles,
                 action_items => action_items,
             }) {
                 Ok(html) => Html(html).into_response(),

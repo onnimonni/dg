@@ -2437,21 +2437,50 @@ const USER_TEMPLATE: &str = r##"{% extends "base.html" %}
         </div>
     </div>
 
-    {% if authored_records %}
+    {% if user_records %}
     <div class="mt-8">
-        <h3 class="text-lg font-semibold text-white mb-4">Authored Records ({{ authored_records | length }})</h3>
-        <div class="space-y-3">
-            {% for record in authored_records %}
-            <a href="/records/{{ record.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-piper-light/50 transition-all">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="font-mono text-sm text-piper-light">{{ record.id }}</span>
-                        <span class="ml-2 text-slate-300">{{ record.title }}</span>
-                    </div>
-                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase {% if record.status == 'accepted' %}bg-green-900/30 text-green-500{% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
-                </div>
-            </a>
-            {% endfor %}
+        <h3 class="text-lg font-semibold text-white mb-4">Records ({{ user_records | length }})</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-700 text-left text-slate-400 text-xs uppercase tracking-wider">
+                        <th class="py-3 px-2 font-medium">ID</th>
+                        <th class="py-3 px-2 font-medium">Title</th>
+                        <th class="py-3 px-2 font-medium">Date</th>
+                        <th class="py-3 px-2 font-medium text-center">Role</th>
+                        <th class="py-3 px-2 font-medium text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for record in user_records %}
+                    <tr class="hover:bg-slate-800/50 transition-colors cursor-pointer" onclick="window.location='/records/{{ record.id }}'">
+                        <td class="py-3 px-2 font-mono text-piper-light whitespace-nowrap">{{ record.id }}</td>
+                        <td class="py-3 px-2 text-slate-300">{{ record.title }}</td>
+                        <td class="py-3 px-2 text-slate-500 whitespace-nowrap">{{ record.date }}</td>
+                        <td class="py-3 px-2 text-center whitespace-nowrap">
+                            {% if record.is_author %}
+                            <span class="px-2 py-0.5 rounded text-xs font-medium bg-piper-accent/20 text-piper-light">Author</span>
+                            {% endif %}
+                            {% if record.daci_role %}
+                            <span class="px-2 py-0.5 rounded text-xs font-medium
+                                {% if record.daci_role == 'responsible' %}bg-red-900/30 text-red-400
+                                {% elif record.daci_role == 'approver' %}bg-amber-900/30 text-amber-400
+                                {% elif record.daci_role == 'consulted' %}bg-blue-900/30 text-blue-400
+                                {% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.daci_role | capitalize }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-2 text-right">
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase
+                                {% if record.status == 'accepted' %}bg-green-900/30 text-green-500
+                                {% elif record.status == 'resolved' %}bg-blue-900/30 text-blue-400
+                                {% elif record.status == 'deprecated' %}bg-slate-700 text-slate-500
+                                {% elif record.status == 'superseded' %}bg-slate-700 text-slate-500
+                                {% else %}bg-slate-700 text-slate-400{% endif %}">{{ record.status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
@@ -2459,42 +2488,20 @@ const USER_TEMPLATE: &str = r##"{% extends "base.html" %}
     {% if mentioned_in %}
     <div class="mt-8">
         <h3 class="text-lg font-semibold text-white mb-4">Mentioned In ({{ mentioned_in | length }})</h3>
-        <div class="space-y-3">
-            {% for record in mentioned_in %}
-            <a href="/records/{{ record.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-amber-500/50 transition-all">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="font-mono text-sm text-amber-400">{{ record.id }}</span>
-                        <span class="ml-2 text-slate-300">{{ record.title }}</span>
-                    </div>
-                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-slate-700 text-slate-400">{{ record.status }}</span>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if daci_roles %}
-    <div class="mt-8">
-        <h3 class="text-lg font-semibold text-white mb-4">DACI/RACI Assignments ({{ daci_roles | length }})</h3>
-        <div class="space-y-3">
-            {% for item in daci_roles %}
-            <a href="/records/{{ item.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-purple-500/50 transition-all">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase
-                            {% if item.role == 'responsible' %}bg-red-900/30 text-red-400
-                            {% elif item.role == 'approver' %}bg-amber-900/30 text-amber-400
-                            {% elif item.role == 'consulted' %}bg-blue-900/30 text-blue-400
-                            {% else %}bg-slate-700 text-slate-400{% endif %}">{{ item.role }}</span>
-                        <span class="font-mono text-sm text-purple-400">{{ item.id }}</span>
-                        <span class="text-slate-300">{{ item.title }}</span>
-                    </div>
-                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-slate-700 text-slate-400">{{ item.status }}</span>
-                </div>
-            </a>
-            {% endfor %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <tbody class="divide-y divide-slate-800">
+                    {% for record in mentioned_in %}
+                    <tr class="hover:bg-slate-800/50 transition-colors cursor-pointer" onclick="window.location='/records/{{ record.id }}'">
+                        <td class="py-3 px-2 font-mono text-amber-400 whitespace-nowrap">{{ record.id }}</td>
+                        <td class="py-3 px-2 text-slate-300">{{ record.title }}</td>
+                        <td class="py-3 px-2 text-right">
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-slate-700 text-slate-400">{{ record.status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
@@ -2502,24 +2509,26 @@ const USER_TEMPLATE: &str = r##"{% extends "base.html" %}
     {% if action_items %}
     <div class="mt-8">
         <h3 class="text-lg font-semibold text-white mb-4">Assigned Action Items ({{ action_items | length }})</h3>
-        <div class="space-y-3">
-            {% for item in action_items %}
-            <a href="/records/{{ item.record_id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-cyan-500/50 transition-all">
-                <div class="flex items-start gap-3">
-                    {% if item.completed %}
-                    <span class="text-green-500 mt-0.5">✓</span>
-                    {% else %}
-                    <span class="text-slate-500 mt-0.5">○</span>
-                    {% endif %}
-                    <div class="flex-1">
-                        <div class="{% if item.completed %}text-slate-500 line-through{% else %}text-slate-300{% endif %}">{{ item.text }}</div>
-                        <div class="text-xs text-slate-500 mt-1">
-                            <span class="font-mono">{{ item.record_id }}</span> · {{ item.record_title }}
-                        </div>
-                    </div>
-                </div>
-            </a>
-            {% endfor %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <tbody class="divide-y divide-slate-800">
+                    {% for item in action_items %}
+                    <tr class="hover:bg-slate-800/50 transition-colors cursor-pointer" onclick="window.location='/records/{{ item.record_id }}'">
+                        <td class="py-3 px-2 w-6">
+                            {% if item.completed %}
+                            <span class="text-green-500">✓</span>
+                            {% else %}
+                            <span class="text-slate-500">○</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-2 {% if item.completed %}text-slate-500 line-through{% else %}text-slate-300{% endif %}">{{ item.text }}</td>
+                        <td class="py-3 px-2 text-right whitespace-nowrap">
+                            <span class="font-mono text-xs text-slate-500">{{ item.record_id }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
