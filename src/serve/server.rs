@@ -998,6 +998,7 @@ async fn user_handler(
                     "date": record.frontmatter.created.to_string(),
                     "is_author": is_author,
                     "daci_role": user_daci_role,
+                    "core": record.frontmatter.core,
                 }));
             }
         }

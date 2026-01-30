@@ -2453,8 +2453,8 @@ const USER_TEMPLATE: &str = r##"{% extends "base.html" %}
                 </thead>
                 <tbody class="divide-y divide-slate-800">
                     {% for record in user_records %}
-                    <tr class="hover:bg-slate-800/50 transition-colors cursor-pointer" onclick="window.location='/records/{{ record.id }}'">
-                        <td class="py-3 px-2 font-mono text-piper-light whitespace-nowrap">{{ record.id }}</td>
+                    <tr class="hover:bg-slate-800/50 transition-colors cursor-pointer {% if record.core %}bg-warning/5{% endif %}" onclick="window.location='/records/{{ record.id }}'">
+                        <td class="py-3 px-2 font-mono text-piper-light whitespace-nowrap">{{ record.id }}{% if record.core %}<span class="ml-1 text-warning">★</span>{% endif %}</td>
                         <td class="py-3 px-2 text-slate-300">{{ record.title }}</td>
                         <td class="py-3 px-2 text-slate-500 whitespace-nowrap">{{ record.date }}</td>
                         <td class="py-3 px-2 text-center whitespace-nowrap">

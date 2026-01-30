@@ -62,6 +62,7 @@ pub fn run(
             check_principle_conflicts: true,
             check_user_mentions: check_users,
             check_action_items: check_users,
+            check_code_blocks: true,
             users_config: users_config.clone(),
             teams_config: teams_config.clone(),
         }
@@ -71,6 +72,7 @@ pub fn run(
             check_principle_conflicts: check_principles,
             check_user_mentions: check_users,
             check_action_items: check_users,
+            check_code_blocks: true,
             users_config,
             teams_config,
             ..ValidationOptions::basic()

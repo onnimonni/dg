@@ -87,32 +87,22 @@ Visit our internal documentation site (built with `dg serve`):
 
 ### The Journey (2014-2019)
 
-```
-2014 ─┬─ DEC-001: Peter Gregory Seed Funding
-      │
-      ├─ DEC-002: Anti-Hooli Principle (FOUNDATIONAL)
-      │
-      ├─ ADR-001: Middle-Out Algorithm (FOUNDATIONAL)
-      │
-      └─ INC-001: Hooli IP Lawsuit
-           │
-2015 ─────┼─ DEC-004: Hanneman Bridge Funding
-           │
-           ├─ ADR-002: Enterprise Platform
-           │
-           └─ ADR-003: The Box
-                │
-2016 ───────────┼─ INC-002: COPPA Violation
-                │
-2018 ───────────┼─ POL-001: Tethics Framework (FOUNDATIONAL)
-                │
-                ├─ ADR-004: PiperNet Architecture
-                │
-                └─ INC-003: 51% Attack
-                     │
-2019 ────────────────┼─ INC-004: AI Encryption Discovery
-                     │
-                     └─ DEC-005: Sabotage Launch (THE END)
+```mermaid
+timeline
+    title Pied Piper Journey (2014-2019)
+    2014 : DEC-001 Peter Gregory Seed Funding
+         : DEC-002 Anti-Hooli Principle ⭐
+         : ADR-001 Middle-Out Algorithm ⭐
+         : INC-001 Hooli IP Lawsuit
+    2015 : DEC-004 Hanneman Bridge Funding
+         : ADR-002 Enterprise Platform
+         : ADR-003 The Box
+    2016 : INC-002 COPPA Violation
+    2018 : POL-001 Tethics Framework ⭐
+         : ADR-004 PiperNet Architecture
+         : INC-003 51% Attack
+    2019 : INC-004 AI Encryption Discovery
+         : DEC-005 Sabotage Launch
 ```
 
 ### Key Lessons from Our History

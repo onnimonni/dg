@@ -75,14 +75,16 @@ backward -> cross: Redundancies
 cross -> output: Merge with shared dictionary
 ```
 
-```
-Algorithm: Middle-Out Compression
-1. Analyze data block to find statistical center
-2. Create two parallel compression streams:
-   - Forward stream: center → end
-   - Backward stream: center → start
-3. Cross-reference redundancies between streams
-4. Merge compressed outputs with shared dictionary
+```mermaid
+flowchart TD
+    A[Analyze data block] --> B[Find statistical center]
+    B --> C[Create parallel streams]
+    C --> D[Forward: center → end]
+    C --> E[Backward: center → start]
+    D --> F[Cross-reference redundancies]
+    E --> F
+    F --> G[Merge with shared dictionary]
+    G --> H[Compressed output]
 ```
 
 ### Weissman Score Achievement

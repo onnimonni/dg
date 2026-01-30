@@ -54,6 +54,10 @@ pub enum ValidationError {
     DraftRecord {
         id: String,
     },
+    CodeBlockMissingLanguage {
+        id: String,
+        line: usize,
+    },
 }
 
 impl std::fmt::Display for ValidationError {
@@ -117,6 +121,13 @@ impl std::fmt::Display for ValidationError {
             ValidationError::DraftRecord { id } => {
                 write!(f, "{}: draft record (use 'dg finalize' before merging)", id)
             }
+            ValidationError::CodeBlockMissingLanguage { id, line } => {
+                write!(
+                    f,
+                    "{}: line {}: code block missing language identifier (use ```bash, ```yaml, etc.)",
+                    id, line
+                )
+            }
         }
     }
 }
@@ -138,6 +149,8 @@ pub struct ValidationOptions {
     pub check_user_mentions: bool,
     /// Check for valid action item owners
     pub check_action_items: bool,
+    /// Check for code blocks without language identifiers
+    pub check_code_blocks: bool,
     /// Users config for validation
     pub users_config: Option<UsersConfig>,
     /// Teams config for validation (teams can be action item owners)
@@ -159,6 +172,7 @@ impl ValidationOptions {
             check_principle_conflicts: true,
             check_user_mentions: false,
             check_action_items: false,
+            check_code_blocks: true,
             users_config: None,
             teams_config: None,
         }
@@ -239,6 +253,11 @@ pub fn validate_record(
         if let (Some(users), Some(teams)) = (&opts.users_config, &opts.teams_config) {
             errors.extend(check_action_items(record, users, teams));
         }
+    }
+
+    // Check for code blocks without language identifiers
+    if opts.check_code_blocks {
+        errors.extend(check_code_blocks(record));
     }
 
     errors
@@ -570,6 +589,41 @@ pub fn check_action_items(
                         line: line_num + 1,
                     });
                 }
+            }
+        }
+    }
+
+    errors
+}
+
+/// Check for code blocks without language identifiers
+pub fn check_code_blocks(record: &Record) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+
+    // Track if we're inside a code block
+    let mut in_code_block = false;
+
+    for (line_num, line) in record.content.lines().enumerate() {
+        let trimmed = line.trim();
+
+        // Check for code block start
+        if trimmed.starts_with("```") {
+            if !in_code_block {
+                // Starting a code block - check if it has a language
+                let after_backticks = trimmed.trim_start_matches('`');
+
+                // Must have a language identifier (text, plaintext, etc. are allowed)
+                if after_backticks.is_empty() {
+                    errors.push(ValidationError::CodeBlockMissingLanguage {
+                        id: id.clone(),
+                        line: line_num + 1,
+                    });
+                }
+                in_code_block = true;
+            } else {
+                // Ending a code block
+                in_code_block = false;
             }
         }
     }
