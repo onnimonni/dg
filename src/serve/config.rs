@@ -55,9 +55,7 @@ impl DgConfig {
 
     /// Get AuthorsConfig from the loaded authors map
     pub fn authors_config(&self) -> AuthorsConfig {
-        AuthorsConfig {
-            authors: self.authors.clone(),
-        }
+        AuthorsConfig::with_github_avatars(self.authors.clone(), self.site.github_avatars)
     }
 
     /// Get UsersConfig from the loaded users map
@@ -122,9 +120,18 @@ pub struct SiteConfig {
     /// Enable quick preview popups on record ID hover (default: true)
     #[serde(default = "default_quick_preview")]
     pub quick_preview: bool,
+
+    /// Use GitHub avatars for unknown users (default: true)
+    /// Set to false to use initials-only avatars
+    #[serde(default = "default_github_avatars")]
+    pub github_avatars: bool,
 }
 
 fn default_quick_preview() -> bool {
+    true
+}
+
+fn default_github_avatars() -> bool {
     true
 }
 

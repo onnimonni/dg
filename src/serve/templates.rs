@@ -102,19 +102,21 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
     <script defer src="/static/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
     {% block head %}{% endblock %}
 </head>
-<body class="bg-piper-dark text-slate-300 min-h-screen font-sans">
-    <header class="bg-piper-card border-b border-slate-700 px-8 py-4 flex justify-between items-center">
-        <a href="/" class="flex items-center gap-3 no-underline text-inherit">
-            {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}" class="h-8">
-            {% else %}<h1 class="text-xl font-bold text-white">{{ site.title }}</h1>{% endif %}
-        </a>
-        <nav class="flex gap-1">
-            <a href="/" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "records" %} bg-piper-accent text-white{% endif %}">Records</a>
-            <a href="/timeline" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "timeline" %} bg-piper-accent text-white{% endif %}">Timeline</a>
-            <a href="/graph" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "graph" %} bg-piper-accent text-white{% endif %}">Graph</a>
-            {% if has_users %}<a href="/users" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "users" %} bg-piper-accent text-white{% endif %}">Users</a>
-            <a href="/teams" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "teams" %} bg-piper-accent text-white{% endif %}">Teams</a>{% endif %}
-            <a href="/stats" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors{% if current_page == "stats" %} bg-piper-accent text-white{% endif %}">Stats</a>
+<body class="bg-base-300 text-base-content min-h-screen font-sans">
+    <header class="navbar bg-base-100 border-b border-neutral px-8">
+        <div class="flex-1">
+            <a href="/" class="flex items-center gap-3 no-underline text-inherit">
+                {% if site.logo %}<img src="{{ site.logo }}" alt="{{ site.title }}" class="h-8">
+                {% else %}<span class="text-xl font-bold text-primary-content">{{ site.title }}</span>{% endif %}
+            </a>
+        </div>
+        <nav role="tablist" class="tabs tabs-box">
+            <a role="tab" href="/" class="tab{% if current_page == "records" %} tab-active{% endif %}">Records</a>
+            <a role="tab" href="/timeline" class="tab{% if current_page == "timeline" %} tab-active{% endif %}">Timeline</a>
+            <a role="tab" href="/graph" class="tab{% if current_page == "graph" %} tab-active{% endif %}">Graph</a>
+            {% if has_users %}<a role="tab" href="/users" class="tab{% if current_page == "users" %} tab-active{% endif %}">Users</a>
+            <a role="tab" href="/teams" class="tab{% if current_page == "teams" %} tab-active{% endif %}">Teams</a>{% endif %}
+            <a role="tab" href="/stats" class="tab{% if current_page == "stats" %} tab-active{% endif %}">Stats</a>
         </nav>
     </header>
     <main class="max-w-5xl mx-auto px-8 py-8">
@@ -128,7 +130,7 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
     // Record ID linkification with hover previews
     const quickPreview = {{ site.quick_preview | default(value=true) }};
     const recordCache = {};
-    const recordPattern = /\b(DEC|STR|POL|CUS|OPP|PRC|HIR|ADR|INC|RUN|MTG)-\d{3}\b/g;
+    const recordPattern = /\b(DEC|STR|POL|CUS|OPP|PRC|HIR|ADR|INC|RUN|MTG|FBK|LEG)-\d{3}\b/g;
 
     function linkifyRecordIds() {
         const contentElements = document.querySelectorAll('.content, .card-meta, .preview-meta, td, .link-type');
@@ -228,81 +230,82 @@ const INDEX_TEMPLATE: &str = r##"{% extends "base.html" %}
 
 {% block head %}
 <style>
-    .filter-btn.active { background: rgba(0, 124, 67, 0.2); border-color: #007c43; color: #4ade80; }
-    .filter-btn:not(.active):hover { background: rgba(51, 65, 85, 0.5); }
+    .filter-btn.active { background: oklch(var(--p) / 0.2); border-color: oklch(var(--p)); color: oklch(var(--s)); }
 </style>
 {% endblock %}
 
 {% block content %}
-<input type="text" class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-piper-card text-slate-300 mb-6 focus:outline-none focus:border-piper-accent" placeholder="Search records..." id="search">
+<h1 class="text-3xl font-bold mb-6">Records</h1>
+
+<input type="text" class="input input-bordered w-full mb-6" placeholder="Search records..." id="search">
 
 <div class="flex gap-2 mb-6 flex-wrap items-center">
-    <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors active" data-type="all">All</button>
+    <button class="btn btn-sm btn-outline filter-btn active" data-type="all">All</button>
     {% for rt in record_types %}
-    <button class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" data-type="{{ rt.code }}">{{ rt.display }}</button>
+    <button class="btn btn-sm btn-outline filter-btn" data-type="{{ rt.code }}">{{ rt.display }}</button>
     {% endfor %}
     <div id="tagFilter" class="hidden"></div>
     <div class="ml-auto flex gap-2">
-        <button id="viewToggle" class="filter-btn px-3 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" title="Toggle view">
+        <button id="viewToggle" class="btn btn-sm btn-outline btn-square" title="Toggle view">
             <svg id="viewIconCards" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
             <svg id="viewIconTable" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
         </button>
-        <button id="sort" class="filter-btn px-4 py-2 border border-slate-700 rounded-lg bg-transparent text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors" title="Core First">★</button>
+        <button id="sort" class="btn btn-sm btn-outline" title="Core First">★</button>
     </div>
 </div>
 
-<div id="records" class="space-y-4">
+<div id="records" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 {% for record in records %}
-<a href="/records/{{ record.id }}" class="card block rounded-xl p-5 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-yellow-500 bg-slate-800/60 hover:bg-slate-700/60{% else %}bg-piper-card border border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/50{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
-    <div class="flex justify-between items-start gap-4">
-        <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-2">
-                <span class="font-mono text-xs text-slate-500">{{ record.id }}</span>
-                {% if record.is_draft %}<span class="inline-flex items-center rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20">DRAFT</span>{% endif %}
-                {% if record.foundational %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">CORE</span>{% endif %}
-            </div>
-            <h3 class="text-lg font-medium text-slate-100 mb-2 leading-snug">{{ record.title }}</h3>
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                <span class="text-slate-400">{{ record.type_display }}</span>
-                <span class="text-slate-600">·</span>
-                {% if record.status == 'deprecated' %}<span class="text-amber-500/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-red-400/70">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-blue-400/70">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
+<a href="/records/{{ record.id }}" class="card card-border bg-base-100 hover:bg-base-200 transition-all hover:-translate-y-0.5 {% if record.foundational %}border-l-4 border-l-warning{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}">
+    <div class="card-body p-5">
+        <div class="flex justify-between items-start gap-3">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="font-mono text-xs opacity-40">{{ record.id }}</span>
+                    {% if record.is_draft %}<span class="badge badge-xs badge-secondary badge-outline">DRAFT</span>{% endif %}
+                    {% if record.foundational %}<span class="badge badge-xs badge-warning badge-outline">CORE</span>{% endif %}
+                </div>
+                <h3 class="text-base font-semibold text-base-content mb-2">{{ record.title }}</h3>
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-50">
+                    <span class="badge badge-xs badge-ghost">{{ record.type_display }}</span>
+                    {% if record.status == 'deprecated' %}<span class="text-warning">{{ record.created_year }} → {{ record.updated_year }}</span>{% elif record.type == 'INC' and record.status == 'open' %}<span class="text-error">{{ record.created_year }} → ongoing</span>{% elif record.type == 'INC' and record.status == 'resolved' %}<span class="text-info">{{ record.created_year }} → {{ record.updated_year }}</span>{% else %}<span>{{ record.created }}</span>{% endif %}
+                </div>
                 {% if record.tags %}
-                <span class="text-slate-700">·</span>
-                <div class="flex flex-wrap gap-1">{% for tag in record.tags %}<span class="tag-link rounded bg-slate-700/50 px-1.5 py-0.5 text-slate-500 font-mono hover:bg-slate-600 hover:text-slate-300 transition-colors" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}</div>
+                <div class="flex flex-wrap gap-1 mt-2">{% for tag in record.tags %}<span class="tag-link badge badge-xs badge-outline opacity-60 cursor-pointer hover:opacity-100" data-tag="{{ tag }}">#{{ tag }}</span>{% endfor %}</div>
                 {% endif %}
             </div>
+            <span class="badge badge-sm flex-shrink-0 {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status | upper }}</span>
         </div>
-        <span class="flex-shrink-0 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset {% if record.status == 'accepted' or record.status == 'active' %}bg-green-500/10 text-green-400 ring-green-500/20{% elif record.status == 'proposed' or record.status == 'draft' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'open' %}bg-red-500/10 text-red-400 ring-red-500/20{% elif record.status == 'resolved' %}bg-sky-500/10 text-sky-400 ring-sky-500/20{% elif record.status == 'deprecated' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'superseded' %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% else %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% endif %}">{{ record.status | upper }}</span>
     </div>
 </a>
 {% endfor %}
 </div>
 
 <div id="recordsTable" class="hidden overflow-x-auto">
-    <table class="w-full text-left">
-        <thead class="border-b border-slate-700/50">
-            <tr class="text-slate-500 text-xs uppercase tracking-wider">
-                <th class="py-3 px-4 font-medium">ID</th>
-                <th class="py-3 px-4 font-medium">Title</th>
-                <th class="py-3 px-4 font-medium">Type</th>
-                <th class="py-3 px-4 font-medium">Status</th>
-                <th class="py-3 px-4 font-medium">Date</th>
+    <table class="table table-zebra">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Date</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800/50">
+        <tbody>
             {% for record in records %}
-            <tr class="table-row hover:bg-slate-800/30 transition-colors cursor-pointer {% if record.foundational %}bg-slate-800/20{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
-                <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
-                    <span class="text-slate-500">{{ record.id }}</span>
-                    {% if record.is_draft %}<span class="ml-1 inline-flex items-center rounded-md bg-violet-500/10 px-1.5 py-0.5 text-xs font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20">D</span>{% endif %}
-                    {% if record.foundational %}<span class="ml-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">★</span>{% endif %}
+            <tr class="table-row hover:bg-base-200 cursor-pointer {% if record.foundational %}bg-warning/5{% endif %}" data-type="{{ record.type }}" data-status="{{ record.status }}" data-id="{{ record.id }}" data-created="{{ record.created }}" data-foundational="{{ record.foundational }}" data-tags="{{ record.tags | join(',') }}" data-href="/records/{{ record.id }}">
+                <td class="font-mono text-xs whitespace-nowrap">
+                    <span class="opacity-50">{{ record.id }}</span>
+                    {% if record.is_draft %}<span class="badge badge-xs badge-secondary ml-1">D</span>{% endif %}
+                    {% if record.foundational %}<span class="badge badge-xs badge-warning ml-1">★</span>{% endif %}
                 </td>
-                <td class="py-3 px-4 text-slate-200 font-medium">{{ record.title }}</td>
-                <td class="py-3 px-4 text-slate-500 text-sm">{{ record.type_display }}</td>
-                <td class="py-3 px-4">
-                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset {% if record.status == 'accepted' or record.status == 'active' %}bg-green-500/10 text-green-400 ring-green-500/20{% elif record.status == 'proposed' or record.status == 'draft' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'open' %}bg-red-500/10 text-red-400 ring-red-500/20{% elif record.status == 'resolved' %}bg-sky-500/10 text-sky-400 ring-sky-500/20{% elif record.status == 'deprecated' %}bg-amber-500/10 text-amber-400 ring-amber-500/20{% elif record.status == 'superseded' %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% else %}bg-slate-500/10 text-slate-400 ring-slate-500/20{% endif %}">{{ record.status }}</span>
+                <td class="font-medium">{{ record.title }}</td>
+                <td class="text-sm opacity-60">{{ record.type_display }}</td>
+                <td>
+                    <span class="badge badge-sm {% if record.status == 'accepted' or record.status == 'active' %}badge-success{% elif record.status == 'proposed' or record.status == 'draft' %}badge-warning{% elif record.status == 'open' %}badge-error{% elif record.status == 'resolved' %}badge-info{% elif record.status == 'deprecated' %}badge-warning badge-outline{% elif record.status == 'superseded' %}badge-neutral{% else %}badge-neutral{% endif %}">{{ record.status }}</span>
                 </td>
-                <td class="py-3 px-4 text-slate-500 text-sm whitespace-nowrap">{{ record.created }}</td>
+                <td class="text-sm opacity-60 whitespace-nowrap">{{ record.created }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -364,9 +367,9 @@ const sortModes = {
 // Tag filter UI
 function updateTagFilterUI() {
     if (activeTag) {
-        tagFilterEl.innerHTML = `<button class="filter-btn px-4 py-2 border rounded-lg transition-colors flex items-center gap-2 active border-piper-accent bg-piper-accent/20 text-piper-light" onclick="clearTag()">
+        tagFilterEl.innerHTML = `<button class="btn btn-sm btn-primary" onclick="clearTag()">
             <span>#${activeTag}</span>
-            <span class="text-piper-light/60 hover:text-red-400 text-lg leading-none">&times;</span>
+            <span class="opacity-60 hover:text-error text-lg leading-none">&times;</span>
         </button>`;
         tagFilterEl.classList.remove('hidden');
     } else {
@@ -687,7 +690,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             <nav id="toc" class="hidden lg:block w-56 shrink-0">
                 <div class="sticky top-6">
                     <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 font-mono">On This Page</h4>
-                    <ul id="toc-list" class="space-y-1 text-sm border-l border-slate-700"></ul>
+                    <ul id="toc-list" class="list-none space-y-1 text-sm"></ul>
                 </div>
             </nav>
         </div>
@@ -766,9 +769,10 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         const a = document.createElement('a');
         a.href = '#' + heading.id;
         a.textContent = heading.textContent;
-        a.className = 'block py-1.5 pl-3 text-slate-400 hover:text-piper-light transition-colors border-l-2 border-transparent -ml-px';
+        a.className = 'block py-1.5 pl-4 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors border-l-2 border-slate-800';
         if (heading.tagName === 'H3') {
-            a.classList.add('pl-6', 'text-xs');
+            li.classList.add('ml-4');
+            a.classList.add('text-xs');
         }
         a.addEventListener('click', (e) => {
             e.preventDefault();
@@ -793,11 +797,11 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
         tocItems.forEach((item, index) => {
             if (index === activeIndex) {
-                item.link.classList.remove('text-slate-400', 'border-transparent');
-                item.link.classList.add('text-piper-light', 'border-piper-accent');
+                item.link.classList.remove('text-slate-400', 'border-slate-800');
+                item.link.classList.add('text-slate-100', 'border-piper-accent', 'font-medium');
             } else {
-                item.link.classList.add('text-slate-400', 'border-transparent');
-                item.link.classList.remove('text-piper-light', 'border-piper-accent');
+                item.link.classList.add('text-slate-400', 'border-slate-800');
+                item.link.classList.remove('text-slate-100', 'border-piper-accent', 'font-medium');
             }
         });
     }
@@ -1262,39 +1266,43 @@ const STATS_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}Stats - {{ site.title }}{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold text-white mb-6">Statistics</h2>
+<h1 class="text-3xl font-bold mb-6">Statistics</h1>
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-    <div class="bg-piper-card border border-slate-700 rounded-xl p-6 text-center">
-        <div class="text-4xl font-bold text-piper-light">{{ stats.total_records }}</div>
-        <div class="text-slate-400 mt-1">Total Records</div>
+<div class="stats stats-vertical sm:stats-horizontal shadow w-full mb-8">
+    <div class="stat">
+        <div class="stat-title">Total Records</div>
+        <div class="stat-value text-primary">{{ stats.total_records }}</div>
     </div>
-    <div class="bg-piper-card border border-slate-700 rounded-xl p-6 text-center">
-        <div class="text-4xl font-bold text-piper-light">{{ stats.total_edges }}</div>
-        <div class="text-slate-400 mt-1">Total Links</div>
+    <div class="stat">
+        <div class="stat-title">Total Links</div>
+        <div class="stat-value text-secondary">{{ stats.total_edges }}</div>
     </div>
-    <div class="bg-piper-card border border-slate-700 rounded-xl p-6 text-center">
-        <div class="text-4xl font-bold text-yellow-500">{{ stats.foundational }}</div>
-        <div class="text-slate-400 mt-1">Core Records</div>
+    <div class="stat">
+        <div class="stat-title">Core Records</div>
+        <div class="stat-value text-warning">{{ stats.foundational }}</div>
     </div>
 </div>
 
-<h3 class="text-lg font-semibold text-white mb-4">By Type</h3>
+<h3 class="text-lg font-semibold mb-4">By Type</h3>
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-8">
     {% for item in stats.by_type %}
-    <a href="/?type={{ item.type }}" class="bg-piper-card border border-slate-700 rounded-xl p-4 text-center hover:border-piper-light/50 hover:-translate-y-0.5 transition-all">
-        <div class="text-2xl font-bold text-piper-light">{{ item.count }}</div>
-        <div class="text-slate-400 text-sm">{{ item.type_display }}</div>
+    <a href="/?type={{ item.type }}" class="card card-border bg-base-100 hover:bg-base-200 hover:-translate-y-0.5 transition-all">
+        <div class="card-body p-4 items-center text-center">
+            <div class="text-2xl font-bold text-primary">{{ item.count }}</div>
+            <div class="text-sm opacity-60">{{ item.type_display }}</div>
+        </div>
     </a>
     {% endfor %}
 </div>
 
-<h3 class="text-lg font-semibold text-white mb-4">By Status</h3>
+<h3 class="text-lg font-semibold mb-4">By Status</h3>
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
     {% for item in stats.by_status %}
-    <a href="/?status={{ item.status }}" class="bg-piper-card border border-slate-700 rounded-xl p-4 text-center hover:border-piper-light/50 hover:-translate-y-0.5 transition-all">
-        <div class="text-2xl font-bold text-piper-light">{{ item.count }}</div>
-        <div class="text-slate-400 text-sm capitalize">{{ item.status }}</div>
+    <a href="/?status={{ item.status }}" class="card card-border bg-base-100 hover:bg-base-200 hover:-translate-y-0.5 transition-all">
+        <div class="card-body p-4 items-center text-center">
+            <div class="text-2xl font-bold text-primary">{{ item.count }}</div>
+            <div class="text-sm opacity-60 capitalize">{{ item.status }}</div>
+        </div>
     </a>
     {% endfor %}
 </div>
@@ -1315,15 +1323,27 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
     }
     .editor-layout {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
+        grid-template-columns: 1fr 8px 1fr;
+        gap: 0;
         flex: 1;
         min-height: 0;
     }
     .editor-layout.editor-only { grid-template-columns: 1fr; }
-    .editor-layout.editor-only .preview-pane { display: none; }
+    .editor-layout.editor-only .preview-pane,
+    .editor-layout.editor-only .editor-gutter { display: none; }
     .editor-layout.preview-only { grid-template-columns: 1fr; }
-    .editor-layout.preview-only .editor-pane-wrapper { display: none; }
+    .editor-layout.preview-only .editor-pane-wrapper,
+    .editor-layout.preview-only .editor-gutter { display: none; }
+    .editor-gutter {
+        background: linear-gradient(to right, #1e293b, #334155, #1e293b);
+        border-radius: 4px;
+        margin: 1rem 0;
+    }
+    .editor-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
     .editor-pane-wrapper, .preview-pane {
         display: flex;
         flex-direction: column;
@@ -1345,8 +1365,12 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
         min-height: 0;
     }
     @media (max-width: 768px) {
-        .editor-layout { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+        .editor-layout { grid-template-columns: 1fr; grid-template-rows: 1fr 8px 1fr; }
         .editor-layout.editor-only, .editor-layout.preview-only { grid-template-rows: 1fr; }
+        .editor-gutter {
+            margin: 0 1rem;
+            background: linear-gradient(to bottom, #1e293b, #334155, #1e293b);
+        }
     }
     .field-input {
         background: #1e293b;
@@ -1428,12 +1452,12 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
                 <p class="text-slate-400 text-sm" id="displayTitle">{{ record_title }}</p>
             </div>
         </div>
-        <div class="flex gap-3">
-            <button id="saveBtn" class="px-4 py-2 bg-piper-accent hover:bg-piper-light text-white font-medium rounded-lg transition-all flex items-center gap-2">
+        <div class="flex gap-3 items-center">
+            <a href="/records/{{ record_id }}" class="btn btn-ghost">Cancel</a>
+            <button id="saveBtn" class="btn btn-primary">
                 <svg id="saveIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 <span id="saveBtnText">Save</span>
             </button>
-            <a href="/records/{{ record_id }}" class="cancel-btn px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors">Cancel</a>
         </div>
     </div>
 
@@ -1446,38 +1470,38 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
             <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Metadata</span>
             <svg id="metadataChevron" class="w-4 h-4 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </button>
-        <div id="metadataFields" class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label for="fieldTitle" class="block text-xs text-slate-500 mb-1">Title</label>
-                <input type="text" id="fieldTitle" class="field-input" placeholder="Record title">
-            </div>
+        <div id="metadataFields" class="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
             <div>
-                <label for="fieldStatus" class="block text-xs text-slate-500 mb-1">Status</label>
-                <select id="fieldStatus" class="field-input">
-                    <option value="proposed">Proposed</option>
-                    <option value="draft">Draft</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="active">Active</option>
-                    <option value="deprecated">Deprecated</option>
-                    <option value="superseded">Superseded</option>
-                    <option value="open">Open</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+                <label for="fieldTitle" class="label text-xs opacity-60">Title</label>
+                <input type="text" id="fieldTitle" class="input input-bordered w-full" placeholder="Record title">
             </div>
-            <div class="flex items-end pb-1">
-                <label for="fieldFoundational" class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
-                    <input type="checkbox" id="fieldFoundational" class="rounded bg-slate-800 border-slate-600 text-piper-accent focus:ring-piper-accent focus:ring-offset-slate-900">
-                    <span>Core</span>
+            <div class="flex gap-4 items-end">
+                <div class="flex-1">
+                    <label for="fieldStatus" class="label text-xs opacity-60">Status</label>
+                    <select id="fieldStatus" class="select select-bordered w-full">
+                        <option value="proposed">Proposed</option>
+                        <option value="draft">Draft</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="active">Active</option>
+                        <option value="deprecated">Deprecated</option>
+                        <option value="superseded">Superseded</option>
+                        <option value="open">Open</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <label for="fieldFoundational" class="flex items-center gap-2 cursor-pointer select-none h-[42px] whitespace-nowrap">
+                    <input type="checkbox" id="fieldFoundational" class="checkbox checkbox-primary">
+                    <span class="label-text">Core</span>
                 </label>
             </div>
-            <div class="md:col-span-2">
+            <div>
                 <label for="authorInput" class="block text-xs text-slate-500 mb-1">Authors</label>
                 <div id="authorsContainer" class="field-input tag-input" onclick="document.getElementById('authorInput').focus()">
                     <input type="text" id="authorInput" class="bg-transparent border-none outline-none text-sm flex-1 min-w-[80px]" placeholder="Add author...">
                 </div>
             </div>
-            <div class="md:col-span-2">
+            <div>
                 <label for="tagInput" class="block text-xs text-slate-500 mb-1">Tags</label>
                 <div id="tagsContainer" class="field-input tag-input" onclick="document.getElementById('tagInput').focus()">
                     <input type="text" id="tagInput" class="bg-transparent border-none outline-none text-sm flex-1 min-w-[80px]" placeholder="Add tag...">
@@ -1488,13 +1512,13 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
 
     <!-- Editor -->
     <div id="editorLayout" class="editor-layout">
-        <div class="editor-pane-wrapper bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+        <div class="editor-pane-wrapper bg-piper-card border border-slate-700 rounded-xl overflow-hidden mr-1">
             <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Content</span>
                 <span id="cursorPos" class="text-xs text-slate-500 font-mono">Ln 1, Col 1</span>
             </div>
             <!-- Formatting Toolbar -->
-            <div class="px-2 py-1.5 bg-slate-800/30 border-b border-slate-700/50 flex flex-wrap gap-1 flex-shrink-0">
+            <div class="editor-toolbar px-2 py-1.5 bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 flex flex-wrap gap-1 flex-shrink-0">
                 <div class="flex gap-0.5 border-r border-slate-700 pr-2 mr-1">
                     <button type="button" class="toolbar-btn" onclick="insertFormat('heading')" title="Heading (Ctrl+H)">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
@@ -1556,7 +1580,8 @@ const EDIT_TEMPLATE: &str = r##"{% extends "base.html" %}
             </div>
             <textarea id="editor" class="w-full p-4 bg-transparent text-slate-200 border-none outline-none" spellcheck="false" placeholder="Write your content here..."></textarea>
         </div>
-        <div class="preview-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden">
+        <div class="editor-gutter"></div>
+        <div class="preview-pane bg-piper-card border border-slate-700 rounded-xl overflow-hidden ml-1">
             <div class="px-4 py-2 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Preview</span>
                 <div class="flex gap-1">
@@ -1957,15 +1982,23 @@ async function updatePreview() {
     const html = await renderMarkdown(editor.value);
     preview.innerHTML = html;
     // Render KaTeX math in preview
-    if (typeof renderMathInElement === 'function') {
-        renderMathInElement(preview, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});
-    }
+    renderMath();
     renderPending = false;
 
     // Process queued render
     if (renderQueued) {
         renderQueued = false;
         updatePreview();
+    }
+}
+
+// Render math with retry for when KaTeX hasn't loaded yet
+function renderMath() {
+    if (typeof renderMathInElement === 'function') {
+        renderMathInElement(preview, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});
+    } else {
+        // KaTeX not loaded yet, retry in 100ms
+        setTimeout(renderMath, 100);
     }
 }
 

@@ -8,6 +8,7 @@ primary_color = "#00A4EF"  # Microsoft Blue
 accent_color = "#7FBA00"   # Microsoft Green
 footer = "Microsoft Corporation (Sample)"
 quick_preview = true
+github_avatars = false  # Use initials instead of GitHub profile pictures
 
 # Users with historical context
 # Note: In real usage, deprecated users would be added via git history

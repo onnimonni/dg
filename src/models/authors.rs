@@ -58,16 +58,33 @@ pub struct AuthorsConfig {
     /// Manual author overrides (username -> info)
     #[serde(default)]
     pub authors: HashMap<String, AuthorInfo>,
+
+    /// Whether to use GitHub avatars for unknown users (default: true)
+    #[serde(skip)]
+    pub github_avatars: bool,
 }
 
 impl AuthorsConfig {
+    /// Create with github_avatars setting
+    pub fn with_github_avatars(authors: HashMap<String, AuthorInfo>, github_avatars: bool) -> Self {
+        Self {
+            authors,
+            github_avatars,
+        }
+    }
+
     /// Get author info, with defaults for unknown authors
     pub fn get(&self, username: &str) -> AuthorInfo {
         self.authors.get(username).cloned().unwrap_or_else(|| {
-            // Default: assume username is a GitHub username
-            AuthorInfo {
-                github: Some(username.to_string()),
-                ..Default::default()
+            if self.github_avatars {
+                // Default: assume username is a GitHub username
+                AuthorInfo {
+                    github: Some(username.to_string()),
+                    ..Default::default()
+                }
+            } else {
+                // Use initials-only (no GitHub)
+                AuthorInfo::default()
             }
         })
     }
