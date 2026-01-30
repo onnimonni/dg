@@ -534,3 +534,209 @@ pub struct GraphStats {
     pub by_type: HashMap<String, usize>,
     pub by_status: HashMap<String, usize>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_graph() -> Graph {
+        // Create a simple graph for testing:
+        // DEC-001 -> DEC-002 (depends_on)
+        // DEC-002 -> ADR-001 (depends_on)
+        // DEC-001 -> ADR-001 (enables)
+        let mut records = HashMap::new();
+        let mut edges = Vec::new();
+
+        // Helper to create minimal records
+        let create_record = |id: &str, title: &str, rtype: RecordType| {
+            let content = format!(
+                "---\ntype: {}\nid: {}\ntitle: \"{}\"\nstatus: accepted\ncreated: 2024-01-01\nupdated: 2024-01-01\nauthors: []\ntags: []\nlinks: {{}}\n---\n\n# {}\n",
+                rtype.template_name(), id, title, title
+            );
+            Record::parse_content(&content, std::path::PathBuf::from(format!("{}.md", id))).unwrap()
+        };
+
+        records.insert(
+            "DEC-001".to_string(),
+            create_record("DEC-001", "First Decision", RecordType::Decision),
+        );
+        records.insert(
+            "DEC-002".to_string(),
+            create_record("DEC-002", "Second Decision", RecordType::Decision),
+        );
+        records.insert(
+            "ADR-001".to_string(),
+            create_record("ADR-001", "Architecture Decision", RecordType::Adr),
+        );
+
+        edges.push(GraphEdge {
+            from: "DEC-001".to_string(),
+            to: "DEC-002".to_string(),
+            link_type: "depends_on".to_string(),
+        });
+        edges.push(GraphEdge {
+            from: "DEC-002".to_string(),
+            to: "ADR-001".to_string(),
+            link_type: "depends_on".to_string(),
+        });
+        edges.push(GraphEdge {
+            from: "DEC-001".to_string(),
+            to: "ADR-001".to_string(),
+            link_type: "enables".to_string(),
+        });
+
+        Graph {
+            records,
+            edges,
+            docs_dir: None,
+        }
+    }
+
+    #[test]
+    fn test_graph_get() {
+        let graph = make_test_graph();
+        assert!(graph.get("DEC-001").is_some());
+        assert!(graph.get("NONEXISTENT").is_none());
+    }
+
+    #[test]
+    fn test_graph_all_records() {
+        let graph = make_test_graph();
+        let records: Vec<_> = graph.all_records().collect();
+        assert_eq!(records.len(), 3);
+    }
+
+    #[test]
+    fn test_outgoing_edges() {
+        let graph = make_test_graph();
+        let edges = graph.outgoing_edges("DEC-001");
+        assert_eq!(edges.len(), 2);
+
+        let edges = graph.outgoing_edges("ADR-001");
+        assert_eq!(edges.len(), 0);
+    }
+
+    #[test]
+    fn test_incoming_edges() {
+        let graph = make_test_graph();
+        let edges = graph.incoming_edges("ADR-001");
+        assert_eq!(edges.len(), 2);
+
+        let edges = graph.incoming_edges("DEC-001");
+        assert_eq!(edges.len(), 0);
+    }
+
+    #[test]
+    fn test_neighbors_depth_0() {
+        let graph = make_test_graph();
+        let neighbors = graph.neighbors("DEC-001", 0);
+        assert_eq!(neighbors.len(), 1); // Just itself
+        assert!(neighbors.contains("DEC-001"));
+    }
+
+    #[test]
+    fn test_neighbors_depth_1() {
+        let graph = make_test_graph();
+        let neighbors = graph.neighbors("DEC-001", 1);
+        assert_eq!(neighbors.len(), 3); // DEC-001, DEC-002, ADR-001
+        assert!(neighbors.contains("DEC-001"));
+        assert!(neighbors.contains("DEC-002"));
+        assert!(neighbors.contains("ADR-001"));
+    }
+
+    #[test]
+    fn test_neighbors_depth_2() {
+        let graph = make_test_graph();
+        let neighbors = graph.neighbors("DEC-002", 2);
+        // DEC-002 connects to DEC-001 and ADR-001
+        assert!(neighbors.contains("DEC-001"));
+        assert!(neighbors.contains("DEC-002"));
+        assert!(neighbors.contains("ADR-001"));
+    }
+
+    #[test]
+    fn test_next_id_empty_type() {
+        let graph = make_test_graph();
+        // No STR records exist
+        let next = graph.next_id(&RecordType::Strategy);
+        assert_eq!(next, "STR-001");
+    }
+
+    #[test]
+    fn test_next_id_existing_type() {
+        let graph = make_test_graph();
+        // DEC-001 and DEC-002 exist
+        let next = graph.next_id(&RecordType::Decision);
+        assert_eq!(next, "DEC-003");
+    }
+
+    #[test]
+    fn test_next_id_excluding() {
+        let graph = make_test_graph();
+        // Exclude DEC-003 as well
+        let exclude = vec!["DEC-003".to_string()];
+        let next = graph.next_id_excluding(&RecordType::Decision, &exclude);
+        assert_eq!(next, "DEC-004");
+    }
+
+    #[test]
+    fn test_search_by_id() {
+        let graph = make_test_graph();
+        let results = graph.search("DEC-001", false);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id(), "DEC-001");
+    }
+
+    #[test]
+    fn test_search_by_title() {
+        let graph = make_test_graph();
+        let results = graph.search("Architecture", false);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id(), "ADR-001");
+    }
+
+    #[test]
+    fn test_search_case_insensitive() {
+        let graph = make_test_graph();
+        let results = graph.search("decision", false);
+        assert_eq!(results.len(), 3); // All have "Decision" in title
+    }
+
+    #[test]
+    fn test_stats() {
+        let graph = make_test_graph();
+        let stats = graph.stats();
+        assert_eq!(stats.total_records, 3);
+        assert_eq!(stats.total_edges, 3);
+        assert_eq!(*stats.by_type.get("DEC").unwrap_or(&0), 2);
+        assert_eq!(*stats.by_type.get("ADR").unwrap_or(&0), 1);
+    }
+
+    #[test]
+    fn test_to_dot_output() {
+        let graph = make_test_graph();
+        let dot = graph.to_dot(None);
+        assert!(dot.contains("digraph"));
+        assert!(dot.contains("DEC-001"));
+        assert!(dot.contains("DEC-002"));
+        assert!(dot.contains("ADR-001"));
+        assert!(dot.contains("depends_on"));
+    }
+
+    #[test]
+    fn test_dependency_path() {
+        let path = DependencyPath::new("DEC-001".to_string());
+        assert_eq!(path.nodes.len(), 1);
+        assert!(path.link_types.is_empty());
+
+        let extended = path.extend("DEC-002".to_string(), "depends_on".to_string());
+        assert_eq!(extended.nodes.len(), 2);
+        assert_eq!(extended.link_types.len(), 1);
+    }
+
+    #[test]
+    fn test_truncate() {
+        assert_eq!(truncate("short", 10), "short");
+        assert_eq!(truncate("this is a very long string", 10), "this is...");
+    }
+}
