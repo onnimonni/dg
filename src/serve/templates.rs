@@ -1060,6 +1060,16 @@ const TIMELINE_TEMPLATE: &str = r##"{% extends "base.html" %}
         height: 12px;
         border-radius: 50%;
     }
+    .gap-label {
+        fill: var(--text-dim);
+        font-size: 12px;
+        font-style: italic;
+    }
+    .gap-dots {
+        fill: var(--text-dim);
+        font-size: 16px;
+        letter-spacing: 2px;
+    }
 </style>
 {% endblock %}
 
@@ -1118,8 +1128,8 @@ for (let y = minYear; y <= maxYear; y++) years.push(y);
 
 // Layout config
 const margin = { top: 60, right: 60, bottom: 40, left: 80 };
-const nodeRadius = 14;
-const nodeSpacing = 50; // Minimum vertical spacing between nodes
+const nodeRadius = 22;  // Larger radius to fit IDs like DEC-001
+const nodeSpacing = 60; // Minimum vertical spacing between nodes
 
 // Assign lanes (columns) to avoid overlap - git-style
 const lanes = {};  // type -> lane index
@@ -1131,7 +1141,7 @@ const dataTypes = [...new Set(records.map(r => r.type))];
 dataTypes.sort((a, b) => (typeOrder.indexOf(a) !== -1 ? typeOrder.indexOf(a) : 99) - (typeOrder.indexOf(b) !== -1 ? typeOrder.indexOf(b) : 99));
 dataTypes.forEach((t, i) => lanes[t] = i);
 
-const laneWidth = 70;
+const laneWidth = 80;  // Wider lanes for larger nodes
 const width = margin.left + (dataTypes.length) * laneWidth + margin.right;
 
 // Group records by year and calculate year heights based on record count
@@ -1139,28 +1149,69 @@ const recordsByYear = {};
 years.forEach(y => recordsByYear[y] = []);
 records.forEach(r => recordsByYear[r.year].push(r));
 
-// Calculate year section heights (minimum 120px, grows with record count)
-const yearHeights = {};
+// Identify year gaps (consecutive empty years) and create display items
+const displayItems = [];  // { type: 'year', year } or { type: 'gap', startYear, endYear }
+let gapStart = null;
+years.forEach((y, i) => {
+    const hasRecords = recordsByYear[y].length > 0;
+    if (!hasRecords) {
+        if (gapStart === null) gapStart = y;
+    } else {
+        if (gapStart !== null) {
+            const gapEnd = years[i - 1];
+            displayItems.push({ type: 'gap', startYear: gapStart, endYear: gapEnd });
+            gapStart = null;
+        }
+        displayItems.push({ type: 'year', year: y });
+    }
+});
+// Handle trailing gap
+if (gapStart !== null) {
+    displayItems.push({ type: 'gap', startYear: gapStart, endYear: years[years.length - 1] });
+}
+
+// Calculate heights for display items
+const itemHeights = {};
 const minYearHeight = 120;
-years.forEach(y => {
-    const count = recordsByYear[y].length;
-    yearHeights[y] = Math.max(minYearHeight, count * nodeSpacing + 40);
+const gapHeight = 50;  // Compact height for year gaps
+displayItems.forEach(item => {
+    if (item.type === 'gap') {
+        itemHeights[`gap-${item.startYear}`] = gapHeight;
+    } else {
+        const count = recordsByYear[item.year].length;
+        itemHeights[item.year] = Math.max(minYearHeight, count * nodeSpacing + 40);
+    }
 });
 
-// Calculate cumulative Y offsets for each year
-const yearOffsets = {};
-let cumulativeY = margin.top;
+// For backward compatibility, also populate yearHeights for years with records
+const yearHeights = {};
 years.forEach(y => {
-    yearOffsets[y] = cumulativeY;
-    cumulativeY += yearHeights[y];
+    if (recordsByYear[y].length > 0) {
+        yearHeights[y] = itemHeights[y];
+    }
+});
+
+// Calculate cumulative Y offsets
+const yearOffsets = {};
+const gapOffsets = {};
+let cumulativeY = margin.top;
+displayItems.forEach(item => {
+    if (item.type === 'gap') {
+        gapOffsets[item.startYear] = { y: cumulativeY, startYear: item.startYear, endYear: item.endYear };
+        cumulativeY += gapHeight;
+    } else {
+        yearOffsets[item.year] = cumulativeY;
+        cumulativeY += itemHeights[item.year];
+    }
 });
 
 const height = cumulativeY + margin.bottom;
 
 // Calculate positions - spread nodes evenly within each year section
-years.forEach(year => {
+// Only process years that have records
+const yearsWithRecords = years.filter(y => recordsByYear[y].length > 0);
+yearsWithRecords.forEach(year => {
     const yearRecords = recordsByYear[year];
-    if (yearRecords.length === 0) return;
 
     // Sort by date within year, then by type for consistent ordering
     yearRecords.sort((a, b) => a.date - b.date || lanes[a.type] - lanes[b.type]);
@@ -1187,26 +1238,65 @@ svg.setAttribute('width', width);
 svg.setAttribute('height', height);
 svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-// Draw year separators and labels
-years.forEach((year, i) => {
-    const y = yearOffsets[year];
+// Draw year separators, labels, and gap indicators
+displayItems.forEach(item => {
+    if (item.type === 'gap') {
+        // Draw gap indicator
+        const gapInfo = gapOffsets[item.startYear];
+        const y = gapInfo.y;
+        const centerY = y + gapHeight / 2;
 
-    // Year line
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', margin.left - 20);
-    line.setAttribute('y1', y);
-    line.setAttribute('x2', width - margin.right + 20);
-    line.setAttribute('y2', y);
-    line.setAttribute('class', 'year-line');
-    svg.appendChild(line);
+        // Dashed line across
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', margin.left - 20);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', width - margin.right + 20);
+        line.setAttribute('y2', y);
+        line.setAttribute('class', 'year-line');
+        line.setAttribute('opacity', 0.3);
+        svg.appendChild(line);
 
-    // Year label
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', 20);
-    text.setAttribute('y', y + yearHeights[year] / 2);
-    text.setAttribute('class', 'year-label');
-    text.textContent = year;
-    svg.appendChild(text);
+        // Gap label with year range
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', 20);
+        label.setAttribute('y', centerY);
+        label.setAttribute('class', 'gap-label');
+        const rangeText = item.startYear === item.endYear
+            ? item.startYear
+            : `${item.startYear}–${item.endYear}`;
+        label.textContent = rangeText;
+        svg.appendChild(label);
+
+        // Vertical dots in the center
+        const dots = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        dots.setAttribute('x', width / 2);
+        dots.setAttribute('y', centerY + 4);
+        dots.setAttribute('text-anchor', 'middle');
+        dots.setAttribute('class', 'gap-dots');
+        dots.textContent = '···';
+        svg.appendChild(dots);
+    } else {
+        // Draw regular year
+        const year = item.year;
+        const y = yearOffsets[year];
+
+        // Year line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', margin.left - 20);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', width - margin.right + 20);
+        line.setAttribute('y2', y);
+        line.setAttribute('class', 'year-line');
+        svg.appendChild(line);
+
+        // Year label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', 20);
+        text.setAttribute('y', y + yearHeights[year] / 2);
+        text.setAttribute('class', 'year-label');
+        text.textContent = year;
+        svg.appendChild(text);
+    }
 });
 
 // Draw trunk lines for each lane (vertical lines like git branches)
@@ -1276,8 +1366,9 @@ records.forEach(r => {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dy', 4);
     text.setAttribute('fill', '#fff');
-    text.setAttribute('font-size', '9px');
+    text.setAttribute('font-size', '10px');
     text.setAttribute('font-family', 'monospace');
+    text.setAttribute('font-weight', 'bold');
     text.textContent = r.id;
     g.appendChild(text);
 
