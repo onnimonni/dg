@@ -4,7 +4,7 @@ use crate::serve::config::{DgConfig, SiteConfig};
 use crate::serve::templates::create_environment;
 use anyhow::Result;
 use minijinja::context;
-use pulldown_cmark::{html, Options, Parser};
+use pulldown_cmark::{html, CowStr, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use regex::Regex;
 use rust_embed::Embed;
 use std::collections::HashSet;
@@ -832,9 +832,12 @@ pub fn markdown_to_html_with_mentions(
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TASKLISTS);
 
+    // Use event-based processing to style comparison sections (Positive/Negative/Neutral)
     let parser = Parser::new_ext(&cleaned, options);
+    let events = style_comparison_sections(parser);
+
     let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
+    html::push_html(&mut html_output, events.into_iter());
 
     // Render D2 code blocks to SVG (server-side)
     let html_output = render_d2_blocks(&html_output);
@@ -889,6 +892,142 @@ fn render_d2_blocks(html: &str) -> String {
             }
         })
         .to_string()
+}
+
+/// Determines comparison section type from heading text
+#[derive(Clone, Copy, PartialEq)]
+enum ComparisonType {
+    Positive,
+    Negative,
+    Neutral,
+}
+
+impl ComparisonType {
+    fn from_text(text: &str) -> Option<Self> {
+        let lower = text.to_lowercase();
+        if lower.contains("positive") {
+            Some(Self::Positive)
+        } else if lower.contains("negative") {
+            Some(Self::Negative)
+        } else if lower.contains("neutral") {
+            Some(Self::Neutral)
+        } else {
+            None
+        }
+    }
+
+    fn styles(&self) -> (&'static str, &'static str, &'static str) {
+        match self {
+            Self::Positive => ("border-emerald-500/50", "bg-emerald-500/5", "✓"),
+            Self::Negative => ("border-red-500/50", "bg-red-500/5", "✗"),
+            Self::Neutral => ("border-slate-500/50", "bg-slate-500/5", "○"),
+        }
+    }
+}
+
+/// Style Positive/Negative/Neutral comparison sections using AST-based event processing
+fn style_comparison_sections<'a>(parser: Parser<'a>) -> Vec<Event<'a>> {
+    let mut events: Vec<Event<'a>> = Vec::new();
+    let mut in_comparison_heading = false;
+    let mut comparison_type: Option<ComparisonType> = None;
+    let mut heading_text = String::new();
+    let mut in_comparison_section = false;
+
+    for event in parser {
+        match &event {
+            // Detect H3 start
+            Event::Start(Tag::Heading {
+                level: HeadingLevel::H3,
+                ..
+            }) => {
+                in_comparison_heading = true;
+                heading_text.clear();
+                events.push(event);
+            }
+
+            // Collect heading text to check for Positive/Negative/Neutral
+            Event::Text(text) if in_comparison_heading => {
+                heading_text.push_str(text);
+                events.push(event);
+            }
+
+            // H3 end - check if it's a comparison heading
+            Event::End(TagEnd::Heading(HeadingLevel::H3)) if in_comparison_heading => {
+                in_comparison_heading = false;
+                if let Some(ct) = ComparisonType::from_text(&heading_text) {
+                    comparison_type = Some(ct);
+                    let (border, bg, icon) = ct.styles();
+
+                    // Find and remove the H3 start/end events we just added
+                    // We'll re-wrap them inside the comparison div
+                    let mut h3_events = Vec::new();
+                    while let Some(e) = events.pop() {
+                        let is_h3_start = matches!(
+                            &e,
+                            Event::Start(Tag::Heading {
+                                level: HeadingLevel::H3,
+                                ..
+                            })
+                        );
+                        h3_events.push(e);
+                        if is_h3_start {
+                            break;
+                        }
+                    }
+                    h3_events.reverse();
+
+                    // Insert wrapper div start
+                    events.push(Event::Html(CowStr::from(format!(
+                        r#"<div class="comparison-section my-4 p-4 rounded-lg border-l-4 {} {}"><div class="flex items-center gap-2 text-base font-semibold mb-3"><span class="text-lg">{}</span>"#,
+                        border, bg, icon
+                    ))));
+
+                    // Re-add heading events
+                    events.extend(h3_events);
+                    events.push(event);
+
+                    // Close the heading wrapper
+                    events.push(Event::Html(CowStr::from("</div>")));
+                } else {
+                    events.push(event);
+                }
+            }
+
+            // List start after comparison heading
+            Event::Start(Tag::List(_)) if comparison_type.is_some() && !in_comparison_section => {
+                in_comparison_section = true;
+                events.push(event);
+            }
+
+            // List end - close the comparison section
+            Event::End(TagEnd::List(_)) if in_comparison_section => {
+                events.push(event);
+                events.push(Event::Html(CowStr::from("</div>")));
+                in_comparison_section = false;
+                comparison_type = None;
+            }
+
+            // Any other event resets comparison tracking if we hit a new heading
+            Event::Start(Tag::Heading { .. }) if comparison_type.is_some() => {
+                // New heading without a list - close the section
+                if !in_comparison_section {
+                    events.push(Event::Html(CowStr::from("</div>")));
+                }
+                comparison_type = None;
+                in_comparison_section = false;
+                events.push(event);
+            }
+
+            _ => events.push(event),
+        }
+    }
+
+    // Close any unclosed section at end of document
+    if comparison_type.is_some() && !in_comparison_section {
+        events.push(Event::Html(CowStr::from("</div>")));
+    }
+
+    events
 }
 
 /// Unescape common HTML entities

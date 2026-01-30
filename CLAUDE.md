@@ -124,6 +124,10 @@ cargo clippy      # Lint
 cargo build --release  # Build CLI
 ```
 
+### Development Principles
+
+- **Prefer AST parsing over regex for structured content**: When processing markdown, HTML, or other structured formats, use event-based/AST parsers (e.g., pulldown-cmark events) instead of regex post-processing. AST parsing is more robust, handles edge cases better, and is easier to maintain.
+
 ## Asset Setup
 
 Fonts are managed via Nix (inter, jetbrains-mono packages). They're copied automatically when entering devenv shell.
