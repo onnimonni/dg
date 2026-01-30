@@ -130,3 +130,17 @@ description = "Legal counsel"
 [teams.competitors]
 name = "Competitors"
 description = "External competitors (for reference)"
+
+# Semantic validation rules per record type
+# These are checked by `dg lint` (warnings) and `dg lint --strict` (errors)
+
+[validation.adr]
+required_links = ["implements", "depends_on"]  # must have at least one of these link types
+required_sections = ["Context", "Decision", "Consequences"]
+
+[validation.incident]
+required_fields = ["severity"]  # frontmatter fields that must be present
+resolved_requires = ["Root Cause", "Remediation"]  # required sections when status=resolved
+
+[validation.process]
+required_sections = ["DACI", "Steps"]

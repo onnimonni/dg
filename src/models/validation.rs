@@ -58,6 +58,28 @@ pub enum ValidationError {
         id: String,
         line: usize,
     },
+    // Semantic validation errors
+    SemanticMissingField {
+        id: String,
+        record_type: String,
+        field: String,
+    },
+    SemanticMissingLinkType {
+        id: String,
+        record_type: String,
+        required_types: Vec<String>,
+    },
+    SemanticMissingSection {
+        id: String,
+        record_type: String,
+        section: String,
+    },
+    SemanticResolvedMissingSection {
+        id: String,
+        record_type: String,
+        section: String,
+        status: String,
+    },
     // Config validation errors
     TeamCircularParent {
         team: String,
@@ -149,6 +171,53 @@ impl std::fmt::Display for ValidationError {
                     id, line
                 )
             }
+            // Semantic validation errors
+            ValidationError::SemanticMissingField {
+                id,
+                record_type,
+                field,
+            } => {
+                write!(
+                    f,
+                    "{}: {} records require frontmatter field '{}' (add to frontmatter)",
+                    id, record_type, field
+                )
+            }
+            ValidationError::SemanticMissingLinkType {
+                id,
+                record_type,
+                required_types,
+            } => {
+                let types_str = required_types.join("', '");
+                write!(
+                    f,
+                    "{}: {} records require at least one link of type: '{}' (use 'dg link')",
+                    id, record_type, types_str
+                )
+            }
+            ValidationError::SemanticMissingSection {
+                id,
+                record_type,
+                section,
+            } => {
+                write!(
+                    f,
+                    "{}: {} records require section '## {}' (add heading to document)",
+                    id, record_type, section
+                )
+            }
+            ValidationError::SemanticResolvedMissingSection {
+                id,
+                record_type,
+                section,
+                status,
+            } => {
+                write!(
+                    f,
+                    "{}: {} records with status '{}' require section '## {}' (add heading before resolving)",
+                    id, record_type, status, section
+                )
+            }
             // Config validation errors
             ValidationError::TeamCircularParent { team, cycle } => {
                 write!(
@@ -190,6 +259,8 @@ impl std::fmt::Display for ValidationError {
     }
 }
 
+use crate::serve::config::ValidationConfig;
+
 /// Validation options
 #[derive(Debug, Default)]
 pub struct ValidationOptions {
@@ -213,6 +284,10 @@ pub struct ValidationOptions {
     pub users_config: Option<UsersConfig>,
     /// Teams config for validation (teams can be action item owners)
     pub teams_config: Option<TeamsConfig>,
+    /// Semantic validation rules from dg.toml
+    pub validation_config: Option<ValidationConfig>,
+    /// Enable semantic validation checks
+    pub check_semantic: bool,
 }
 
 impl ValidationOptions {
@@ -233,6 +308,8 @@ impl ValidationOptions {
             check_code_blocks: true,
             users_config: None,
             teams_config: None,
+            validation_config: None,
+            check_semantic: true,
         }
     }
 }
@@ -316,6 +393,13 @@ pub fn validate_record(
     // Check for code blocks without language identifiers
     if opts.check_code_blocks {
         errors.extend(check_code_blocks(record));
+    }
+
+    // Check semantic validation rules from config
+    if opts.check_semantic {
+        if let Some(ref validation_config) = opts.validation_config {
+            errors.extend(check_semantic_rules(record, validation_config));
+        }
     }
 
     errors
@@ -682,6 +766,110 @@ pub fn check_code_blocks(record: &Record) -> Vec<ValidationError> {
             } else {
                 // Ending a code block
                 in_code_block = false;
+            }
+        }
+    }
+
+    errors
+}
+
+/// Check semantic validation rules from dg.toml config
+pub fn check_semantic_rules(
+    record: &Record,
+    validation_config: &ValidationConfig,
+) -> Vec<ValidationError> {
+    let mut errors = Vec::new();
+    let id = record.id().to_string();
+    let record_type = record.record_type();
+    let record_type_name = record_type.display_name();
+
+    // Get rules for this record type
+    let rules = match validation_config.get_rules(record_type) {
+        Some(r) => r,
+        None => return errors, // No rules defined for this type
+    };
+
+    // Check required frontmatter fields
+    for field in &rules.required_fields {
+        let has_field = match field.as_str() {
+            "title" => !record.title().is_empty(),
+            "status" => true,  // Always present
+            "created" => true, // Always present
+            "updated" => true, // Always present
+            "authors" => !record.frontmatter.authors.is_empty(),
+            "tags" => !record.frontmatter.tags.is_empty(),
+            // Check extra fields
+            _ => record.frontmatter.extra.contains_key(field),
+        };
+
+        if !has_field {
+            errors.push(ValidationError::SemanticMissingField {
+                id: id.clone(),
+                record_type: record_type_name.to_string(),
+                field: field.clone(),
+            });
+        }
+    }
+
+    // Check required links (must have at least one of these types)
+    if !rules.required_links.is_empty() {
+        let all_links = record.frontmatter.links.all_links();
+        let has_required_link = rules.required_links.iter().any(|required_type| {
+            all_links
+                .iter()
+                .any(|(link_type, _)| link_type == required_type)
+        });
+
+        if !has_required_link {
+            errors.push(ValidationError::SemanticMissingLinkType {
+                id: id.clone(),
+                record_type: record_type_name.to_string(),
+                required_types: rules.required_links.clone(),
+            });
+        }
+    }
+
+    // Extract headings from content (case-insensitive)
+    let headings: HashSet<String> = record
+        .content
+        .lines()
+        .filter(|line| line.trim().starts_with('#'))
+        .map(|line| line.trim().trim_start_matches('#').trim().to_lowercase())
+        .collect();
+
+    // Check required sections
+    for section in &rules.required_sections {
+        let section_lower = section.to_lowercase();
+        if !headings.contains(&section_lower) {
+            errors.push(ValidationError::SemanticMissingSection {
+                id: id.clone(),
+                record_type: record_type_name.to_string(),
+                section: section.clone(),
+            });
+        }
+    }
+
+    // Check resolved_requires (sections required when status is resolved/accepted/closed)
+    let status = record.status();
+    let is_terminal_status = matches!(
+        status,
+        super::Status::Resolved
+            | super::Status::Accepted
+            | super::Status::Closed
+            | super::Status::Deprecated
+            | super::Status::Superseded
+    );
+
+    if is_terminal_status && !rules.resolved_requires.is_empty() {
+        for section in &rules.resolved_requires {
+            let section_lower = section.to_lowercase();
+            if !headings.contains(&section_lower) {
+                errors.push(ValidationError::SemanticResolvedMissingSection {
+                    id: id.clone(),
+                    record_type: record_type_name.to_string(),
+                    section: section.clone(),
+                    status: status.to_string(),
+                });
             }
         }
     }
@@ -1127,5 +1315,348 @@ mod config_validation_tests {
             errors.is_empty(),
             "Secondary teams without leads should be valid"
         );
+    }
+}
+
+#[cfg(test)]
+mod semantic_validation_tests {
+    use super::*;
+    use crate::models::record::{Frontmatter, Links, Status};
+    use crate::serve::config::{ValidationConfig, ValidationRules};
+    use chrono::NaiveDate;
+    use serde_yaml::Value;
+    use std::collections::HashMap;
+
+    fn make_extra(pairs: &[(&str, &str)]) -> HashMap<String, Value> {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), Value::String(v.to_string())))
+            .collect()
+    }
+
+    fn make_adr_record(content: &str, status: Status, extra: HashMap<String, Value>) -> Record {
+        let mut links = Links::default();
+        links.implements = vec!["DEC-001".to_string()];
+
+        Record {
+            path: std::path::PathBuf::from("test.md"),
+            frontmatter: Frontmatter {
+                r#type: RecordType::Adr,
+                id: "ADR-001".to_string(),
+                title: "Test ADR".to_string(),
+                status,
+                created: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                updated: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                authors: vec!["richard".to_string()],
+                tags: vec!["architecture".to_string()],
+                links,
+                core: false,
+                extra,
+            },
+            content: content.to_string(),
+        }
+    }
+
+    fn make_incident_record(
+        content: &str,
+        status: Status,
+        extra: HashMap<String, Value>,
+    ) -> Record {
+        Record {
+            path: std::path::PathBuf::from("test.md"),
+            frontmatter: Frontmatter {
+                r#type: RecordType::Incident,
+                id: "INC-001".to_string(),
+                title: "Test Incident".to_string(),
+                status,
+                created: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                updated: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                authors: vec![],
+                tags: vec![],
+                links: Links::default(),
+                core: false,
+                extra,
+            },
+            content: content.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_required_fields_pass() {
+        let extra = make_extra(&[("severity", "high"), ("impact", "major")]);
+
+        let record = make_incident_record("# Timeline\n\nDetails here.", Status::Open, extra);
+
+        let mut config = ValidationConfig::default();
+        config.incident = Some(ValidationRules {
+            required_fields: vec!["severity".to_string(), "impact".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(
+            errors.is_empty(),
+            "Should pass with required fields present"
+        );
+    }
+
+    #[test]
+    fn test_required_fields_missing() {
+        let record =
+            make_incident_record("# Timeline\n\nDetails here.", Status::Open, HashMap::new());
+
+        let mut config = ValidationConfig::default();
+        config.incident = Some(ValidationRules {
+            required_fields: vec!["severity".to_string(), "impact".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert_eq!(errors.len(), 2, "Should fail for 2 missing fields");
+        assert!(errors
+            .iter()
+            .all(|e| matches!(e, ValidationError::SemanticMissingField { .. })));
+    }
+
+    #[test]
+    fn test_required_links_pass() {
+        let record = make_adr_record(
+            "# Context\n\nSome context.\n\n# Decision\n\nWe decided X.\n\n# Consequences\n\nThis means Y.",
+            Status::Proposed,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.adr = Some(ValidationRules {
+            required_links: vec!["implements".to_string(), "depends_on".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(
+            errors.is_empty(),
+            "Should pass with implements link present"
+        );
+    }
+
+    #[test]
+    fn test_required_links_missing() {
+        let mut record = make_adr_record("# Context\n\nDetails.", Status::Proposed, HashMap::new());
+        record.frontmatter.links = Links::default(); // Clear links
+
+        let mut config = ValidationConfig::default();
+        config.adr = Some(ValidationRules {
+            required_links: vec!["implements".to_string(), "depends_on".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert_eq!(
+            errors.len(),
+            1,
+            "Should fail for missing required link types"
+        );
+        match &errors[0] {
+            ValidationError::SemanticMissingLinkType { required_types, .. } => {
+                assert_eq!(required_types.len(), 2);
+            }
+            _ => panic!("Expected SemanticMissingLinkType"),
+        }
+    }
+
+    #[test]
+    fn test_required_sections_pass() {
+        let record = make_adr_record(
+            "# Context\n\nSome context.\n\n# Decision\n\nWe decided X.\n\n# Consequences\n\nThis means Y.",
+            Status::Proposed,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.adr = Some(ValidationRules {
+            required_sections: vec![
+                "Context".to_string(),
+                "Decision".to_string(),
+                "Consequences".to_string(),
+            ],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(errors.is_empty(), "Should pass with all required sections");
+    }
+
+    #[test]
+    fn test_required_sections_case_insensitive() {
+        let record = make_adr_record(
+            "# CONTEXT\n\nSome context.\n\n# decision\n\nWe decided X.\n\n# ConSequences\n\nY.",
+            Status::Proposed,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.adr = Some(ValidationRules {
+            required_sections: vec![
+                "Context".to_string(),
+                "Decision".to_string(),
+                "Consequences".to_string(),
+            ],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(
+            errors.is_empty(),
+            "Section matching should be case-insensitive"
+        );
+    }
+
+    #[test]
+    fn test_required_sections_missing() {
+        let record = make_adr_record(
+            "# Context\n\nSome context only.",
+            Status::Proposed,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.adr = Some(ValidationRules {
+            required_sections: vec![
+                "Context".to_string(),
+                "Decision".to_string(),
+                "Consequences".to_string(),
+            ],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert_eq!(errors.len(), 2, "Should fail for 2 missing sections");
+        assert!(errors
+            .iter()
+            .all(|e| matches!(e, ValidationError::SemanticMissingSection { .. })));
+    }
+
+    #[test]
+    fn test_resolved_requires_pass() {
+        let record = make_incident_record(
+            "# Timeline\n\nEvents.\n\n# Root Cause\n\nThe cause was X.\n\n# Remediation\n\nWe fixed Y.",
+            Status::Resolved,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.incident = Some(ValidationRules {
+            resolved_requires: vec!["Root Cause".to_string(), "Remediation".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(
+            errors.is_empty(),
+            "Should pass when resolved with required sections"
+        );
+    }
+
+    #[test]
+    fn test_resolved_requires_not_checked_when_open() {
+        let record = make_incident_record(
+            "# Timeline\n\nOngoing incident.",
+            Status::Open,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.incident = Some(ValidationRules {
+            resolved_requires: vec!["Root Cause".to_string(), "Remediation".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(
+            errors.is_empty(),
+            "Should not check resolved_requires when status is open"
+        );
+    }
+
+    #[test]
+    fn test_resolved_requires_missing() {
+        let record = make_incident_record(
+            "# Timeline\n\nIncident resolved without proper documentation.",
+            Status::Resolved,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.incident = Some(ValidationRules {
+            resolved_requires: vec!["Root Cause".to_string(), "Remediation".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert_eq!(
+            errors.len(),
+            2,
+            "Should fail for missing sections on resolved incident"
+        );
+        assert!(errors
+            .iter()
+            .all(|e| matches!(e, ValidationError::SemanticResolvedMissingSection { .. })));
+    }
+
+    #[test]
+    fn test_accepted_status_triggers_resolved_requires() {
+        let record = make_adr_record(
+            "# Context\n\nContext only.",
+            Status::Accepted,
+            HashMap::new(),
+        );
+
+        let mut config = ValidationConfig::default();
+        config.adr = Some(ValidationRules {
+            resolved_requires: vec!["Decision".to_string(), "Consequences".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert_eq!(
+            errors.len(),
+            2,
+            "Accepted status should trigger resolved_requires check"
+        );
+    }
+
+    #[test]
+    fn test_no_rules_for_type() {
+        let record = make_adr_record("# Minimal content", Status::Proposed, HashMap::new());
+
+        let config = ValidationConfig::default(); // No rules defined
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(
+            errors.is_empty(),
+            "Should pass when no rules defined for type"
+        );
+    }
+
+    #[test]
+    fn test_combined_rules() {
+        let extra = make_extra(&[("severity", "critical")]);
+
+        let record = make_incident_record(
+            "# Timeline\n\nEvents.\n\n# Root Cause\n\nCause.\n\n# Remediation\n\nFix.",
+            Status::Resolved,
+            extra,
+        );
+
+        let mut config = ValidationConfig::default();
+        config.incident = Some(ValidationRules {
+            required_fields: vec!["severity".to_string()],
+            required_sections: vec!["Timeline".to_string()],
+            resolved_requires: vec!["Root Cause".to_string(), "Remediation".to_string()],
+            ..Default::default()
+        });
+
+        let errors = check_semantic_rules(&record, &config);
+        assert!(errors.is_empty(), "Should pass all combined validations");
     }
 }

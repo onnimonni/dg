@@ -4,6 +4,17 @@ use anyhow::Result;
 use colored::Colorize;
 use std::path::Path;
 
+/// Semantic validation errors that become warnings in non-strict mode
+fn is_semantic_warning(error: &ValidationError) -> bool {
+    matches!(
+        error,
+        ValidationError::SemanticMissingField { .. }
+            | ValidationError::SemanticMissingLinkType { .. }
+            | ValidationError::SemanticMissingSection { .. }
+            | ValidationError::SemanticResolvedMissingSection { .. }
+    )
+}
+
 /// Lint error with file path context
 #[derive(Debug)]
 pub struct LintError {
@@ -30,6 +41,11 @@ impl LintError {
             self.error,
             ValidationError::OrphanedRecord { .. } | ValidationError::PrincipleConflict { .. }
         )
+    }
+
+    /// Check if this is a semantic validation error (warning in non-strict mode)
+    fn is_semantic(&self) -> bool {
+        is_semantic_warning(&self.error)
     }
 }
 
@@ -64,6 +80,22 @@ pub fn run(
         (None, None)
     };
 
+    // Get validation config for semantic rules
+    let validation_config = config.validation_config().clone();
+    let has_semantic_rules = validation_config.adr.is_some()
+        || validation_config.incident.is_some()
+        || validation_config.process.is_some()
+        || validation_config.decision.is_some()
+        || validation_config.strategy.is_some()
+        || validation_config.policy.is_some()
+        || validation_config.customer.is_some()
+        || validation_config.opportunity.is_some()
+        || validation_config.hiring.is_some()
+        || validation_config.runbook.is_some()
+        || validation_config.meeting.is_some()
+        || validation_config.feedback.is_some()
+        || validation_config.legal.is_some();
+
     let opts = if strict {
         ValidationOptions {
             require_tags: true,
@@ -76,6 +108,8 @@ pub fn run(
             check_code_blocks: true,
             users_config: users_config.clone(),
             teams_config: teams_config.clone(),
+            validation_config: Some(validation_config.clone()),
+            check_semantic: has_semantic_rules,
         }
     } else {
         ValidationOptions {
@@ -86,6 +120,8 @@ pub fn run(
             check_code_blocks: true,
             users_config,
             teams_config,
+            validation_config: Some(validation_config),
+            check_semantic: has_semantic_rules,
             ..ValidationOptions::basic()
         }
     };
@@ -99,10 +135,26 @@ pub fn run(
     // Add config validation errors
     lint_errors.extend(config_errors);
 
-    let (errors, warnings): (Vec<_>, Vec<_>) =
-        lint_errors.into_iter().partition(|e| !e.is_warning());
+    // In non-strict mode, semantic errors are treated as warnings
+    let (errors, warnings): (Vec<_>, Vec<_>) = if strict {
+        // In strict mode, semantic errors are real errors
+        lint_errors.into_iter().partition(|e| !e.is_warning())
+    } else {
+        // In non-strict mode, semantic errors become warnings
+        lint_errors
+            .into_iter()
+            .partition(|e| !e.is_warning() && !e.is_semantic())
+    };
 
-    if !warnings.is_empty() && (warn_orphans || check_principles) && !quiet {
+    // Collect semantic warnings separately for display
+    let semantic_warnings: Vec<_> = if !strict {
+        warnings.iter().filter(|e| e.is_semantic()).collect()
+    } else {
+        vec![]
+    };
+
+    // Show warnings
+    if !warnings.is_empty() && (warn_orphans || check_principles || has_semantic_rules) && !quiet {
         println!("{} {} warnings:\n", "WARN".yellow().bold(), warnings.len());
         for warn in &warnings {
             println!("  {} {}", "⚠".yellow(), warn);
@@ -112,7 +164,15 @@ pub fn run(
 
     if errors.is_empty() {
         if !quiet {
-            println!("{} All records pass lint checks", "OK".green().bold());
+            if !semantic_warnings.is_empty() {
+                println!(
+                    "{} All records pass lint checks ({} semantic warnings, use --strict to enforce)",
+                    "OK".green().bold(),
+                    semantic_warnings.len()
+                );
+            } else {
+                println!("{} All records pass lint checks", "OK".green().bold());
+            }
         }
         Ok(())
     } else {

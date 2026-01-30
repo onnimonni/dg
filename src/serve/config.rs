@@ -2,11 +2,84 @@ use crate::models::authors::{AuthorInfo, AuthorsConfig};
 use crate::models::teams::{Team, TeamsConfig};
 use crate::models::users::{User, UsersConfig};
 use crate::models::validation::{validate_config, ValidationError};
+use crate::models::RecordType;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+
+/// Semantic validation rules for a specific record type
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ValidationRules {
+    /// Frontmatter fields that must be present
+    #[serde(default)]
+    pub required_fields: Vec<String>,
+
+    /// Must have at least one outgoing link of these types
+    #[serde(default)]
+    pub required_links: Vec<String>,
+
+    /// Markdown headings that must exist (case-insensitive)
+    #[serde(default)]
+    pub required_sections: Vec<String>,
+
+    /// Sections required when record has resolved/accepted status
+    #[serde(default)]
+    pub resolved_requires: Vec<String>,
+}
+
+/// Container for all validation rules per record type
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ValidationConfig {
+    #[serde(default)]
+    pub decision: Option<ValidationRules>,
+    #[serde(default)]
+    pub strategy: Option<ValidationRules>,
+    #[serde(default)]
+    pub policy: Option<ValidationRules>,
+    #[serde(default)]
+    pub customer: Option<ValidationRules>,
+    #[serde(default)]
+    pub opportunity: Option<ValidationRules>,
+    #[serde(default)]
+    pub process: Option<ValidationRules>,
+    #[serde(default)]
+    pub hiring: Option<ValidationRules>,
+    #[serde(default)]
+    pub adr: Option<ValidationRules>,
+    #[serde(default)]
+    pub incident: Option<ValidationRules>,
+    #[serde(default)]
+    pub runbook: Option<ValidationRules>,
+    #[serde(default)]
+    pub meeting: Option<ValidationRules>,
+    #[serde(default)]
+    pub feedback: Option<ValidationRules>,
+    #[serde(default)]
+    pub legal: Option<ValidationRules>,
+}
+
+impl ValidationConfig {
+    /// Get validation rules for a specific record type
+    pub fn get_rules(&self, record_type: &RecordType) -> Option<&ValidationRules> {
+        match record_type {
+            RecordType::Decision => self.decision.as_ref(),
+            RecordType::Strategy => self.strategy.as_ref(),
+            RecordType::Policy => self.policy.as_ref(),
+            RecordType::Customer => self.customer.as_ref(),
+            RecordType::Opportunity => self.opportunity.as_ref(),
+            RecordType::Process => self.process.as_ref(),
+            RecordType::Hiring => self.hiring.as_ref(),
+            RecordType::Adr => self.adr.as_ref(),
+            RecordType::Incident => self.incident.as_ref(),
+            RecordType::Runbook => self.runbook.as_ref(),
+            RecordType::Meeting => self.meeting.as_ref(),
+            RecordType::Feedback => self.feedback.as_ref(),
+            RecordType::Legal => self.legal.as_ref(),
+        }
+    }
+}
 
 /// Root configuration loaded from dg.toml
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -26,6 +99,10 @@ pub struct DgConfig {
     /// Team definitions
     #[serde(default)]
     pub teams: HashMap<String, Team>,
+
+    /// Semantic validation rules per record type
+    #[serde(default)]
+    pub validation: ValidationConfig,
 }
 
 impl DgConfig {
@@ -59,6 +136,7 @@ impl DgConfig {
                 authors: HashMap::new(),
                 users: HashMap::new(),
                 teams: HashMap::new(),
+                validation: ValidationConfig::default(),
             });
         }
 
@@ -82,6 +160,11 @@ impl DgConfig {
         TeamsConfig {
             teams: self.teams.clone(),
         }
+    }
+
+    /// Get ValidationConfig
+    pub fn validation_config(&self) -> &ValidationConfig {
+        &self.validation
     }
 
     /// Get the path to the config file
