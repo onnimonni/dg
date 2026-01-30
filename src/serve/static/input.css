@@ -82,6 +82,12 @@
 /* Content markdown styles */
 /* Hide duplicate H1 title (already shown in header) */
 .content h1:first-child { display: none; }
+/* Heading link indicator on hover */
+.content h2:hover::after, .content h3:hover::after {
+    content: " #";
+    color: #64748b;
+    font-weight: normal;
+}
 .content h1 { font-size: 1.5rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 0.5rem; color: #e2e8f0; }
 /* Vertical rhythm: more space above headers to group with content below */
 .content h2 { font-size: 1.25rem; font-weight: 600; margin-top: 2.5rem; margin-bottom: 0.5rem; color: #e2e8f0; }

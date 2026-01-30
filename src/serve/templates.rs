@@ -766,6 +766,18 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             heading.id = 'heading-' + index;
         }
 
+        // Make heading clickable to update URL (for sharing)
+        heading.style.cursor = 'pointer';
+        heading.title = 'Click to copy link';
+        heading.addEventListener('click', () => {
+            history.pushState(null, '', '#' + heading.id);
+            // Copy URL to clipboard
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                heading.title = 'Link copied!';
+                setTimeout(() => heading.title = 'Click to copy link', 2000);
+            });
+        });
+
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = '#' + heading.id;
