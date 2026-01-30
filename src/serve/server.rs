@@ -1598,6 +1598,10 @@ fn record_to_json(record: &crate::models::Record) -> serde_json::Map<String, ser
         "status".to_string(),
         serde_json::Value::String(record.status().to_string()),
     );
+    map.insert(
+        "is_inactive".to_string(),
+        serde_json::Value::Bool(record.status().is_inactive()),
+    );
     let created_str = record.frontmatter.created.to_string();
     let updated_str = record.frontmatter.updated.to_string();
     map.insert(

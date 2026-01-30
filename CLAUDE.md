@@ -163,3 +163,4 @@ When working on `src/serve/templates.rs` or any HTML/CSS, follow the guidelines 
 - Capture decisions as they happen, not after
 - Always link new records to existing context
 - Ask when in doubt about conflicts
+- **Always use `dg new` CLI to create records** - never manually create markdown files. The CLI auto-generates correct frontmatter (id, dates, etc.)

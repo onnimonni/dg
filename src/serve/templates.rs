@@ -626,7 +626,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 {% block title %}{{ record.id }} - {{ site.title }}{% endblock %}
 
 {% block content %}
-<div class="w-full bg-piper-card border border-slate-700 rounded-2xl shadow-2xl overflow-hidden{% if record.status == 'deprecated' or record.status == 'rejected' or record.status == 'superseded' %} opacity-80{% endif %}">
+<div class="w-full bg-piper-card border border-slate-700 rounded-2xl shadow-2xl overflow-hidden{% if record.is_inactive %} opacity-80{% endif %}">
     <!-- Accent bar - changes color based on status -->
     {% if record.status == 'deprecated' %}
     <div class="h-1.5 w-full bg-gradient-to-r from-amber-500 to-amber-600"></div>

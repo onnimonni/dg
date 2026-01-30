@@ -163,6 +163,15 @@ impl Status {
             _ => None,
         }
     }
+
+    /// Returns true if this status indicates the record is no longer active/valid
+    /// (deprecated, rejected, superseded, or cancelled)
+    pub fn is_inactive(&self) -> bool {
+        matches!(
+            self,
+            Status::Deprecated | Status::Rejected | Status::Superseded | Status::Cancelled
+        )
+    }
 }
 
 impl std::fmt::Display for Status {
