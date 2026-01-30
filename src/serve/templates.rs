@@ -34,6 +34,19 @@ const BASE_TEMPLATE: &str = r##"<!DOCTYPE html>
             --success: #4CAF50;
             --warning: #FF9800;
         }
+        /* Avatar group - overlapping avatars */
+        .avatar-group {
+            display: flex;
+            align-items: center;
+        }
+        .avatar-group .avatar {
+            --avatar-size: 2rem;
+            position: relative;
+            overflow: visible;
+        }
+        .avatar-group .avatar:hover {
+            z-index: 10;
+        }
         /* Author avatar and tooltip - CSS only with group-hover */
         .author-wrapper {
             position: relative;
@@ -723,11 +736,11 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
             {% if record.resolved_authors %}
             <div class="flex items-center gap-3">
                 <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Authors:</span>
-                <div class="flex -space-x-3">
+                <div class="avatar-group -space-x-4">
                     {% for author in record.resolved_authors %}
-                    <div class="author-wrapper">
-                        <a href="/users/{{ author.username }}">
-                            <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar bg-piper-accent" data-initials="{{ author.initials }}">
+                    <div class="avatar author-wrapper">
+                        <a href="/users/{{ author.username }}" class="w-8">
+                            <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar bg-piper-accent rounded-full" data-initials="{{ author.initials }}">
                             <span class="avatar-initials" data-initials="{{ author.initials }}">{{ author.initials }}</span>
                         </a>
                         <div class="author-tooltip">
