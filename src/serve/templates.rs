@@ -1414,7 +1414,7 @@ records.forEach(r => {
             const otherId = c.source === r.id ? c.target : c.source;
             if (nodeElements[otherId]) nodeElements[otherId].classList.add('highlight');
         });
-        tooltip.innerHTML = `<strong>${r.id}</strong>: ${r.title}<br><span style="color:var(--text-dim)">${r.type} | ${r.created}</span>`;
+        tooltip.innerHTML = `<strong>${r.id}</strong>: ${r.title}<br><span style="color:var(--text-dim)">${typeNames[r.type] || r.type} | ${r.created}</span>`;
         tooltip.style.display = 'block';
         // Position tooltip relative to node
         const rect = svgRect();
