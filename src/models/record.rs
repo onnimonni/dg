@@ -378,6 +378,98 @@ impl Record {
             .collect::<String>();
         format!("{}-{}.md", self.frontmatter.id, slug)
     }
+
+    /// Extract DACI/RACI roles from the document content
+    /// Returns a map of role -> list of names/usernames mentioned
+    pub fn extract_daci_roles(&self) -> HashMap<String, Vec<String>> {
+        let mut roles: HashMap<String, Vec<String>> = HashMap::new();
+
+        // Pattern matches lines like: - **Responsible**: Name (description)
+        // or **Driver**: Name
+        let role_re = Regex::new(r"(?m)^\s*[-*]?\s*\*\*([A-Za-z]+)\*\*:\s*(.+)$").unwrap();
+
+        for cap in role_re.captures_iter(&self.content) {
+            let role = cap.get(1).map(|m| m.as_str().to_lowercase());
+            let people_str = cap.get(2).map(|m| m.as_str());
+
+            if let (Some(role), Some(people)) = (role, people_str) {
+                // Only capture DACI/RACI roles
+                let valid_roles = [
+                    "driver",
+                    "approver",
+                    "approvers",
+                    "contributor",
+                    "contributors",
+                    "informed",
+                    "responsible",
+                    "accountable",
+                    "consulted",
+                ];
+                if !valid_roles.contains(&role.as_str()) {
+                    continue;
+                }
+
+                // Normalize role names
+                let normalized_role = match role.as_str() {
+                    "driver" | "responsible" => "responsible",
+                    "approver" | "approvers" | "accountable" => "approver",
+                    "contributor" | "contributors" | "consulted" => "consulted",
+                    "informed" => "informed",
+                    _ => continue,
+                };
+
+                // Extract names - split by comma or "and"
+                let names: Vec<String> = people
+                    .split(|c| c == ',' || c == ';')
+                    .flat_map(|s| s.split(" and "))
+                    .map(|s| {
+                        // Remove parenthetical descriptions and clean up
+                        let s = s.trim();
+                        if let Some(paren_pos) = s.find('(') {
+                            s[..paren_pos].trim().to_string()
+                        } else {
+                            s.to_string()
+                        }
+                    })
+                    .filter(|s| !s.is_empty())
+                    .collect();
+
+                roles
+                    .entry(normalized_role.to_string())
+                    .or_default()
+                    .extend(names);
+            }
+        }
+
+        roles
+    }
+
+    /// Extract action items from the document content
+    /// Returns a list of (action_text, is_completed, owner_if_any)
+    pub fn extract_action_items(&self) -> Vec<(String, bool, Option<String>)> {
+        let mut actions = Vec::new();
+
+        // Pattern matches: - [x] Action text @owner or - [ ] Action text
+        let action_re = Regex::new(r"(?m)^\s*[-*]\s*\[([ xX])\]\s*(.+)$").unwrap();
+        let owner_re = Regex::new(r"@(\w+)").unwrap();
+
+        for cap in action_re.captures_iter(&self.content) {
+            let is_completed = cap.get(1).map(|m| m.as_str() != " ").unwrap_or(false);
+            let text = cap.get(2).map(|m| m.as_str().trim().to_string());
+
+            if let Some(text) = text {
+                // Extract @owner if present
+                let owner = owner_re
+                    .captures(&text)
+                    .and_then(|c| c.get(1))
+                    .map(|m| m.as_str().to_string());
+
+                actions.push((text, is_completed, owner));
+            }
+        }
+
+        actions
+    }
 }
 
 #[allow(dead_code)]

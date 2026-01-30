@@ -2474,6 +2474,55 @@ const USER_TEMPLATE: &str = r##"{% extends "base.html" %}
         </div>
     </div>
     {% endif %}
+
+    {% if daci_roles %}
+    <div class="mt-8">
+        <h3 class="text-lg font-semibold text-white mb-4">DACI/RACI Assignments ({{ daci_roles | length }})</h3>
+        <div class="space-y-3">
+            {% for item in daci_roles %}
+            <a href="/records/{{ item.id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-purple-500/50 transition-all">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase
+                            {% if item.role == 'responsible' %}bg-red-900/30 text-red-400
+                            {% elif item.role == 'approver' %}bg-amber-900/30 text-amber-400
+                            {% elif item.role == 'consulted' %}bg-blue-900/30 text-blue-400
+                            {% else %}bg-slate-700 text-slate-400{% endif %}">{{ item.role }}</span>
+                        <span class="font-mono text-sm text-purple-400">{{ item.id }}</span>
+                        <span class="text-slate-300">{{ item.title }}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-slate-700 text-slate-400">{{ item.status }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if action_items %}
+    <div class="mt-8">
+        <h3 class="text-lg font-semibold text-white mb-4">Assigned Action Items ({{ action_items | length }})</h3>
+        <div class="space-y-3">
+            {% for item in action_items %}
+            <a href="/records/{{ item.record_id }}" class="block bg-piper-card border border-slate-700 rounded-xl p-4 hover:border-cyan-500/50 transition-all">
+                <div class="flex items-start gap-3">
+                    {% if item.completed %}
+                    <span class="text-green-500 mt-0.5">✓</span>
+                    {% else %}
+                    <span class="text-slate-500 mt-0.5">○</span>
+                    {% endif %}
+                    <div class="flex-1">
+                        <div class="{% if item.completed %}text-slate-500 line-through{% else %}text-slate-300{% endif %}">{{ item.text }}</div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            <span class="font-mono">{{ item.record_id }}</span> · {{ item.record_title }}
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 "##;

@@ -988,6 +988,51 @@ async fn user_handler(
         })
         .collect();
 
+    // Find DACI/RACI roles for this user
+    let user_display_name = user.display_name(&username);
+    let mut daci_roles: Vec<serde_json::Value> = Vec::new();
+
+    for record in graph.all_records() {
+        let roles = record.extract_daci_roles();
+        for (role, names) in roles {
+            // Check if username or display name matches any of the names
+            let is_assigned = names.iter().any(|name| {
+                let name_lower = name.to_lowercase();
+                name_lower.contains(&username.to_lowercase())
+                    || name_lower.contains(&user_display_name.to_lowercase())
+                    || user_display_name.to_lowercase().contains(&name_lower)
+            });
+
+            if is_assigned {
+                daci_roles.push(serde_json::json!({
+                    "id": record.id(),
+                    "title": record.title(),
+                    "role": role,
+                    "status": record.status().to_string(),
+                }));
+            }
+        }
+    }
+
+    // Find action items assigned to this user
+    let mut action_items: Vec<serde_json::Value> = Vec::new();
+
+    for record in graph.all_records() {
+        for (text, completed, owner) in record.extract_action_items() {
+            // Check if this action is assigned to the user
+            if let Some(ref owner_name) = owner {
+                if owner_name.to_lowercase() == username.to_lowercase() {
+                    action_items.push(serde_json::json!({
+                        "record_id": record.id(),
+                        "record_title": record.title(),
+                        "text": text,
+                        "completed": completed,
+                    }));
+                }
+            }
+        }
+    }
+
     match env.get_template("user.html") {
         Ok(tmpl) => {
             match tmpl.render(context! {
@@ -997,6 +1042,8 @@ async fn user_handler(
                 user => user_data,
                 authored_records => authored,
                 mentioned_in => mentioned_in,
+                daci_roles => daci_roles,
+                action_items => action_items,
             }) {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => (
