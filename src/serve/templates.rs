@@ -612,9 +612,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         <!-- Header row -->
         <div class="flex justify-between items-start mb-4">
             <div class="flex items-center gap-3">
-                <span class="font-mono text-sm font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded border border-slate-700">
-                    {{ record.id }}
-                </span>
+                <span class="font-mono text-xs text-slate-500">{{ record.id }}</span>
                 {% if record.core %}
                 <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-900/30 border border-yellow-800/30 text-yellow-500 text-xs font-semibold uppercase tracking-wide">
                     <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
@@ -684,7 +682,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
         <!-- Content with ToC -->
         <div class="mt-6 flex gap-8">
-            <div class="flex-1 text-slate-300 leading-relaxed max-w-3xl content" id="content">
+            <div class="flex-1 text-slate-300 leading-relaxed content" id="content">
                 {{ record.content_html | safe }}
             </div>
             <nav id="toc" class="hidden lg:block w-56 shrink-0">
@@ -772,7 +770,7 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
         const a = document.createElement('a');
         a.href = '#' + heading.id;
         a.textContent = heading.textContent;
-        a.className = 'block py-1.5 pl-4 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors border-l-2 border-slate-800';
+        a.className = 'block py-1.5 pl-4 text-slate-500 hover:text-slate-300 transition-colors border-l-2 border-slate-700/50';
         if (heading.tagName === 'H3') {
             li.classList.add('ml-4');
             a.classList.add('text-xs');
@@ -800,11 +798,11 @@ const RECORD_TEMPLATE: &str = r##"{% extends "base.html" %}
 
         tocItems.forEach((item, index) => {
             if (index === activeIndex) {
-                item.link.classList.remove('text-slate-400', 'border-slate-800');
-                item.link.classList.add('text-slate-100', 'border-piper-accent', 'font-medium');
+                item.link.classList.remove('text-slate-500', 'border-slate-700/50');
+                item.link.classList.add('text-white', 'border-piper-accent', 'border-l-3', 'font-medium');
             } else {
-                item.link.classList.add('text-slate-400', 'border-slate-800');
-                item.link.classList.remove('text-slate-100', 'border-piper-accent', 'font-medium');
+                item.link.classList.add('text-slate-500', 'border-slate-700/50');
+                item.link.classList.remove('text-white', 'border-piper-accent', 'border-l-3', 'font-medium');
             }
         });
     }
