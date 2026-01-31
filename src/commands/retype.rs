@@ -514,7 +514,7 @@ fn execute_plan(_docs_path: &Path, plan: &ChangePlan) -> Result<()> {
     processed_files.insert(plan.new_path.clone());
 
     // 3. Update links in all other affected record files
-    for (path, _updates) in &plan.link_updates {
+    for path in plan.link_updates.keys() {
         // Skip files we've already processed
         if path == &plan.old_path || plan.renames.iter().any(|r| &r.old_path == path) {
             continue;

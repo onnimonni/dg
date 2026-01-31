@@ -255,7 +255,7 @@ impl Graph {
     }
 
     /// Get next available ID, excluding already-reserved IDs
-    pub fn next_id_excluding(&self, record_type: &RecordType, exclude: &Vec<String>) -> String {
+    pub fn next_id_excluding(&self, record_type: &RecordType, exclude: &[String]) -> String {
         let prefix = record_type.prefix();
 
         // Get all existing numeric IDs

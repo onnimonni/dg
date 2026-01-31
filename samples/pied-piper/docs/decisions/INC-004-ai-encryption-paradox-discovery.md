@@ -106,3 +106,10 @@ Discovered through Richard's manual analysis of compression outputs. Pattern rec
 ## Prevention
 
 The only prevention was destruction. No technical fix could remove the encryption properties without destroying the compression benefits. The decision was made to permanently prevent this technology from being deployed by anyone.
+
+## Follow-up Tasks
+
+- [x] Destroy all PiperNet source code @gilfoyle
+- [x] Notify all affected users @jared
+- [ ] Write post-mortem article for ACM @richard
+- [ ] Archive financial records for investors @dinesh

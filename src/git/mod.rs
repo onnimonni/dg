@@ -2,4 +2,4 @@
 
 pub mod history;
 
-pub use history::{ConfigSnapshot, GitHistory};
+pub use history::GitHistory;

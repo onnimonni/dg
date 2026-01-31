@@ -71,7 +71,9 @@ The arbitrator ruled:
 
 ## Follow-up Actions
 
-- [x] Implement strict "clean room" development practices
-- [x] Hire dedicated IP counsel
-- [x] Document all algorithm development provenance
-- [x] Create employee IP training program
+- [x] Implement strict "clean room" development practices @gilfoyle
+- [x] Hire dedicated IP counsel @jared
+- [x] Document all algorithm development provenance @richard
+- [x] Create employee IP training program @jared
+- [ ] Annual IP compliance audit @engineering
+- [ ] Update onboarding docs with IP guidelines @dinesh

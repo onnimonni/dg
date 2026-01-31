@@ -140,6 +140,14 @@ dg stats
 dg validate
 dg reindex
 dg export [-f json|csv]
+
+# Web UI
+dg serve [--port 3000] [--open]
+
+# People
+dg users                  # List users
+dg teams                  # List teams
+dg tasks [--user USER]    # Show action items
 ```
 
 ### Link Types
@@ -159,6 +167,22 @@ dg export [-f json|csv]
 `draft` → `proposed` → `accepted` → `deprecated` / `superseded`
 
 Additional: `active`, `open`, `closed`, `resolved`, `cancelled`
+
+## Web UI
+
+Launch the local web server:
+
+```bash
+dg serve --open
+```
+
+Features:
+- Browse all records with search and filtering
+- View record relationships in interactive graph
+- Edit records with live preview
+- Timeline view of record history
+- User/team pages with assigned action items
+- Stats dashboard
 
 ## Claude Code Integration
 

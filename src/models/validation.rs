@@ -687,6 +687,8 @@ pub fn check_action_items(
 
     // Track if we're in an action items section
     let mut in_action_items = false;
+    // Track the owner column index (detect from header row)
+    let mut owner_column_idx: Option<usize> = None;
 
     for (line_num, line) in record.content.lines().enumerate() {
         let trimmed = line.trim();
@@ -694,12 +696,14 @@ pub fn check_action_items(
         // Check for action items heading
         if trimmed.starts_with('#') && trimmed.to_lowercase().contains("action") {
             in_action_items = true;
+            owner_column_idx = None; // Reset column detection
             continue;
         }
 
         // Exit action items section on next heading
         if trimmed.starts_with('#') && in_action_items {
             in_action_items = false;
+            owner_column_idx = None;
             continue;
         }
 
@@ -709,19 +713,44 @@ pub fn check_action_items(
 
         // Parse table rows: | Action | Owner | Due | Status |
         if trimmed.starts_with('|') && !trimmed.contains("---") {
-            // Split by | and look for owner column (usually 2nd after Action)
             let cells: Vec<&str> = trimmed.split('|').map(|s| s.trim()).collect();
-            // cells[0] is empty (before first |), cells[1] is Action, cells[2] is Owner
-            if cells.len() > 2 {
-                let owner_cell = cells[2];
-                for cap in mention_re.captures_iter(owner_cell) {
-                    let username = &cap[1];
-                    if !users_config.exists(username) && !teams_config.exists(username) {
-                        errors.push(ValidationError::InvalidActionItemOwner {
-                            id: id.clone(),
-                            owner: username.to_string(),
-                            line: line_num + 1,
-                        });
+
+            // Detect header row to find Owner column
+            if owner_column_idx.is_none() {
+                for (i, cell) in cells.iter().enumerate() {
+                    if cell.to_lowercase() == "owner" {
+                        owner_column_idx = Some(i);
+                        break;
+                    }
+                }
+                continue; // Skip header row
+            }
+
+            // Check owner cell
+            if let Some(idx) = owner_column_idx {
+                if idx < cells.len() {
+                    let owner_cell = cells[idx].trim();
+                    if !owner_cell.is_empty() {
+                        // Check if it's a @mention
+                        if let Some(cap) = mention_re.captures(owner_cell) {
+                            let username = &cap[1];
+                            if !users_config.exists(username) && !teams_config.exists(username) {
+                                errors.push(ValidationError::InvalidActionItemOwner {
+                                    id: id.clone(),
+                                    owner: username.to_string(),
+                                    line: line_num + 1,
+                                });
+                            }
+                        } else {
+                            // Plain name - check against user IDs, display names, and teams
+                            if !is_valid_owner(owner_cell, users_config, teams_config) {
+                                errors.push(ValidationError::InvalidActionItemOwner {
+                                    id: id.clone(),
+                                    owner: owner_cell.to_string(),
+                                    line: line_num + 1,
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -746,6 +775,46 @@ pub fn check_action_items(
     }
 
     errors
+}
+
+/// Check if a plain name matches a user ID, user display name, or team
+fn is_valid_owner(name: &str, users_config: &UsersConfig, teams_config: &TeamsConfig) -> bool {
+    let name_lower = name.to_lowercase();
+
+    // Check user IDs
+    if users_config
+        .users
+        .keys()
+        .any(|k| k.to_lowercase() == name_lower)
+    {
+        return true;
+    }
+
+    // Check user display names (full name or first/last name parts)
+    for (username, user) in &users_config.users {
+        let display = user.display_name(username).to_lowercase();
+        // Match full name or any part of the name
+        if display == name_lower || display.split_whitespace().any(|part| part == name_lower) {
+            return true;
+        }
+    }
+
+    // Check team IDs and names
+    if teams_config
+        .teams
+        .keys()
+        .any(|k| k.to_lowercase() == name_lower)
+    {
+        return true;
+    }
+
+    for team in teams_config.teams.values() {
+        if team.name.to_lowercase() == name_lower {
+            return true;
+        }
+    }
+
+    false
 }
 
 /// Check for code blocks without language identifiers

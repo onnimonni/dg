@@ -26,6 +26,7 @@ pub mod show;
 pub mod stats;
 pub mod status;
 pub mod suggest;
+pub mod tasks;
 pub mod teams;
 pub mod timeline;
 pub mod unlink;

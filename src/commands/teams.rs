@@ -36,7 +36,7 @@ pub fn list(docs_dir: &str, format: &str) -> Result<()> {
         }
         _ => {
             // Print hierarchically
-            println!("{:<15} {:<25} {:<15} {}", "ID", "NAME", "LEAD", "PARENT");
+            println!("{:<15} {:<25} {:<15} PARENT", "ID", "NAME", "LEAD");
             println!("{}", "-".repeat(65));
 
             // First show root teams, then their children

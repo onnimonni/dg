@@ -3,7 +3,7 @@ use crate::models::teams::TeamsConfig;
 use crate::models::users::UsersConfig;
 use crate::models::{graph_to_d2, AuthorsConfig, D2Renderer, Graph};
 use crate::serve::config::{DgConfig, SiteConfig};
-use crate::serve::generator::markdown_to_html_with_mentions;
+use crate::serve::generator::{linkify_action_item_owners, markdown_to_html_with_mentions};
 use crate::serve::templates::create_environment;
 use anyhow::Result;
 use axum::{
@@ -280,13 +280,13 @@ async fn record_handler(
     let mut ctx = record_to_json(record);
 
     // Add content as HTML
+    let content_html = markdown_to_html_with_mentions(&record.content, &state.valid_mentions, "");
+    // Linkify action item owners in tables
+    let content_html =
+        linkify_action_item_owners(&content_html, &state.users_config, &state.teams_config, "");
     ctx.insert(
         "content_html".to_string(),
-        serde_json::Value::String(markdown_to_html_with_mentions(
-            &record.content,
-            &state.valid_mentions,
-            "",
-        )),
+        serde_json::Value::String(content_html),
     );
 
     // Add links (outgoing)
@@ -321,18 +321,23 @@ async fn record_handler(
         .collect();
     ctx.insert("backlinks".to_string(), serde_json::Value::Array(backlinks));
 
-    // Add superseded_by links for the warning banner
+    // Add superseded_by links with titles for the warning banner
+    let superseded_by: Vec<_> = record
+        .frontmatter
+        .links
+        .superseded_by
+        .iter()
+        .map(|id| {
+            let title = graph.get(id).map(|r| r.title().to_string());
+            serde_json::json!({
+                "id": id,
+                "title": title,
+            })
+        })
+        .collect();
     ctx.insert(
         "superseded_by".to_string(),
-        serde_json::Value::Array(
-            record
-                .frontmatter
-                .links
-                .superseded_by
-                .iter()
-                .map(|s| serde_json::Value::String(s.clone()))
-                .collect(),
-        ),
+        serde_json::Value::Array(superseded_by),
     );
 
     // Resolve author info with team memberships
@@ -629,6 +634,7 @@ async fn api_render(
     };
 
     let html = markdown_to_html_with_mentions(markdown, &state.valid_mentions, "");
+    let html = linkify_action_item_owners(&html, &state.users_config, &state.teams_config, "");
     Json(serde_json::json!({ "html": html })).into_response()
 }
 
@@ -1032,19 +1038,17 @@ async fn user_handler(
         }
 
         // Include if author or has DACI role
-        if is_author || user_daci_role.is_some() {
-            if !seen_ids.contains(record.id()) {
-                seen_ids.insert(record.id().to_string());
-                user_records.push(serde_json::json!({
-                    "id": record.id(),
-                    "title": record.title(),
-                    "status": record.status().to_string(),
-                    "date": record.frontmatter.created.to_string(),
-                    "is_author": is_author,
-                    "daci_role": user_daci_role,
-                    "core": record.frontmatter.core,
-                }));
-            }
+        if (is_author || user_daci_role.is_some()) && !seen_ids.contains(record.id()) {
+            seen_ids.insert(record.id().to_string());
+            user_records.push(serde_json::json!({
+                "id": record.id(),
+                "title": record.title(),
+                "status": record.status().to_string(),
+                "date": record.frontmatter.created.to_string(),
+                "is_author": is_author,
+                "daci_role": user_daci_role,
+                "core": record.frontmatter.core,
+            }));
         }
     }
 
@@ -1070,24 +1074,48 @@ async fn user_handler(
         })
         .collect();
 
-    // Find action items assigned to this user
+    // Find action items assigned to this user or their teams
     let mut action_items: Vec<serde_json::Value> = Vec::new();
+    let user_teams: std::collections::HashSet<String> =
+        user.teams.iter().map(|t| t.to_lowercase()).collect();
 
     for record in graph.all_records() {
         for (text, completed, owner) in record.extract_action_items() {
-            // Check if this action is assigned to the user
+            // Check if assigned to user directly or via team
             if let Some(ref owner_name) = owner {
-                if owner_name.to_lowercase() == username.to_lowercase() {
+                let owner_lower = owner_name.to_lowercase();
+                let matches_user = owner_lower == username.to_lowercase();
+                let matches_team = user_teams.contains(&owner_lower);
+
+                if matches_user || matches_team {
                     action_items.push(serde_json::json!({
                         "record_id": record.id(),
                         "record_title": record.title(),
                         "text": text,
                         "completed": completed,
+                        "owner": owner_name,
                     }));
                 }
             }
         }
     }
+
+    // Sort: incomplete first, then by record_id
+    action_items.sort_by(|a, b| {
+        let a_completed = a
+            .get("completed")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let b_completed = b
+            .get("completed")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        a_completed.cmp(&b_completed).then_with(|| {
+            let a_id = a.get("record_id").and_then(|v| v.as_str()).unwrap_or("");
+            let b_id = b.get("record_id").and_then(|v| v.as_str()).unwrap_or("");
+            a_id.cmp(b_id)
+        })
+    });
 
     match env.get_template("user.html") {
         Ok(tmpl) => {
@@ -1215,6 +1243,17 @@ async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
             .and_then(|lead| current_user_id.as_ref().map(|uid| lead == uid))
             .unwrap_or(false);
 
+        // Count non-lead members
+        let non_lead_count = members
+            .iter()
+            .filter(|m| {
+                m.get("username")
+                    .and_then(|u| u.as_str())
+                    .map(|u| Some(u.to_string()) != team.lead)
+                    .unwrap_or(false)
+            })
+            .count();
+
         serde_json::json!({
             "id": id,
             "name": team.name,
@@ -1223,6 +1262,7 @@ async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
             "parent": team.parent,
             "members": members,
             "member_count": members.len(),
+            "has_non_lead_members": non_lead_count > 0,
             "is_current_user_team": is_current_user_team,
             "lead_is_current": lead_is_current,
         })
@@ -1242,19 +1282,100 @@ async fn teams_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse 
         a_name.cmp(b_name)
     });
 
-    // Stakeholder teams (sidebar) - show ALL stakeholder teams
-    // These are advisory/external teams - we list users even without leads
-    let mut stakeholder_teams: Vec<_> = state
+    // Stakeholder teams (sidebar) - group teams with identical members
+    // Build raw stakeholder team data first
+    let raw_stakeholder_teams: Vec<_> = state
         .teams_config
         .teams
         .iter()
         .filter(|(id, _)| stakeholder_team_ids.contains(&id.as_str()))
-        .map(|(id, team)| build_team_data(id, team))
+        .map(|(id, team)| {
+            let data = build_team_data(id, team);
+            // Create a sorted member key for grouping
+            let mut member_usernames: Vec<String> = data["members"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|m| m["username"].as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default();
+            member_usernames.sort();
+            let member_key = member_usernames.join(",");
+            (id.clone(), data, member_key)
+        })
         .collect();
+
+    // Group teams by member set
+    let mut member_groups: std::collections::HashMap<String, Vec<(String, serde_json::Value)>> =
+        std::collections::HashMap::new();
+    for (id, data, member_key) in raw_stakeholder_teams {
+        member_groups
+            .entry(member_key)
+            .or_default()
+            .push((id, data));
+    }
+
+    // Combine teams with identical members
+    let mut stakeholder_teams: Vec<serde_json::Value> = member_groups
+        .into_values()
+        .filter_map(|mut group| {
+            if group.is_empty() {
+                return None;
+            }
+            // Sort group by name for consistent combined naming
+            group.sort_by(|a, b| {
+                let a_name = a.1["name"].as_str().unwrap_or("");
+                let b_name = b.1["name"].as_str().unwrap_or("");
+                a_name.cmp(b_name)
+            });
+
+            let (first_id, mut first_data) = group.remove(0);
+            if group.is_empty() {
+                // Single team, return as-is
+                Some(first_data)
+            } else {
+                // Multiple teams with same members - combine names
+                let mut combined_names: Vec<&str> =
+                    vec![first_data["name"].as_str().unwrap_or(&first_id)];
+                let mut combined_ids: Vec<&str> = vec![&first_id];
+                for (id, data) in &group {
+                    combined_names.push(data["name"].as_str().unwrap_or(id));
+                    combined_ids.push(id);
+                }
+                first_data["name"] = serde_json::json!(combined_names.join(" + "));
+                first_data["combined_ids"] = serde_json::json!(combined_ids);
+                Some(first_data)
+            }
+        })
+        .collect();
+
+    // Sort stakeholder teams: competitors always last, others alphabetically.
+    // Competitors are external/adversarial so they should be visually separated
+    // at the bottom of the stakeholders sidebar. Check both direct team ID and
+    // combined_ids array (for merged teams that include competitors).
     stakeholder_teams.sort_by(|a, b| {
-        let a_name = a["name"].as_str().unwrap_or("");
-        let b_name = b["name"].as_str().unwrap_or("");
-        a_name.cmp(b_name)
+        let a_id = a["id"].as_str().unwrap_or("");
+        let b_id = b["id"].as_str().unwrap_or("");
+        let a_is_comp = a_id == "competitors"
+            || a.get("combined_ids")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().any(|x| x.as_str() == Some("competitors")))
+                .unwrap_or(false);
+        let b_is_comp = b_id == "competitors"
+            || b.get("combined_ids")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().any(|x| x.as_str() == Some("competitors")))
+                .unwrap_or(false);
+        match (a_is_comp, b_is_comp) {
+            (true, false) => std::cmp::Ordering::Greater, // a is competitors, move to end
+            (false, true) => std::cmp::Ordering::Less,    // b is competitors, move to end
+            _ => {
+                let a_name = a["name"].as_str().unwrap_or("");
+                let b_name = b["name"].as_str().unwrap_or("");
+                a_name.cmp(b_name)
+            }
+        }
     });
 
     // Other teams (not in core or stakeholder) - only teams with leads
@@ -1426,10 +1547,7 @@ async fn team_history_handler(
         }
     };
 
-    let snapshots = match history.team_history(&id) {
-        Ok(s) => s,
-        Err(_) => vec![],
-    };
+    let snapshots = history.team_history(&id).unwrap_or_default();
 
     let history_data: Vec<_> = snapshots
         .iter()

@@ -450,7 +450,7 @@ impl Record {
 
                 // Extract names - split by comma or "and"
                 let names: Vec<String> = people
-                    .split(|c| c == ',' || c == ';')
+                    .split([',', ';'])
                     .flat_map(|s| s.split(" and "))
                     .map(|s| {
                         // Remove parenthetical descriptions and clean up

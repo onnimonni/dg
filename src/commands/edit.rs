@@ -46,17 +46,17 @@ pub fn run(docs_dir: &str, id: &str) -> Result<()> {
         });
 
     // Get file modification time before editing
-    let before_mtime = std::fs::metadata(&file_path)?.modified()?;
+    let before_mtime = std::fs::metadata(file_path)?.modified()?;
 
     // Open editor
-    let status = Command::new(&editor).arg(&file_path).status()?;
+    let status = Command::new(&editor).arg(file_path).status()?;
 
     if !status.success() {
         bail!("Editor exited with error");
     }
 
     // Check if file was modified
-    let after_mtime = std::fs::metadata(&file_path)?.modified()?;
+    let after_mtime = std::fs::metadata(file_path)?.modified()?;
 
     if after_mtime != before_mtime {
         // Reindex to pick up changes

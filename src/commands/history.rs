@@ -87,8 +87,8 @@ pub fn config(docs_dir: &str, at: Option<&str>, format: &str) -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&json)?);
         } else {
             println!(
-                "{:<10} {:<12} {:<8} {:<8} {}",
-                "Commit", "Date", "Users", "Teams", "Message"
+                "{:<10} {:<12} {:<8} {:<8} Message",
+                "Commit", "Date", "Users", "Teams"
             );
             println!("{}", "-".repeat(70));
 
@@ -206,7 +206,7 @@ pub fn user(docs_dir: &str, username: &str, format: &str) -> Result<()> {
     let mut teams_found: Vec<String> = Vec::new();
 
     for snapshot in &snapshots {
-        for (_, user) in &snapshot.config.users {
+        for user in snapshot.config.users.values() {
             for team in &user.teams {
                 if !teams_found.contains(team) {
                     teams_found.push(team.clone());

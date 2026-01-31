@@ -95,6 +95,7 @@ impl GraphLock {
     }
 
     /// Release the lock (also happens automatically on drop)
+    #[allow(dead_code)]
     pub fn release(self) -> Result<()> {
         self.file.unlock()?;
         Ok(())

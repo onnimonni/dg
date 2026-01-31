@@ -414,6 +414,29 @@ enum Commands {
         #[command(subcommand)]
         action: HistoryAction,
     },
+
+    /// List action items/tasks from records
+    Tasks {
+        /// Filter by username (default: current user from $USER)
+        #[arg(short, long)]
+        user: Option<String>,
+
+        /// Show tasks for all users
+        #[arg(long)]
+        all: bool,
+
+        /// Include completed tasks
+        #[arg(long)]
+        completed: bool,
+
+        /// Output format: table, json
+        #[arg(short, long, default_value = "table")]
+        format: String,
+
+        /// Exclude GitHub issues (enabled by default)
+        #[arg(long)]
+        no_github: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -806,5 +829,19 @@ fn main() -> Result<()> {
                 commands::history::user(&cli.docs_dir, &username, &format)
             }
         },
+        Commands::Tasks {
+            user,
+            all,
+            completed,
+            format,
+            no_github,
+        } => commands::tasks::run(
+            &cli.docs_dir,
+            user.as_deref(),
+            all,
+            completed,
+            &format,
+            !no_github,
+        ),
     }
 }

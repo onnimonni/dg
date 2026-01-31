@@ -1,5 +1,5 @@
 use crate::models::d2::D2Renderer;
-use crate::models::Graph;
+use crate::models::{Graph, TeamsConfig, UsersConfig};
 use crate::serve::config::{DgConfig, SiteConfig};
 use crate::serve::templates::create_environment;
 use anyhow::Result;
@@ -104,6 +104,8 @@ pub fn generate_site(
         .collect();
 
     let has_users = !dg_config.users.is_empty();
+    let users_config = dg_config.users_config();
+    let teams_config = dg_config.teams_config();
 
     let env = create_environment();
 
@@ -153,6 +155,9 @@ pub fn generate_site(
         // Add content as HTML using pulldown-cmark
         let content_html =
             markdown_to_html_with_mentions(&record.content, &valid_mentions, base_url);
+        // Linkify action item owners in tables with Notion-style embeds
+        let content_html =
+            linkify_action_item_owners(&content_html, &users_config, &teams_config, base_url);
         ctx.insert(
             "content_html".to_string(),
             serde_json::Value::String(content_html),
@@ -365,19 +370,17 @@ pub fn generate_site(
                     }
                 }
 
-                if is_author || user_daci_role.is_some() {
-                    if !seen_ids.contains(record.id()) {
-                        seen_ids.insert(record.id().to_string());
-                        user_records.push(serde_json::json!({
-                            "id": record.id(),
-                            "title": record.title(),
-                            "status": record.status().to_string(),
-                            "date": record.frontmatter.created.to_string(),
-                            "is_author": is_author,
-                            "daci_role": user_daci_role,
-                            "core": record.frontmatter.core,
-                        }));
-                    }
+                if (is_author || user_daci_role.is_some()) && !seen_ids.contains(record.id()) {
+                    seen_ids.insert(record.id().to_string());
+                    user_records.push(serde_json::json!({
+                        "id": record.id(),
+                        "title": record.title(),
+                        "status": record.status().to_string(),
+                        "date": record.frontmatter.created.to_string(),
+                        "is_author": is_author,
+                        "daci_role": user_daci_role,
+                        "core": record.frontmatter.core,
+                    }));
                 }
             }
 
@@ -813,6 +816,7 @@ fn record_to_context(record: &crate::models::Record) -> serde_json::Map<String, 
 }
 
 /// Convert markdown to HTML using pulldown-cmark (without mention validation)
+#[allow(dead_code)]
 pub fn markdown_to_html(md: &str) -> String {
     markdown_to_html_with_mentions(md, &HashSet::new(), "")
 }
@@ -981,7 +985,7 @@ fn style_comparison_sections<'a>(parser: Parser<'a>) -> Vec<Event<'a>> {
             }
 
             // First text/content in list item - prepend the colored marker
-            Event::Text(text) if in_list_item && !item_content_started => {
+            Event::Text(_text) if in_list_item && !item_content_started => {
                 item_content_started = true;
                 if let Some(ct) = comparison_type {
                     let (marker, color) = ct.list_marker();
@@ -1054,6 +1058,169 @@ fn linkify_mentions(html: &str, valid_mentions: &HashSet<String>, base_url: &str
             }
         })
         .to_string()
+}
+
+/// Linkify action item owners in tables with Notion-style embeds
+/// Finds tables with "Owner" header column and replaces matching names with user embeds
+pub fn linkify_action_item_owners(
+    html: &str,
+    users_config: &UsersConfig,
+    teams_config: &TeamsConfig,
+    base_url: &str,
+) -> String {
+    // Parse tables and find Owner column
+    // Table structure: <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>
+
+    let table_re = Regex::new(r"(?s)<table>(.*?)</table>").unwrap();
+
+    table_re
+        .replace_all(html, |caps: &regex::Captures| {
+            let table_content = &caps[1];
+
+            // Find header row to detect Owner column position
+            let thead_re = Regex::new(r"(?s)<thead>(.*?)</thead>").unwrap();
+            let th_re = Regex::new(r"<th>(.*?)</th>").unwrap();
+
+            let owner_col_idx = if let Some(thead_cap) = thead_re.captures(table_content) {
+                let header = &thead_cap[1];
+                th_re
+                    .captures_iter(header)
+                    .enumerate()
+                    .find(|(_, cap)| cap[1].to_lowercase() == "owner")
+                    .map(|(idx, _)| idx)
+            } else {
+                None
+            };
+
+            // If no Owner column found, return table unchanged
+            let Some(owner_idx) = owner_col_idx else {
+                return format!("<table>{}</table>", table_content);
+            };
+
+            // Process tbody rows to linkify owner cells
+            let tbody_re = Regex::new(r"(?s)<tbody>(.*?)</tbody>").unwrap();
+            let row_re = Regex::new(r"(?s)<tr>(.*?)</tr>").unwrap();
+            let td_re = Regex::new(r"<td>(.*?)</td>").unwrap();
+
+            let new_table_content = tbody_re.replace(table_content, |tbody_cap: &regex::Captures| {
+                let tbody = &tbody_cap[1];
+
+                let new_tbody = row_re.replace_all(tbody, |row_cap: &regex::Captures| {
+                    let row = &row_cap[1];
+
+                    // Collect all cells
+                    let cells: Vec<_> = td_re.captures_iter(row).collect();
+
+                    if owner_idx < cells.len() {
+                        let owner_text = cells[owner_idx][1].trim();
+
+                        // Try to match owner to a user or team
+                        if let Some((user_id, user_name, initials)) =
+                            find_user_match(owner_text, users_config)
+                        {
+                            // Build new row with embed in owner cell
+                            let mut new_row = String::from("<tr>");
+                            for (i, cell) in cells.iter().enumerate() {
+                                if i == owner_idx {
+                                    new_row.push_str(&format!(
+                                        r#"<td><a href="{}/users/{}" class="owner-embed inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-700/50 hover:bg-slate-600/50 rounded-md transition-colors no-underline group"><span class="w-5 h-5 rounded-full bg-gradient-to-br from-piper-accent to-emerald-400 flex items-center justify-center text-[10px] font-bold text-white">{}</span><span class="text-slate-200 group-hover:text-white">{}</span></a></td>"#,
+                                        base_url, user_id, initials, user_name
+                                    ));
+                                } else {
+                                    new_row.push_str(&format!("<td>{}</td>", &cell[1]));
+                                }
+                            }
+                            new_row.push_str("</tr>");
+                            new_row
+                        } else if let Some((team_id, team_name)) =
+                            find_team_match(owner_text, teams_config)
+                        {
+                            // Build new row with team embed
+                            let mut new_row = String::from("<tr>");
+                            for (i, cell) in cells.iter().enumerate() {
+                                if i == owner_idx {
+                                    new_row.push_str(&format!(
+                                        r#"<td><a href="{}/teams/{}" class="owner-embed inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-900/30 hover:bg-blue-800/40 rounded-md transition-colors no-underline group"><svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><span class="text-blue-300 group-hover:text-blue-200">{}</span></a></td>"#,
+                                        base_url, team_id, team_name
+                                    ));
+                                } else {
+                                    new_row.push_str(&format!("<td>{}</td>", &cell[1]));
+                                }
+                            }
+                            new_row.push_str("</tr>");
+                            new_row
+                        } else {
+                            // No match, keep original
+                            format!("<tr>{}</tr>", row)
+                        }
+                    } else {
+                        format!("<tr>{}</tr>", row)
+                    }
+                });
+
+                format!("<tbody>{}</tbody>", new_tbody)
+            });
+
+            format!("<table>{}</table>", new_table_content)
+        })
+        .to_string()
+}
+
+/// Find a user match by ID or display name parts
+fn find_user_match(text: &str, users_config: &UsersConfig) -> Option<(String, String, String)> {
+    let text_lower = text.to_lowercase();
+
+    // Check user IDs first
+    for (user_id, user) in &users_config.users {
+        if user_id.to_lowercase() == text_lower {
+            let name = user.display_name(user_id);
+            let initials = get_initials(&name);
+            return Some((user_id.clone(), name, initials));
+        }
+    }
+
+    // Check display names (full or partial match)
+    for (user_id, user) in &users_config.users {
+        let display = user.display_name(user_id);
+        let display_lower = display.to_lowercase();
+
+        // Full name match
+        if display_lower == text_lower {
+            let initials = get_initials(&display);
+            return Some((user_id.clone(), display, initials));
+        }
+
+        // First or last name match
+        let name_parts: Vec<&str> = display_lower.split_whitespace().collect();
+        if name_parts.iter().any(|part| *part == text_lower) {
+            let initials = get_initials(&display);
+            return Some((user_id.clone(), display, initials));
+        }
+    }
+
+    None
+}
+
+/// Find a team match by ID or name
+fn find_team_match(text: &str, teams_config: &TeamsConfig) -> Option<(String, String)> {
+    let text_lower = text.to_lowercase();
+
+    for (team_id, team) in &teams_config.teams {
+        if team_id.to_lowercase() == text_lower || team.name.to_lowercase() == text_lower {
+            return Some((team_id.clone(), team.name.clone()));
+        }
+    }
+
+    None
+}
+
+/// Get initials from a name (e.g., "Richard Hendricks" -> "RH")
+fn get_initials(name: &str) -> String {
+    name.split_whitespace()
+        .filter_map(|word| word.chars().next())
+        .take(2)
+        .collect::<String>()
+        .to_uppercase()
 }
 
 #[cfg(test)]

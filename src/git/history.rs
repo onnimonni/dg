@@ -300,12 +300,14 @@ pub struct TenurePeriod {
 }
 
 /// Cache for historical configurations
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct HistoryCache {
     /// Cached configs by date (YYYY-MM-DD -> Config)
     configs: HashMap<String, DgConfig>,
 }
 
+#[allow(dead_code)]
 impl HistoryCache {
     pub fn new() -> Self {
         Self::default()

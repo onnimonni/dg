@@ -43,7 +43,8 @@ pub fn run(docs_dir: &str, dry_run: bool) -> Result<()> {
 
     for record in &draft_records {
         let rt = record.record_type();
-        let new_id = graph.next_id_excluding(&rt, &id_mapping.values().cloned().collect());
+        let exclude: Vec<String> = id_mapping.values().cloned().collect();
+        let new_id = graph.next_id_excluding(rt, &exclude);
         id_mapping.insert(record.id().to_string(), new_id.clone());
 
         if dry_run {

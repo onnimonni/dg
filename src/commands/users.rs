@@ -44,10 +44,7 @@ pub fn list(docs_dir: &str, include_deprecated: bool, format: &str) -> Result<()
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         _ => {
-            println!(
-                "{:<15} {:<25} {:<20} {}",
-                "USERNAME", "NAME", "TEAMS", "STATUS"
-            );
+            println!("{:<15} {:<25} {:<20} STATUS", "USERNAME", "NAME", "TEAMS");
             println!("{}", "-".repeat(70));
 
             for (username, user) in &entries {

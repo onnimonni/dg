@@ -12,6 +12,8 @@ struct Query {
     status_filter: Option<String>,
     tag_filter: Option<String>,
     author_filter: Option<String>,
+    title_filter: Option<String>,
+    id_filter: Option<String>,
     core: Option<bool>,
 }
 
@@ -32,6 +34,8 @@ impl Query {
                 "status" | "s" => query.status_filter = Some(value.to_lowercase()),
                 "tag" => query.tag_filter = Some(value.to_lowercase()),
                 "author" | "a" => query.author_filter = Some(value.to_lowercase()),
+                "title" => query.title_filter = Some(value.to_lowercase()),
+                "id" => query.id_filter = Some(value.to_lowercase()),
                 "core" | "f" => {
                     query.core = Some(value == "true" || value == "yes" || value == "1")
                 }
@@ -60,6 +64,8 @@ impl Query {
             && self.status_filter.is_none()
             && self.tag_filter.is_none()
             && self.author_filter.is_none()
+            && self.title_filter.is_none()
+            && self.id_filter.is_none()
             && self.core.is_none()
     }
 }
@@ -89,12 +95,14 @@ pub fn run(
         println!("  dg search status:accepted     Filter by status");
         println!("  dg search tag:auth            Filter by tag");
         println!("  dg search author:john         Filter by author");
-        println!("  dg search core:true   Filter core records");
+        println!("  dg search title:compress      Filter by title");
+        println!("  dg search id:adr-001          Filter by ID");
+        println!("  dg search core:true           Filter core records");
         println!();
         println!("{}", "Examples:".bold());
         println!("  dg search auth type:adr");
         println!("  dg search status:accepted tag:security");
-        println!("  dg search database core:true");
+        println!("  dg search title:pivot core:true");
         return Ok(());
     }
 
@@ -141,9 +149,23 @@ pub fn run(
                 }
             }
 
-            // Foundational filter
+            // Core filter
             if let Some(f) = query.core {
                 if r.frontmatter.core != f {
+                    return false;
+                }
+            }
+
+            // Title filter
+            if let Some(ref title) = query.title_filter {
+                if !r.title().to_lowercase().contains(title) {
+                    return false;
+                }
+            }
+
+            // ID filter
+            if let Some(ref id) = query.id_filter {
+                if !r.id().to_lowercase().contains(id) {
                     return false;
                 }
             }

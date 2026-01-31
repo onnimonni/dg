@@ -46,3 +46,4 @@ src/serve/static/daisyui-theme.mjs
 
 # Generated sites
 samples/microsoft/docs/_site
+samples/pied-piper/docs/_site

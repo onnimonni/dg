@@ -65,6 +65,28 @@ pub fn run(docs_dir: &str) -> Result<()> {
         }
     }
 
+    // Action items stats
+    let mut total_actions = 0;
+    let mut completed_actions = 0;
+    for record in graph.all_records() {
+        for (_, completed, _) in record.extract_action_items() {
+            total_actions += 1;
+            if completed {
+                completed_actions += 1;
+            }
+        }
+    }
+
+    if total_actions > 0 {
+        let open_actions = total_actions - completed_actions;
+        println!("\n{}", "Action items:".yellow());
+        println!(
+            "  {} open, {} completed",
+            open_actions.to_string().yellow(),
+            completed_actions.to_string().green()
+        );
+    }
+
     // Warn about open incidents
     warn_open_incidents(&graph);
 
